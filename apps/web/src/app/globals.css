@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* ROOM design tokens. One restrained accent (teal); separate accessible colours and text labels for
+   status. Dark is the default; light uses the same system. All colours are checked for AA contrast on
+   their own surface. */
+:root {
+  color-scheme: dark;
+  --bg: #0d1113;
+  --surface: #141a1d;
+  --surface-2: #1b2327;
+  --surface-3: #232d32;
+  --line: #2b373d;
+  --line-strong: #3b4a51;
+  --text: #e8eef0;
+  --text-muted: #a3b2b8;
+  --text-faint: #7d8f96;
+  --accent: #35b3a8;
+  --accent-strong: #52cfc3;
+  --accent-quiet: #13312f;
+  --ok: #4ea96a;
+  --ok-quiet: #12291a;
+  --warn: #d0a03f;
+  --warn-quiet: #2e2413;
+  --danger: #dd7368;
+  --danger-quiet: #321a18;
+  --info: #6fa8dc;
+  --info-quiet: #152430;
+  --sim: #b48ad8;
+  --sim-quiet: #241c30;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-strong);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f8f8;
+  --surface: #ffffff;
+  --surface-2: #f0f4f4;
+  --surface-3: #e5ecec;
+  --line: #d8e0e0;
+  --line-strong: #b9c6c6;
+  --text: #16201f;
+  --text-muted: #4e5f5e;
+  --text-faint: #6d7e7d;
+  --accent: #10736c;
+  --accent-strong: #0b5a55;
+  --accent-quiet: #dcefed;
+  --ok: #276c40;
+  --ok-quiet: #dff0e4;
+  --warn: #8a6410;
+  --warn-quiet: #f7edd6;
+  --danger: #a93a2f;
+  --danger-quiet: #fae3e0;
+  --info: #1f5d8f;
+  --info-quiet: #e0edf8;
+  --sim: #6a3f9b;
+  --sim-quiet: #eee3f8;
+  --shadow: 0 1px 2px rgb(16 32 32 / 0.06), 0 8px 24px -16px rgb(16 32 32 / 0.25);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-quiet: var(--accent-quiet);
+  --color-ok: var(--ok);
+  --color-ok-quiet: var(--ok-quiet);
+  --color-warn: var(--warn);
+  --color-warn-quiet: var(--warn-quiet);
+  --color-danger: var(--danger);
+  --color-danger-quiet: var(--danger-quiet);
+  --color-info: var(--info);
+  --color-info-quiet: var(--info-quiet);
+  --color-sim: var(--sim);
+  --color-sim-quiet: var(--sim-quiet);
+  --radius-card: var(--radius);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Metrics always use tabular numerals so columns line up. */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+:where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: var(--accent-quiet);
+  color: var(--text);
+}
+
+/* Dense tables scroll inside their own container; the page itself never overflows sideways. */
+.table-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .skeleton { animation: none; }
+}
