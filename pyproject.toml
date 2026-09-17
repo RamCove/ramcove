@@ -1,0 +1,69 @@
+[project]
+name = "room"
+version = "0.1.0"
+description = "ROOM: a proposed Bittensor subnet for verified, memory-driven LLM serving capacity. Local development build."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi==0.141.1",
+  "uvicorn==0.53.0",
+  "sqlalchemy==2.0.54",
+  "psycopg[binary]==3.3.5",
+  "alembic==1.20.0",
+  "pydantic==2.13.5",
+  "httpx==0.28.1",
+  "substrate-interface==1.8.1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "ruff==0.16.8",
+  "mypy==2.3.1",
+  "hypothesis==6.168.0",
+]
+
+[project.scripts]
+room-api = "room_api.main:run"
+room-controller = "room_controller.main:run"
+room-worker = "room_worker.main:run"
+room-miner = "room_miner.cli:main"
+
+[build-system]
+requires = ["hatchling==1.32.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "packages/protocol/room_protocol",
+  "packages/evaluator/room_evaluator",
+  "packages/chain/room_chain",
+  "services/api/room_api",
+  "services/controller/room_controller",
+  "services/worker/room_worker",
+  "miner_cli/room_miner",
+]
+
+
+[tool.hatch.build]
+dev-mode-dirs = ["packages/protocol", "packages/evaluator", "packages/chain", "services/api", "services/controller", "services/worker", "miner_cli"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM"]
+ignore = ["S101", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "db: needs the local PostgreSQL test database",
+  "chain_readonly: reads a public Bittensor RPC endpoint (network access)",
+  "gpu: needs an authorized H100 SXM isolation host (never runs in CI)",
+  "testnet: needs explicit testnet credentials and authorization",
+]
+addopts = "-m 'not chain_readonly and not gpu and not testnet'"
