@@ -1,0 +1,281 @@
+"""Operator console. No route crowns a champion by hand or rewrites a measured score."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert
+
+from ..services import accounting, public
+from ..services.context import AppContext
+from ..services.settlement import suspend_and_rollback
+from ..store import audit
+from ..store.db import new_id, now, tx
+from ..store.schema import (
+    credits,
+    incidents,
+    jobs,
+    ledger,
+    profile_versions,
+    quotes,
+    refunds,
+    reviews,
+    submissions,
+    workers,
+)
+from ..store.schema import (
+    settings as settings_t,
+)
+from .deps import get_ctx, require_role
+
+router = APIRouter(prefix="/v1/operator", tags=["operator"])
+
+
+class PauseIn(BaseModel):
+    paused: bool
+    reason: str = Field(min_length=5, max_length=500)
+
+
+class IncidentIn(BaseModel):
+    severity: str = Field(pattern="^(info|minor|major|critical)$")
+    title: str = Field(min_length=5, max_length=200)
+    public_summary: str = Field(min_length=10, max_length=2000)
+
+
+class RollbackIn(BaseModel):
+    reason: str = Field(min_length=10, max_length=1000)
+    deliberate: bool = False
+
+
+@router.get("/console")
+def console(ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))) -> dict:
+    with tx(ctx.engine) as conn:
+        profile = ctx.profile(conn)
+        by_state = dict(
+            conn.execute(select(submissions.c.state, func.count()).group_by(submissions.c.state)).all()
+        )
+        leases = conn.execute(
+            select(jobs).where(jobs.c.status == "leased").order_by(jobs.c.lease_expires_at)
+        ).all()
+        queued = conn.execute(
+            select(jobs.c.stage, func.count()).where(jobs.c.status == "queued").group_by(jobs.c.stage)
+        ).all()
+        open_quotes = conn.execute(select(quotes).where(quotes.c.status == "open")).all()
+        rfs = conn.execute(select(refunds).order_by(refunds.c.created_at.desc()).limit(50)).all()
+        crs = conn.execute(select(credits).order_by(credits.c.created_at.desc()).limit(50)).all()
+        led = conn.execute(
+            select(ledger.c.kind, func.sum(ledger.c.amount_rao), func.count()).group_by(ledger.c.kind)
+        ).all()
+        revs = conn.execute(select(reviews).where(reviews.c.decision.is_(None))).all()
+        incs = conn.execute(select(incidents).order_by(incidents.c.started_at.desc()).limit(20)).all()
+        vers = conn.execute(select(profile_versions)).all()
+        ws = conn.execute(select(workers)).all()
+        return {
+            "intake": {
+                "paused": bool(ctx.setting(conn, "intake_paused", {"paused": False}).get("paused")),
+                "committed_centi": ctx.committed_centi(conn, profile.profile_id),
+                "envelope_per_admission_centi": profile.envelope.total(),
+            },
+            "submissions_by_state": by_state,
+            "queued_jobs": {stage: n for stage, n in queued},
+            "leases": [
+                {
+                    "job_id": j.id,
+                    "stage": j.stage,
+                    "worker": j.lease_worker,
+                    "submission_id": j.submission_id,
+                    "expires_at": j.lease_expires_at,
+                    "attempts": j.attempts,
+                    "expired": bool(j.lease_expires_at and j.lease_expires_at < now()),
+                }
+                for j in leases
+            ],
+            "open_quotes": [
+                {
+                    "id": q.id,
+                    "submission_id": q.submission_id,
+                    "amount_rao": q.amount_rao,
+                    "expires_block": q.expires_block,
+                    "hotkey": q.hotkey,
+                }
+                for q in open_quotes
+            ],
+            "refunds": [
+                {
+                    "id": r.id,
+                    "status": r.status,
+                    "amount_rao": r.amount_rao,
+                    "hotkey": r.hotkey,
+                    "reason": r.reason,
+                    "submission_id": r.submission_id,
+                    "simulated": r.simulated,
+                }
+                for r in rfs
+            ],
+            "credits": [
+                {
+                    "id": c.id,
+                    "hotkey": c.hotkey,
+                    "amount_rao": c.amount_rao,
+                    "reason": c.reason,
+                    "expires_at": c.expires_at,
+                    "consumed_by": c.consumed_by,
+                }
+                for c in crs
+            ],
+            "ledger_totals": [{"kind": k, "total_rao": int(total or 0), "entries": n} for k, total, n in led],
+            "open_reviews": [
+                {
+                    "id": r.id,
+                    "submission_id": r.submission_id,
+                    "due_at": r.due_at,
+                    "overdue": r.due_at < now(),
+                }
+                for r in revs
+            ],
+            "incidents": [
+                {
+                    "id": i.id,
+                    "severity": i.severity,
+                    "title": i.title,
+                    "summary": i.public_summary,
+                    "started_at": i.started_at,
+                    "resolved_at": i.resolved_at,
+                }
+                for i in incs
+            ],
+            "profile_versions": [
+                {
+                    "profile_id": v.profile_id,
+                    "version": v.version,
+                    "rule_hash": v.rule_hash,
+                    "active": v.active,
+                    "published_at": v.published_at,
+                }
+                for v in vers
+            ],
+            "workers": [
+                {
+                    "id": w.id,
+                    "validator": w.validator,
+                    "ready": w.ready,
+                    "readiness": w.readiness,
+                    "enabled": w.enabled,
+                    "calibrated_champion_version": w.calibrated_champion_version,
+                }
+                for w in ws
+            ],
+            "guardrails": [
+                "No route sets a champion by hand.",
+                "No route edits a measured score.",
+                "Emergency rollback keeps the suspended version and its evidence.",
+            ],
+        }
+
+
+@router.post("/intake")
+def set_intake(
+    body: PauseIn, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
+) -> dict:
+    with tx(ctx.engine) as conn:
+        conn.execute(
+            insert(settings_t)
+            .values(
+                key="intake_paused",
+                value={"paused": body.paused},
+                updated_by=sess["hotkey"],
+                reason=body.reason,
+            )
+            .on_conflict_do_update(
+                index_elements=["key"],
+                set_={
+                    "value": {"paused": body.paused},
+                    "updated_by": sess["hotkey"],
+                    "reason": body.reason,
+                    "updated_at": now(),
+                },
+            )
+        )
+        audit.append(
+            conn,
+            sess["hotkey"],
+            "intake_paused" if body.paused else "intake_resumed",
+            "settings",
+            "intake_paused",
+            {"reason": body.reason},
+            public=True,
+        )
+    return {"paused": body.paused, "reason": body.reason}
+
+
+@router.post("/incidents")
+def open_incident(
+    body: IncidentIn, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
+) -> dict:
+    iid = new_id("inc")
+    with tx(ctx.engine) as conn:
+        conn.execute(
+            incidents.insert().values(
+                id=iid,
+                severity=body.severity,
+                title=body.title,
+                public_summary=body.public_summary,
+                opened_by=sess["hotkey"],
+            )
+        )
+        audit.append(
+            conn, sess["hotkey"], "incident_opened", "incident", iid, {"severity": body.severity}, public=True
+        )
+    return {"id": iid}
+
+
+@router.post("/incidents/{incident_id}/resolve")
+def resolve_incident(
+    incident_id: str, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
+) -> dict:
+    from sqlalchemy import update
+
+    with tx(ctx.engine) as conn:
+        conn.execute(update(incidents).where(incidents.c.id == incident_id).values(resolved_at=now()))
+        audit.append(conn, sess["hotkey"], "incident_resolved", "incident", incident_id, {}, public=True)
+    return {"id": incident_id, "resolved": True}
+
+
+@router.post("/refunds/{refund_id}/approve")
+def approve_refund(
+    refund_id: str, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
+) -> dict:
+    return accounting.approve_refund(ctx, refund_id, sess["hotkey"])
+
+
+@router.post("/refunds/{refund_id}/execute")
+def execute_refund(
+    refund_id: str, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
+) -> dict:
+    return accounting.execute_refund_demo(ctx, refund_id, sess["hotkey"])
+
+
+@router.post("/champion/rollback")
+def rollback(
+    body: RollbackIn, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
+) -> dict:
+    with tx(ctx.engine) as conn:
+        profile = ctx.profile(conn)
+        return suspend_and_rollback(
+            conn, ctx, profile.profile_id, sess["hotkey"], body.reason, body.deliberate
+        )
+
+
+@router.get("/audit")
+def audit_log(
+    cursor: str | None = None,
+    ctx: AppContext = Depends(get_ctx),
+    sess: dict = Depends(require_role("operator")),
+) -> dict:
+    return public.audit_page(ctx, public_only=False, cursor=cursor)
+
+
+@router.get("/audit/verify")
+def verify(ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))) -> dict:
+    return public.verify_audit(ctx)

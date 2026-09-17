@@ -12,6 +12,7 @@ dependencies = [
   "pydantic==2.13.5",
   "httpx==0.28.1",
   "substrate-interface==1.8.1",
+  "python-multipart==0.0.32",
 ]
 
 [dependency-groups]
