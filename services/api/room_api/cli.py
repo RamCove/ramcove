@@ -63,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "scenario":
         from .services.scenarios import SCENARIOS
         from .services.scenarios import run as run_scenario
+
         if args.list:
             for k, v in SCENARIOS.items():
                 print(f"{k:26s} {v}")

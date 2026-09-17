@@ -51,6 +51,7 @@ class Harness:
 
     def online(self, workers: tuple[str, ...] = ("w-op-1", "w-op-2")) -> None:
         from . import workers as workers_svc
+
         for wid in workers:
             workers_svc.heartbeat(self.ctx, wid, self.provider().readiness().as_dict())
 
@@ -103,11 +104,19 @@ class Harness:
     def approve(self, sub_id: str, reviewer: str = "reviewer-1") -> None:
         hk, _ = self.hotkey(reviewer)
         with tx(self.ctx.engine) as conn:
-            rid = conn.execute(select(reviews.c.id).where(reviews.c.submission_id == sub_id,
-                                                          reviews.c.decision.is_(None))).scalar()
+            rid = conn.execute(
+                select(reviews.c.id).where(reviews.c.submission_id == sub_id, reviews.c.decision.is_(None))
+            ).scalar()
         if rid:
-            review.decide_review(self.ctx, rid, hk, "approve", "Demo review: published criteria all pass.",
-                                 {c["id"]: True for c in review_criteria()}, False)
+            review.decide_review(
+                self.ctx,
+                rid,
+                hk,
+                "approve",
+                "Demo review: published criteria all pass.",
+                {c["id"]: True for c in review_criteria()},
+                False,
+            )
             control.tick(self.ctx)
 
     def state(self, sub_id: str) -> str:
@@ -152,7 +161,9 @@ def run(ctx: AppContext, name: str) -> dict:
             hk, _ = h.hotkey("miner-ada")
             with tx(ctx.engine) as conn:
                 ctx.chain(conn).store.deregister(ctx.settings.netuid, hk)
-            out["note"] = f"{hk} is not registered, so the incumbent keeps the allocation until the grace ends."
+            out["note"] = (
+                f"{hk} is not registered, so the incumbent keeps the allocation until the grace ends."
+            )
         if h.state(win) == "in_review":
             h.approve(win)
         h.work()
@@ -186,12 +197,21 @@ def run(ctx: AppContext, name: str) -> dict:
         with tx(ctx.engine) as conn:
             # force the screening lease to expire twice: the miner keeps priority, then gets a credit
             for _ in range(2):
-                job = conn.execute(select(jobs).where(jobs.c.submission_id == sub,
-                                                      jobs.c.status.in_(["queued", "leased"]))).first()
+                job = conn.execute(
+                    select(jobs).where(jobs.c.submission_id == sub, jobs.c.status.in_(["queued", "leased"]))
+                ).first()
                 if job is None:
                     break
-                conn.execute(update(jobs).where(jobs.c.id == job.id).values(
-                    status="leased", lease_worker="w-op-1", lease_expires_at=now(), attempts=job.attempts + 1))
+                conn.execute(
+                    update(jobs)
+                    .where(jobs.c.id == job.id)
+                    .values(
+                        status="leased",
+                        lease_worker="w-op-1",
+                        lease_expires_at=now(),
+                        attempts=job.attempts + 1,
+                    )
+                )
                 queue.expire_leases(conn, ctx)
         control.tick(ctx)
         out["submissions"]["stalled"] = sub
