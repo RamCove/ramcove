@@ -27,3 +27,4 @@ secrets/
 apps/web/.next/
 apps/web/node_modules/
 var/
+apps/web/test-results/

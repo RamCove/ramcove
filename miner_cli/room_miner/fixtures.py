@@ -105,6 +105,16 @@ FIXTURES = [
 ]
 
 
+DEMO_VARIANTS = 6  # demo only: lets the local demonstration be re-run without weakening duplicate checks
+
+
+def variant_patch(fixture: dict, variant: int) -> str:
+    """Variant 0 is the fixture itself; later variants add one labelled line, so each is a distinct patch."""
+    if variant == 0:
+        return fixture["patch"]
+    return fixture["patch"] + f"+ROOM_DEMO_VARIANT = {variant}\n"
+
+
 def by_name(name: str) -> dict:
     for f in FIXTURES:
         if f["name"] == name:
@@ -117,8 +127,15 @@ def registry() -> dict[str, dict]:
     for f in FIXTURES:
         if f["role"] != "challenger":
             continue
-        h = sha256_hex(normalize_patch(f["patch"]).encode())
-        out[h] = {"name": f["name"], "title": f["title"], "params": asdict(f["params"]), "simulated": True}
+        for variant in range(DEMO_VARIANTS):
+            h = sha256_hex(normalize_patch(variant_patch(f, variant)).encode())
+            out[h] = {
+                "name": f["name"],
+                "title": f["title"],
+                "variant": variant,
+                "params": asdict(f["params"]),
+                "simulated": True,
+            }
     return out
 
 

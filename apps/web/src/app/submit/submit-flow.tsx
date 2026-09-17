@@ -233,7 +233,10 @@ uv run room-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"`}
                 >
                   Build, sign and run free checks
                 </Button>
-                {!session && loaded && <span className="text-[12px] text-muted">Sign in first.</span>}
+                {!loaded && <span className="text-[12px] text-muted">Checking your sign-in…</span>}
+                {loaded && !session && (
+                  <span className="text-[12px] text-muted">Sign in with your hotkey first.</span>
+                )}
               </div>
             </div>
           )}
