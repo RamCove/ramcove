@@ -25,6 +25,7 @@ dev = [
 
 [project.scripts]
 room-api = "room_api.main:run"
+room-admin = "room_api.cli:main"
 room-controller = "room_controller.main:run"
 room-worker = "room_worker.main:run"
 room-miner = "room_miner.cli:main"
