@@ -74,10 +74,12 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
           <ThemeToggle />
           <SessionButton session={session} loaded={loaded} reload={reload} />
-          <Button variant="quiet" size="sm" onClick={() => setOpen((v) => !v)}>
-            <span className="lg:hidden">Menu</span>
-            <span className="sr-only">Toggle navigation</span>
-          </Button>
+          <span className="lg:hidden">
+            <Button variant="quiet" size="sm" onClick={() => setOpen((v) => !v)}>
+              Menu
+              <span className="sr-only">Toggle navigation</span>
+            </Button>
+          </span>
         </div>
       </div>
       {open && (

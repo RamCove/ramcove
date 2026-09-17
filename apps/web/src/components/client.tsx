@@ -166,15 +166,29 @@ export function AutoRefresh({ seconds = 5 }: { seconds?: number }) {
     return () => clearInterval(id);
   }, [on, router, seconds]);
   return (
-    <label className="inline-flex cursor-pointer select-none items-center gap-2 text-[12px] text-muted">
-      <input
-        type="checkbox"
-        checked={on}
-        onChange={(e) => setOn(e.target.checked)}
-        className="h-3.5 w-3.5 accent-[var(--accent)]"
-      />
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => setOn((v) => !v)}
+      className="inline-flex select-none items-center gap-2 rounded-[var(--radius-sm)] px-1.5 py-1 text-[12px] text-muted hover:text-text"
+    >
+      <span
+        aria-hidden
+        className={clsx(
+          "inline-block h-3 w-6 rounded-full border transition-colors",
+          on ? "border-accent bg-accent" : "border-line-strong bg-surface-3",
+        )}
+      >
+        <span
+          className={clsx(
+            "block h-2 w-2 translate-y-[1px] rounded-full bg-bg transition-transform",
+            on ? "translate-x-[13px]" : "translate-x-[2px]",
+          )}
+        />
+      </span>
       Live updates
-    </label>
+    </button>
   );
 }
 
