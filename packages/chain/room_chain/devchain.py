@@ -124,7 +124,9 @@ class DevChain:
         if bal < DEV_FEE_RAO:
             return [Event("System", "ExtrinsicFailed", {"dispatch_error": "InsufficientBalance"}, idx)]
         self.store.set_balance(signer, bal - DEV_FEE_RAO)
-        ev.append(Event("TransactionPayment", "TransactionFeePaid", {"who": signer, "actual_fee": DEV_FEE_RAO}, idx))
+        ev.append(
+            Event("TransactionPayment", "TransactionFeePaid", {"who": signer, "actual_fee": DEV_FEE_RAO}, idx)
+        )
         if call.module == "Utility" and call.function in {"batch", "batch_all"}:
             if call.function == "batch_all" and not self._all_dispatchable(signer, call.inner):
                 # atomic: nothing is applied and the whole extrinsic fails
@@ -137,7 +139,11 @@ class DevChain:
                     return ev + staged + [Event("System", "ExtrinsicSuccess", {}, idx)]
                 staged.extend(inner_events)
                 staged.append(Event("Utility", "ItemCompleted", {}, idx))
-            return ev + staged + [Event("Utility", "BatchCompleted", {}, idx), Event("System", "ExtrinsicSuccess", {}, idx)]
+            return (
+                ev
+                + staged
+                + [Event("Utility", "BatchCompleted", {}, idx), Event("System", "ExtrinsicSuccess", {}, idx)]
+            )
         ok, inner_events = self._dispatch(signer, call, idx)
         if not ok:
             return ev + [Event("System", "ExtrinsicFailed", {"dispatch_error": "Failed"}, idx)]
@@ -162,15 +168,23 @@ class DevChain:
             return True, [Event("Balances", "Transfer", {"from": signer, "to": dest, "amount": value}, idx)]
         if (call.module, call.function) == ("System", "remark_with_event"):
             raw = call.args["remark"]
-            data = bytes.fromhex(raw[2:]) if isinstance(raw, str) and raw.startswith("0x") else (
-                raw if isinstance(raw, bytes) else str(raw).encode())
+            data = (
+                bytes.fromhex(raw[2:])
+                if isinstance(raw, str) and raw.startswith("0x")
+                else (raw if isinstance(raw, bytes) else str(raw).encode())
+            )
             return True, [Event("System", "Remarked", {"sender": signer, "hash": blake2_256(data)}, idx)]
         return False, []
 
 
 def payment_call(recipient: str, amount_rao: int, quote_id: str, plain_batch: bool = False) -> Call:
     remark = "0x" + (b"room:quote:" + quote_id.encode()).hex()
-    return Call("Utility", "batch" if plain_batch else "batch_all", {}, (
-        Call("Balances", "transfer_keep_alive", {"dest": recipient, "value": amount_rao}),
-        Call("System", "remark_with_event", {"remark": remark}),
-    ))
+    return Call(
+        "Utility",
+        "batch" if plain_batch else "batch_all",
+        {},
+        (
+            Call("Balances", "transfer_keep_alive", {"dest": recipient, "value": amount_rao}),
+            Call("System", "remark_with_event", {"remark": remark}),
+        ),
+    )

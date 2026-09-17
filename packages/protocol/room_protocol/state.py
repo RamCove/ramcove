@@ -16,35 +16,52 @@ class S(StrEnum):
     INVITED = "invited"
     # paid admission
     QUOTED = "quoted"
-    ADMITTED = "admitted"          # verified finalized payment, receipt issued
+    ADMITTED = "admitted"  # verified finalized payment, receipt issued
     SCREENING = "screening"
     EVAL_QUEUED = "eval_queued"
     EVALUATING = "evaluating"
     CONFIRM_QUEUED = "confirm_queued"
     CONFIRMING = "confirming"
     IN_REVIEW = "in_review"
-    READY_FOR_PROMOTION = "ready_for_promotion"   # technically approved; waiting registration and order
+    READY_FOR_PROMOTION = "ready_for_promotion"  # technically approved; waiting registration and order
     # terminal
     PROMOTED = "promoted"
-    NOT_PROMOTED = "not_promoted"                 # evaluated/confirmed but did not clear the rule
+    NOT_PROMOTED = "not_promoted"  # evaluated/confirmed but did not clear the rule
     REJECTED_PREFLIGHT = "rejected_preflight"
     REJECTED_SCREEN = "rejected_screen"
     REVIEW_REJECTED = "review_rejected"
     EXPIRED_QUOTE = "expired_quote"
     EXPIRED_UNREGISTERED = "expired_unregistered"
-    OPERATOR_FAILED = "operator_failed"           # infra/quorum/deadline failure: refund or credit
+    OPERATOR_FAILED = "operator_failed"  # infra/quorum/deadline failure: refund or credit
     WITHDRAWN = "withdrawn"
 
 
-TERMINAL = frozenset({
-    S.PROMOTED, S.NOT_PROMOTED, S.REJECTED_PREFLIGHT, S.REJECTED_SCREEN, S.REVIEW_REJECTED,
-    S.EXPIRED_QUOTE, S.EXPIRED_UNREGISTERED, S.OPERATOR_FAILED, S.WITHDRAWN,
-})
+TERMINAL = frozenset(
+    {
+        S.PROMOTED,
+        S.NOT_PROMOTED,
+        S.REJECTED_PREFLIGHT,
+        S.REJECTED_SCREEN,
+        S.REVIEW_REJECTED,
+        S.EXPIRED_QUOTE,
+        S.EXPIRED_UNREGISTERED,
+        S.OPERATOR_FAILED,
+        S.WITHDRAWN,
+    }
+)
 
-PAID_ACTIVE = frozenset({
-    S.ADMITTED, S.SCREENING, S.EVAL_QUEUED, S.EVALUATING, S.CONFIRM_QUEUED, S.CONFIRMING,
-    S.IN_REVIEW, S.READY_FOR_PROMOTION,
-})
+PAID_ACTIVE = frozenset(
+    {
+        S.ADMITTED,
+        S.SCREENING,
+        S.EVAL_QUEUED,
+        S.EVALUATING,
+        S.CONFIRM_QUEUED,
+        S.CONFIRMING,
+        S.IN_REVIEW,
+        S.READY_FOR_PROMOTION,
+    }
+)
 
 # event name -> {from_state: to_state}
 TRANSITIONS: dict[str, dict[S, S]] = {
@@ -71,13 +88,22 @@ TRANSITIONS: dict[str, dict[S, S]] = {
     # lease expiry keeps admission priority: back to the queue of the same stage
     "lease_expired": {S.SCREENING: S.ADMITTED, S.EVALUATING: S.EVAL_QUEUED, S.CONFIRMING: S.CONFIRM_QUEUED},
     # champion changed before promotion: fresh evidence against the new champion, same key, no fee
-    "rebase": {S.CONFIRM_QUEUED: S.CONFIRM_QUEUED, S.CONFIRMING: S.CONFIRM_QUEUED, S.IN_REVIEW: S.CONFIRM_QUEUED,
-               S.READY_FOR_PROMOTION: S.CONFIRM_QUEUED, S.EVAL_QUEUED: S.EVAL_QUEUED,
-               S.EVALUATING: S.EVAL_QUEUED},
+    "rebase": {
+        S.CONFIRM_QUEUED: S.CONFIRM_QUEUED,
+        S.CONFIRMING: S.CONFIRM_QUEUED,
+        S.IN_REVIEW: S.CONFIRM_QUEUED,
+        S.READY_FOR_PROMOTION: S.CONFIRM_QUEUED,
+        S.EVAL_QUEUED: S.EVAL_QUEUED,
+        S.EVALUATING: S.EVAL_QUEUED,
+    },
     "operator_failure": {s: S.OPERATOR_FAILED for s in PAID_ACTIVE},
-    "withdraw": {**{s: S.WITHDRAWN for s in PAID_ACTIVE if s != S.READY_FOR_PROMOTION},
-                 S.PREFLIGHT_PASSED: S.WITHDRAWN, S.WAITLISTED: S.WITHDRAWN, S.INVITED: S.WITHDRAWN,
-                 S.QUOTED: S.WITHDRAWN},
+    "withdraw": {
+        **{s: S.WITHDRAWN for s in PAID_ACTIVE if s != S.READY_FOR_PROMOTION},
+        S.PREFLIGHT_PASSED: S.WITHDRAWN,
+        S.WAITLISTED: S.WITHDRAWN,
+        S.INVITED: S.WITHDRAWN,
+        S.QUOTED: S.WITHDRAWN,
+    },
 }
 
 

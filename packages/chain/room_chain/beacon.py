@@ -52,7 +52,9 @@ class RoundResolution:
     attempts: tuple[int, ...]
 
 
-def resolve_round(beacon: Beacon, scheduled: int, comparison_id: str, max_fallback: int = 3) -> RoundResolution:
+def resolve_round(
+    beacon: Beacon, scheduled: int, comparison_id: str, max_fallback: int = 3
+) -> RoundResolution:
     tried = []
     for k in range(max_fallback + 1):
         r = scheduled + k
@@ -66,8 +68,12 @@ def resolve_round(beacon: Beacon, scheduled: int, comparison_id: str, max_fallba
 class DevBeacon:
     """Deterministic simulation: randomness = sha256('room-dev-beacon:' + round)."""
 
-    def __init__(self, genesis: datetime = QUICKNET_GENESIS, period_s: int = QUICKNET_PERIOD_S,
-                 missing_rounds: set[int] | None = None) -> None:
+    def __init__(
+        self,
+        genesis: datetime = QUICKNET_GENESIS,
+        period_s: int = QUICKNET_PERIOD_S,
+        missing_rounds: set[int] | None = None,
+    ) -> None:
         self.genesis, self.period, self.missing = genesis, period_s, missing_rounds or set()
 
     def round_at(self, when: datetime) -> int:
@@ -76,7 +82,9 @@ class DevBeacon:
     def fetch(self, round_: int) -> BeaconRound | None:
         if round_ in self.missing:
             return None
-        return BeaconRound(round_, hashlib.sha256(f"room-dev-beacon:{round_}".encode()).hexdigest(), True, False)
+        return BeaconRound(
+            round_, hashlib.sha256(f"room-dev-beacon:{round_}".encode()).hexdigest(), True, False
+        )
 
 
 class DrandHttpBeacon:

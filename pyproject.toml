@@ -57,6 +57,10 @@ ignore = ["S101", "E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "B"]
+# the evaluator's `random` use is workload simulation, not cryptography
+"packages/evaluator/**" = ["S311"]
+# fixed-argument-list subprocess call to nvidia-smi, no shell
+"services/worker/room_worker/isolation.py" = ["S603"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

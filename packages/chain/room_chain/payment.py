@@ -25,9 +25,9 @@ TRANSFER_FUNCTIONS = {"transfer_keep_alive"}
 
 class Outcome(StrEnum):
     VERIFIED = "verified"
-    NOT_FINALIZED = "not_finalized"          # observe again later; no decision
-    REJECTED = "rejected"                    # not a valid payment for this quote
-    LATE = "late"                            # valid transfer but finalized after quote expiry
+    NOT_FINALIZED = "not_finalized"  # observe again later; no decision
+    REJECTED = "rejected"  # not a valid payment for this quote
+    LATE = "late"  # valid transfer but finalized after quote expiry
 
 
 @dataclass(frozen=True)
@@ -62,8 +62,14 @@ def _hex_to_bytes(v: object) -> bytes:
     raise ValueError("unsupported remark encoding")
 
 
-def verify_payment(ext: Extrinsic, terms: QuoteTerms, head: FinalizedHead, canonical_hash_at: str | None,
-                   used_references: set[tuple[str, int]], network: str) -> PaymentVerdict:
+def verify_payment(
+    ext: Extrinsic,
+    terms: QuoteTerms,
+    head: FinalizedHead,
+    canonical_hash_at: str | None,
+    used_references: set[tuple[str, int]],
+    network: str,
+) -> PaymentVerdict:
     ref = (ext.block_hash, ext.index)
     if network != terms.network:
         return PaymentVerdict(Outcome.REJECTED, "payment observed on a different network than the quote")
@@ -90,7 +96,9 @@ def verify_payment(ext: Extrinsic, terms: QuoteTerms, head: FinalizedHead, canon
     if remark_bytes != REMARK_PREFIX + terms.quote_id.encode():
         return PaymentVerdict(Outcome.REJECTED, "remark does not carry this quote identifier")
     if ext.signer != terms.payer:
-        return PaymentVerdict(Outcome.REJECTED, "signer is not the payer authorized in the quote", refund_eligible=True)
+        return PaymentVerdict(
+            Outcome.REJECTED, "signer is not the payer authorized in the quote", refund_eligible=True
+        )
 
     own = [e for e in ext.events if e.extrinsic_index == ext.index]
     names = {(e.module, e.name) for e in own}
@@ -98,8 +106,13 @@ def verify_payment(ext: Extrinsic, terms: QuoteTerms, head: FinalizedHead, canon
         return PaymentVerdict(Outcome.REJECTED, "extrinsic did not succeed")
     if ("Utility", "BatchInterrupted") in names or ("Utility", "BatchCompleted") not in names:
         return PaymentVerdict(Outcome.REJECTED, "batch did not complete atomically")
-    transfers = [e for e in own if (e.module, e.name) == ("Balances", "Transfer")
-                 and e.attributes.get("from") == terms.payer and e.attributes.get("to") == terms.recipient]
+    transfers = [
+        e
+        for e in own
+        if (e.module, e.name) == ("Balances", "Transfer")
+        and e.attributes.get("from") == terms.payer
+        and e.attributes.get("to") == terms.recipient
+    ]
     if len(transfers) != 1:
         return PaymentVerdict(Outcome.REJECTED, "no single transfer from the payer to the evaluation wallet")
     call_dest = transfer.args.get("dest")
@@ -108,12 +121,19 @@ def verify_payment(ext: Extrinsic, terms: QuoteTerms, head: FinalizedHead, canon
     if call_dest != terms.recipient or call_value != paid:
         return PaymentVerdict(Outcome.REJECTED, "transfer call and transfer event disagree")
     remarked = [e for e in own if (e.module, e.name) == ("System", "Remarked")]
-    if len(remarked) != 1 or str(remarked[0].attributes.get("hash", "")).lower() != blake2_256(remark_bytes) \
-            or remarked[0].attributes.get("sender") != terms.payer:
+    if (
+        len(remarked) != 1
+        or str(remarked[0].attributes.get("hash", "")).lower() != blake2_256(remark_bytes)
+        or remarked[0].attributes.get("sender") != terms.payer
+    ):
         return PaymentVerdict(Outcome.REJECTED, "remark event does not match the remark bytes and payer")
     if paid < terms.amount_rao:
-        return PaymentVerdict(Outcome.REJECTED, f"underpaid: {paid} rao < {terms.amount_rao} rao", paid, 0, ref, True)
+        return PaymentVerdict(
+            Outcome.REJECTED, f"underpaid: {paid} rao < {terms.amount_rao} rao", paid, 0, ref, True
+        )
     excess = paid - terms.amount_rao
     if ext.block_number > terms.expires_block:
-        return PaymentVerdict(Outcome.LATE, "payment finalized after the quote expired", paid, excess, ref, True)
+        return PaymentVerdict(
+            Outcome.LATE, "payment finalized after the quote expired", paid, excess, ref, True
+        )
     return PaymentVerdict(Outcome.VERIFIED, "payment verified", paid, excess, ref)

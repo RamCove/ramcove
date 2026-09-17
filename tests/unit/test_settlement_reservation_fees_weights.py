@@ -1,7 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from room_protocol.fees import PriceObservation, StalePriceError, compute_fee
 from room_protocol.money import RAO_PER_TAO
 from room_protocol.reservation import CapacityPlan, can_issue_quote, remaining_envelope
@@ -116,7 +115,11 @@ def test_fee_formula_and_rounding(profile):
 def test_stale_price_refuses_quotes(profile):
     now = datetime(2026, 9, 17, tzinfo=UTC)
     with pytest.raises(StalePriceError):
-        compute_fee(profile.fees, PriceObservation("coingecko:bittensor:usd", 227_920_000, now - timedelta(hours=1), False), now)
+        compute_fee(
+            profile.fees,
+            PriceObservation("coingecko:bittensor:usd", 227_920_000, now - timedelta(hours=1), False),
+            now,
+        )
 
 
 def test_uid_reuse_never_redirects_reward():

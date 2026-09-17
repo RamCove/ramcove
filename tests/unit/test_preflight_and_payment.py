@@ -4,7 +4,6 @@ import json
 import tarfile
 
 import pytest
-
 from room_chain.devchain import DevChain, MemoryStore, payment_call
 from room_chain.payment import Outcome, QuoteTerms, verify_payment
 from room_chain.types import Call
@@ -14,10 +13,18 @@ HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 
 
 def manifest(profile, **over):
-    m = {"schema": "room.manifest/1", "profile_id": profile.profile_id, "profile_version": profile.version,
-         "hotkey": HOTKEY, "lineage": "kv-fragment-aware", "parent_champion_version": 0,
-         "method": "Fragmentation-aware block allocator for the KV cache", "mechanism": "allocation",
-         "license": "Apache-2.0", "third_party": []}
+    m = {
+        "schema": "room.manifest/1",
+        "profile_id": profile.profile_id,
+        "profile_version": profile.version,
+        "hotkey": HOTKEY,
+        "lineage": "kv-fragment-aware",
+        "parent_champion_version": 0,
+        "method": "Fragmentation-aware block allocator for the KV cache",
+        "mechanism": "allocation",
+        "license": "Apache-2.0",
+        "third_party": [],
+    }
     m.update(over)
     return json.dumps(m).encode()
 
@@ -52,7 +59,9 @@ def make_tar(entries, gz=True):
 
 
 def test_valid_artifact_passes(profile):
-    r = run_preflight(make_tar([("manifest.json", manifest(profile), "file"), ("patch.diff", PATCH, "file")]), profile)
+    r = run_preflight(
+        make_tar([("manifest.json", manifest(profile), "file"), ("patch.diff", PATCH, "file")]), profile
+    )
     assert r.ok, r.errors
     assert r.changed_paths == ["vllm/v1/core/kv_cache_manager.py"]
 
@@ -78,7 +87,9 @@ def test_decompression_bomb_rejected_within_bounds(profile):
 
 def test_forbidden_and_disallowed_paths(profile):
     bad = PATCH.replace(b"vllm/v1/core/kv_cache_manager.py", b"vllm/entrypoints/api_server.py")
-    r = run_preflight(make_tar([("manifest.json", manifest(profile), "file"), ("patch.diff", bad, "file")]), profile)
+    r = run_preflight(
+        make_tar([("manifest.json", manifest(profile), "file"), ("patch.diff", bad, "file")]), profile
+    )
     assert not r.ok and any(e["code"] == "forbidden_path" for e in r.errors)
 
 
@@ -100,12 +111,18 @@ def test_exact_and_cosmetic_duplicates(profile):
 
 
 def test_oversized_archive_rejected_before_parsing(profile):
-    assert run_preflight(b"\0" * (profile.archive_max_bytes + 1), profile).errors[0]["code"] == "archive_too_large"
+    assert (
+        run_preflight(b"\0" * (profile.archive_max_bytes + 1), profile).errors[0]["code"]
+        == "archive_too_large"
+    )
 
 
 # ---------------- payments on the deterministic dev chain (SIMULATION) ----------------
-PAYER, WALLET, OTHER = "5Payer000000000000000000000000000000000000000000", "5Wallet00000000000000000000000000000000000000000", \
-    "5Other000000000000000000000000000000000000000000"
+PAYER, WALLET, OTHER = (
+    "5Payer000000000000000000000000000000000000000000",
+    "5Wallet00000000000000000000000000000000000000000",
+    "5Other000000000000000000000000000000000000000000",
+)
 
 
 @pytest.fixture
@@ -128,7 +145,9 @@ def pay(chain, signer=PAYER, amount=120_000_000, quote="q1", plain=False, call=N
 
 
 def check(chain, ext, t, used=None, network="room-devchain"):
-    return verify_payment(ext, t, chain.finalized_head(), chain.block_hash(ext.block_number), used or set(), network)
+    return verify_payment(
+        ext, t, chain.finalized_head(), chain.block_hash(ext.block_number), used or set(), network
+    )
 
 
 def test_valid_payment_verifies_and_overpayment_is_excess(chain):
@@ -143,14 +162,17 @@ def test_not_finalized_is_deferred(chain):
     assert v.outcome == Outcome.NOT_FINALIZED
 
 
-@pytest.mark.parametrize("case,expect", [
-    ("wrong_payer", "signer is not the payer"),
-    ("underpaid", "underpaid"),
-    ("wrong_quote", "remark does not carry this quote"),
-    ("plain_batch", "plain batch is refused"),
-    ("reused", "already used"),
-    ("wrong_network", "different network"),
-])
+@pytest.mark.parametrize(
+    "case,expect",
+    [
+        ("wrong_payer", "signer is not the payer"),
+        ("underpaid", "underpaid"),
+        ("wrong_quote", "remark does not carry this quote"),
+        ("plain_batch", "plain batch is refused"),
+        ("reused", "already used"),
+        ("wrong_network", "different network"),
+    ],
+)
 def test_rejections(chain, case, expect):
     if case == "wrong_payer":
         ext = pay(chain, signer=OTHER)
@@ -184,9 +206,20 @@ def test_late_payment_is_refund_eligible(chain):
 
 def test_forged_event_mismatch_rejected(chain):
     ext = pay(chain)
-    forged_call = Call("Utility", "batch_all", {}, (ext.call.inner[0], Call("System", "remark_with_event", {"remark": "0x" + b"room:quote:q1".hex()})))
-    forged = type(ext)(ext.block_number, ext.block_hash, ext.index, ext.signer, forged_call,
-                       tuple(e for e in ext.events if e.name != "Remarked"))
+    forged_call = Call(
+        "Utility",
+        "batch_all",
+        {},
+        (ext.call.inner[0], Call("System", "remark_with_event", {"remark": "0x" + b"room:quote:q1".hex()})),
+    )
+    forged = type(ext)(
+        ext.block_number,
+        ext.block_hash,
+        ext.index,
+        ext.signer,
+        forged_call,
+        tuple(e for e in ext.events if e.name != "Remarked"),
+    )
     assert check(chain, forged, terms()).outcome == Outcome.REJECTED
 
 

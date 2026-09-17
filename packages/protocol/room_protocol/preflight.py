@@ -78,7 +78,7 @@ class _Capped(io.RawIOBase):
 
     def readinto(self, b) -> int:  # type: ignore[override]
         while not self._buf and (self._pos < len(self._src) or self._d.unconsumed_tail):
-            chunk = self._d.unconsumed_tail or self._src[self._pos:self._pos + 65536].tobytes()
+            chunk = self._d.unconsumed_tail or self._src[self._pos : self._pos + 65536].tobytes()
             if not self._d.unconsumed_tail:
                 self._pos += 65536
             self._buf = self._d.decompress(chunk, 65536)
@@ -104,8 +104,12 @@ def normalize_patch(text: str) -> str:
     return "\n".join(out)
 
 
-def run_preflight(data: bytes, profile: ProfileVersion, known_hashes: set[str] | None = None,
-                  signature_ok: bool | None = None) -> PreflightResult:
+def run_preflight(
+    data: bytes,
+    profile: ProfileVersion,
+    known_hashes: set[str] | None = None,
+    signature_ok: bool | None = None,
+) -> PreflightResult:
     res = PreflightResult(True, sha256_hex(data), None, None)
     known = known_hashes or set()
     if len(data) > profile.archive_max_bytes:
@@ -169,8 +173,11 @@ def run_preflight(data: bytes, profile: ProfileVersion, known_hashes: set[str] |
         return res
     res.manifest = manifest
     if manifest.profile_id != profile.profile_id or manifest.profile_version != profile.version:
-        res.fail("wrong_profile", f"manifest targets {manifest.profile_id}@{manifest.profile_version}; "
-                                  f"open profile is {profile.profile_id}@{profile.version}")
+        res.fail(
+            "wrong_profile",
+            f"manifest targets {manifest.profile_id}@{manifest.profile_version}; "
+            f"open profile is {profile.profile_id}@{profile.version}",
+        )
     if manifest.license not in profile.allowed_licenses:
         res.fail("license", f"license {manifest.license} is not in the allowed list")
     for tp in manifest.third_party:
@@ -183,7 +190,9 @@ def run_preflight(data: bytes, profile: ProfileVersion, known_hashes: set[str] |
     except UnicodeDecodeError:
         res.fail("bad_patch", "patch.diff must be UTF-8 text")
         return res
-    paths = sorted({m.group(1) for line in patch.splitlines() if (m := DIFF_PATH.match(line))} - {"/dev/null"})
+    paths = sorted(
+        {m.group(1) for line in patch.splitlines() if (m := DIFF_PATH.match(line))} - {"/dev/null"}
+    )
     if not paths:
         res.fail("empty_patch", "patch.diff changes no files")
     res.changed_paths = paths
@@ -197,6 +206,9 @@ def run_preflight(data: bytes, profile: ProfileVersion, known_hashes: set[str] |
     norm = normalize_patch(patch)
     res.normalized_patch_sha256 = sha256_hex(norm.encode())
     if res.normalized_patch_sha256 in known:
-        res.fail("cosmetic_duplicate", "this patch matches an earlier submission after whitespace normalization; "
-                                       "you may appeal with an explanation")
+        res.fail(
+            "cosmetic_duplicate",
+            "this patch matches an earlier submission after whitespace normalization; "
+            "you may appeal with an explanation",
+        )
     return res

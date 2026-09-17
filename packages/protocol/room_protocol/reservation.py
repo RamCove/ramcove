@@ -53,7 +53,9 @@ class QuoteCapacityCheck:
     reason: str
 
 
-def can_issue_quote(committed_centi: int, env: StageEnvelope, plan: CapacityPlan, intake_paused: bool) -> QuoteCapacityCheck:
+def can_issue_quote(
+    committed_centi: int, env: StageEnvelope, plan: CapacityPlan, intake_paused: bool
+) -> QuoteCapacityCheck:
     cap = plan.capacity_centi()
     req = env.total()
     if intake_paused:
@@ -61,6 +63,11 @@ def can_issue_quote(committed_centi: int, env: StageEnvelope, plan: CapacityPlan
     if plan.workers_ready <= 0:
         return QuoteCapacityCheck(False, committed_centi, cap, req, "no evaluation worker is safe and ready")
     if committed_centi + req > cap:
-        return QuoteCapacityCheck(False, committed_centi, cap, req,
-                                  "published evaluation capacity is fully reserved; join the free waiting list")
+        return QuoteCapacityCheck(
+            False,
+            committed_centi,
+            cap,
+            req,
+            "published evaluation capacity is fully reserved; join the free waiting list",
+        )
     return QuoteCapacityCheck(True, committed_centi, cap, req, "capacity reserved")

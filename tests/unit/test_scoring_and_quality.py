@@ -3,7 +3,6 @@
 import math
 
 import pytest
-
 from room_protocol.scoring import (
     Block,
     PairedQuality,
@@ -22,10 +21,10 @@ def blocks_from_steps(steps, base=100_000, step=1.03, version=0):
 @pytest.mark.parametrize(
     "steps,expected_lower_pct,passes",
     [
-        ([3, 3, 3, 4, 3], 7.84, True),    # "challenger at 110"
-        ([1, 1, 0, 1, 1], 0.46, False),   # "challenger at 103"
-        ([3, 3, 2, 3, 3], 6.58, True),    # E vs v0
-        ([5, 5, 5, 4, 5], 13.07, True),   # A vs E
+        ([3, 3, 3, 4, 3], 7.84, True),  # "challenger at 110"
+        ([1, 1, 0, 1, 1], 0.46, False),  # "challenger at 103"
+        ([3, 3, 2, 3, 3], 6.58, True),  # E vs v0
+        ([5, 5, 5, 4, 5], 13.07, True),  # A vs E
         ([0, 0, 1, 0, -1], -1.97, False),  # cosmetic copy
     ],
 )
@@ -84,7 +83,9 @@ def test_paired_requires_matching_items():
 
 def test_unpaired_bound_is_wider_than_paired_for_same_rates():
     _, unpaired = unpaired_lower_bound_bp(900, 1000, 900, 1000)
-    _, paired = paired_lower_bound_bp(PairedQuality("overall", tuple([1] * 900 + [0] * 100), tuple([1] * 900 + [0] * 100)))
+    _, paired = paired_lower_bound_bp(
+        PairedQuality("overall", tuple([1] * 900 + [0] * 100), tuple([1] * 900 + [0] * 100))
+    )
     assert unpaired < paired == 0
 
 
@@ -122,9 +123,18 @@ def test_small_losses_cannot_accumulate_against_fixed_reference(profile):
 def test_absolute_floor_and_length_floor(profile):
     rule = profile.quality
     same = tuple([1] * 900 + [0] * 100)
-    ev = QualityEvidence([PairedQuality("overall", same, same)], [PairedQuality("overall", same, same)],
-                         {"overall": 8400, "position_early": 9000, "position_middle": 9000, "position_late": 9000,
-                          "general": 9000}, 8900)
+    ev = QualityEvidence(
+        [PairedQuality("overall", same, same)],
+        [PairedQuality("overall", same, same)],
+        {
+            "overall": 8400,
+            "position_early": 9000,
+            "position_middle": 9000,
+            "position_late": 9000,
+            "general": 9000,
+        },
+        8900,
+    )
     v = quality_verdict(ev, rule)
     assert not v.passed
     assert any("absolute floor" in r for r in v.reasons)

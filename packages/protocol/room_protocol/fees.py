@@ -34,7 +34,9 @@ class FeeComputation:
 
 def compute_fee(policy: FeePolicy, price: PriceObservation, now: datetime) -> FeeComputation:
     if price.source != policy.price_source and not price.simulated:
-        raise StalePriceError(f"price source {price.source} is not the published source {policy.price_source}")
+        raise StalePriceError(
+            f"price source {price.source} is not the published source {policy.price_source}"
+        )
     if now - price.observed_at > timedelta(seconds=policy.price_max_age_s):
         raise StalePriceError("price observation is too old; new quotes are refused until it refreshes")
     if price.usd_micros_per_tao <= 0:
@@ -44,6 +46,11 @@ def compute_fee(policy: FeePolicy, price: PriceObservation, now: datetime) -> Fe
     exact = Decimal(target_cents) * Decimal(RAO_PER_TAO) * Decimal(10_000) / Decimal(price.usd_micros_per_tao)
     fee = round_up_rao(exact, policy.round_step_rao)
     fee_cents = fee * price.usd_micros_per_tao // (RAO_PER_TAO * 10_000)
-    return FeeComputation(fee, target_cents, fee_cents,
-                          policy.service_cost_usd_cents_per_admission - fee_cents,
-                          policy.service_cost_usd_cents_per_admission, price)
+    return FeeComputation(
+        fee,
+        target_cents,
+        fee_cents,
+        policy.service_cost_usd_cents_per_admission - fee_cents,
+        policy.service_cost_usd_cents_per_admission,
+        price,
+    )

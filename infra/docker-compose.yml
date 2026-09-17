@@ -1,0 +1,21 @@
+# Local development only. Not a production deployment.
+name: room-dev
+services:
+  postgres:
+    image: postgres:17.9-alpine3.23@sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609
+    environment:
+      POSTGRES_USER: room
+      POSTGRES_PASSWORD: room-local-dev-only
+      POSTGRES_DB: room
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - room-pg:/var/lib/postgresql/data
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U room -d room"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  room-pg:

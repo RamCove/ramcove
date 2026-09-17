@@ -1,7 +1,6 @@
 """Read-only checks against the public Finney RPC. Selected with: uv run pytest -m chain_readonly"""
 
 import pytest
-
 from room_chain.network import FINNEY
 from room_chain.substrate_reader import SubstrateReader
 

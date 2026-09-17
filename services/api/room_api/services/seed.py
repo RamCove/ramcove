@@ -1,0 +1,224 @@
+"""Demo dataset (clearly labelled) and resettable local state. Refused outside demo mode."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+
+from alembic import command
+from alembic.config import Config
+from room_chain.devchain import DevChain
+from room_protocol.rules import ProfileVersion
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
+from substrateinterface import Keypair
+
+from ..config import ROOT
+from ..store import audit
+from ..store.db import now, tx
+from ..store.devchain_sql import SqlDevChainStore
+from ..store.schema import (
+    champion_pointer,
+    champions,
+    identities,
+    incidents,
+    price_observations,
+    profile_versions,
+    role_grants,
+    validators,
+    workers,
+)
+from ..store.schema import (
+    settings as settings_t,
+)
+from .context import AppContext, ServiceError
+
+
+@dataclass(frozen=True)
+class DemoIdentity:
+    key: str
+    uri: str
+    name: str
+    roles: tuple[str, ...]
+
+
+DEMO_IDENTITIES = [
+    DemoIdentity("miner-ada", "//RoomDemoMinerAda", "Ada (demo miner)", ("miner",)),
+    DemoIdentity("miner-bao", "//RoomDemoMinerBao", "Bao (demo miner)", ("miner",)),
+    DemoIdentity("miner-cyd", "//RoomDemoMinerCyd", "Cyd (demo miner)", ("miner",)),
+    DemoIdentity("miner-dee", "//RoomDemoMinerDee", "Dee (demo miner, unregistered)", ("miner",)),
+    DemoIdentity(
+        "validator-op", "//RoomDemoValidatorOperator", "ROOM bootstrap validator (demo)", ("validator",)
+    ),
+    DemoIdentity(
+        "validator-shadow",
+        "//RoomDemoValidatorShadow",
+        "Unaffiliated shadow validator (demo)",
+        ("validator",),
+    ),
+    DemoIdentity("reviewer-1", "//RoomDemoReviewerOne", "Reviewer One (demo)", ("reviewer",)),
+    DemoIdentity(
+        "reviewer-2", "//RoomDemoReviewerTwo", "Independent reviewer (demo)", ("reviewer", "appeal_panel")
+    ),
+    DemoIdentity("panel-1", "//RoomDemoAppealPanel", "Appeal panel member (demo)", ("appeal_panel",)),
+    DemoIdentity("operator", "//RoomDemoOperator", "Operator (demo)", ("operator",)),
+]
+
+DEMO_WORKERS = [
+    ("w-op-1", "validator-op", "//RoomDemoWorkerOne"),
+    ("w-op-2", "validator-op", "//RoomDemoWorkerTwo"),
+    ("w-shadow-1", "validator-shadow", "//RoomDemoWorkerShadow"),
+]
+
+
+def identity(key: str) -> tuple[DemoIdentity, Keypair]:
+    for d in DEMO_IDENTITIES:
+        if d.key == key:
+            return d, Keypair.create_from_uri(d.uri)
+    raise ServiceError("unknown_demo_identity", f"unknown demo identity {key}", 404)
+
+
+def worker_keypair(worker_id: str) -> Keypair:
+    for wid, _, uri in DEMO_WORKERS:
+        if wid == worker_id:
+            return Keypair.create_from_uri(uri)
+    raise KeyError(worker_id)
+
+
+def reset_database(ctx: AppContext) -> None:
+    if not ctx.settings.demo_features:
+        raise ServiceError("disabled", "reset is only available in demo mode", 403)
+    cfg = Config(str(ROOT / "alembic.ini"))
+    cfg.set_main_option("script_location", str(ROOT / "services/api/migrations"))
+    import os
+
+    os.environ["ROOM_MIGRATE_URL"] = ctx.settings.database_url
+    command.downgrade(cfg, "base")
+    command.upgrade(cfg, "head")
+
+
+def seed_base(ctx: AppContext) -> dict:
+    if not ctx.settings.demo_features:
+        raise ServiceError("disabled", "seeding is only available in demo mode", 403)
+    profile = ProfileVersion.model_validate(
+        json.loads((ROOT / "config/profiles/room-p1@1.0.0.json").read_text())
+    )
+    with tx(ctx.engine) as conn:
+        if conn.execute(select(profile_versions)).first():
+            return {"seeded": False, "reason": "already seeded"}
+        conn.execute(
+            profile_versions.insert().values(
+                profile_id=profile.profile_id,
+                version=profile.version,
+                rule_hash=profile.rule_hash(),
+                body=profile.model_dump(mode="json", by_alias=True),
+                active=True,
+            )
+        )
+        conn.execute(
+            champions.insert().values(
+                profile_id=profile.profile_id,
+                version=0,
+                submission_id=None,
+                author_hotkey=None,
+                artifact_sha256=None,
+                rule_hash=profile.rule_hash(),
+                status="current",
+                attribution={
+                    "components": [],
+                    "note": "Tuned vLLM v0.29.0 baseline. No author; earns nothing.",
+                },
+                status_reason="champion version 0: tuned baseline",
+            )
+        )
+        conn.execute(champion_pointer.insert().values(profile_id=profile.profile_id, version=0))
+        for d in DEMO_IDENTITIES:
+            kp = Keypair.create_from_uri(d.uri)
+            conn.execute(
+                insert(identities)
+                .values(hotkey=kp.ss58_address, display_name=d.name, demo=True)
+                .on_conflict_do_nothing()
+            )
+            for role in d.roles:
+                conn.execute(
+                    role_grants.insert().values(
+                        hotkey=kp.ss58_address,
+                        role=role,
+                        granted_by="demo-seed",
+                        independent_group="shadow" if "shadow" in d.key else None,
+                    )
+                )
+        op = Keypair.create_from_uri("//RoomDemoValidatorOperator").ss58_address
+        sh = Keypair.create_from_uri("//RoomDemoValidatorShadow").ss58_address
+        conn.execute(
+            validators.insert().values(
+                hotkey=op,
+                name="ROOM bootstrap validator (demo)",
+                operator_affiliated=True,
+                independence_group="room-operator",
+                scoring=True,
+            )
+        )
+        conn.execute(
+            validators.insert().values(
+                hotkey=sh,
+                name="Shadow validator (demo, non-scoring)",
+                operator_affiliated=False,
+                independence_group="shadow-1",
+                scoring=False,
+            )
+        )
+        for wid, vkey, uri in DEMO_WORKERS:
+            conn.execute(
+                workers.insert().values(
+                    id=wid,
+                    validator=op if vkey == "validator-op" else sh,
+                    profile_id=profile.profile_id,
+                    provider="simulated-trusted-fixtures",
+                    public_key=Keypair.create_from_uri(uri).ss58_address,
+                    readiness={"simulated": True},
+                    ready=False,
+                    enabled=wid != "w-shadow-1",
+                )
+            )
+        conn.execute(
+            settings_t.insert().values(
+                key="intake_paused", value={"paused": False}, updated_by="demo-seed", reason="demo start"
+            )
+        )
+        conn.execute(
+            price_observations.insert().values(
+                source="simulated:demo-price", usd_micros=227_920_000, simulated=True, observed_at=now()
+            )
+        )
+        chain = DevChain(SqlDevChainStore(conn))
+        chain.produce_blocks(5)
+        chain.store.register(ctx.settings.netuid, ctx.owner_hotkey)  # owner UID 0
+        for key in ("miner-ada", "miner-bao", "miner-cyd"):
+            chain.store.register(
+                ctx.settings.netuid, Keypair.create_from_uri(identity(key)[0].uri).ss58_address
+            )
+        conn.execute(
+            incidents.insert().values(
+                id="inc_demo_isolation",
+                severity="info",
+                title="Real isolation backend not available in this build",
+                public_summary="Workers run a simulated provider that only evaluates trusted demo fixtures. Untrusted "
+                "uploads pass free preflight but cannot be quoted for paid evaluation.",
+                opened_by="demo-seed",
+            )
+        )
+        audit.append(
+            conn,
+            "demo-seed",
+            "demo_seeded",
+            "profile",
+            profile.profile_id,
+            {"rule_hash": profile.rule_hash(), "simulated": True},
+            public=True,
+        )
+    from .settlement import publish_weight_plan
+
+    with tx(ctx.engine) as conn:
+        publish_weight_plan(conn, ctx, profile.profile_id)
+    return {"seeded": True, "profile": profile.profile_id}

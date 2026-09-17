@@ -12,10 +12,38 @@ from dataclasses import dataclass, field
 from .rules import QualityRule, ReplacementRule
 
 # One-sided 95% Student t quantiles, df = 1..30 (standard table values).
-T95 = {1: 6.314, 2: 2.920, 3: 2.353, 4: 2.132, 5: 2.015, 6: 1.943, 7: 1.895, 8: 1.860, 9: 1.833, 10: 1.812,
-       11: 1.796, 12: 1.782, 13: 1.771, 14: 1.761, 15: 1.753, 16: 1.746, 17: 1.740, 18: 1.734, 19: 1.729,
-       20: 1.725, 21: 1.721, 22: 1.717, 23: 1.714, 24: 1.711, 25: 1.708, 26: 1.706, 27: 1.703, 28: 1.701,
-       29: 1.699, 30: 1.697}
+T95 = {
+    1: 6.314,
+    2: 2.920,
+    3: 2.353,
+    4: 2.132,
+    5: 2.015,
+    6: 1.943,
+    7: 1.895,
+    8: 1.860,
+    9: 1.833,
+    10: 1.812,
+    11: 1.796,
+    12: 1.782,
+    13: 1.771,
+    14: 1.761,
+    15: 1.753,
+    16: 1.746,
+    17: 1.740,
+    18: 1.734,
+    19: 1.729,
+    20: 1.725,
+    21: 1.721,
+    22: 1.717,
+    23: 1.714,
+    24: 1.711,
+    25: 1.708,
+    26: 1.706,
+    27: 1.703,
+    28: 1.701,
+    29: 1.699,
+    30: 1.697,
+}
 
 
 @dataclass(frozen=True)
@@ -98,7 +126,9 @@ def paired_lower_bound_bp(pq: PairedQuality) -> tuple[int, int]:
     return round(mean * 10_000), round((mean - 1.96 * se) * 10_000)
 
 
-def unpaired_lower_bound_bp(cand_correct: int, cand_n: int, comp_correct: int, comp_n: int) -> tuple[int, int]:
+def unpaired_lower_bound_bp(
+    cand_correct: int, cand_n: int, comp_correct: int, comp_n: int
+) -> tuple[int, int]:
     """Two independent proportions (under-load items differ between runs): difference and 97.5% lower bound."""
     if cand_n <= 0 or comp_n <= 0:
         raise ValueError("empty sample")
@@ -135,20 +165,25 @@ def quality_verdict(ev: QualityEvidence, rule: QualityRule) -> QualityVerdict:
         details[f"champion:{pq.group}"] = {"diff_bp": diff, "lower_bp": lb}
         limit = -rule.vs_champion_margin_bp if pq.group == "overall" else -rule.vs_champion_stratum_margin_bp
         if lb <= limit:
-            reasons.append(f"{pq.group}: lower bound {lb / 100:.2f} pts vs champion is not above {limit / 100:.2f}")
+            reasons.append(
+                f"{pq.group}: lower bound {lb / 100:.2f} pts vs champion is not above {limit / 100:.2f}"
+            )
     for pq in ev.vs_reference:
         diff, lb = paired_lower_bound_bp(pq)
         details[f"reference:{pq.group}"] = {"diff_bp": diff, "lower_bp": lb}
         if lb <= -rule.vs_reference_margin_bp:
             reasons.append(
                 f"{pq.group}: lower bound {lb / 100:.2f} pts vs fixed quality reference is not above "
-                f"{-rule.vs_reference_margin_bp / 100:.2f}")
+                f"{-rule.vs_reference_margin_bp / 100:.2f}"
+            )
     for group, floor in rule.absolute_min_accuracy_bp.items():
         acc = ev.candidate_accuracy_bp.get(group)
         if acc is None:
             reasons.append(f"{group}: no accuracy measured")
         elif acc < floor:
-            reasons.append(f"{group}: accuracy {acc / 100:.2f}% is below the absolute floor {floor / 100:.2f}%")
+            reasons.append(
+                f"{group}: accuracy {acc / 100:.2f}% is below the absolute floor {floor / 100:.2f}%"
+            )
     if ev.candidate_length_ratio_vs_reference_bp < rule.length_ratio_vs_reference_bp:
         reasons.append("output length is below the fixed reference floor")
     return QualityVerdict(not reasons, tuple(reasons), details)

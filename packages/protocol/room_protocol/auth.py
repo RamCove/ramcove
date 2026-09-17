@@ -42,8 +42,15 @@ class ChallengeError(ValueError):
     pass
 
 
-def verify_challenge(ch: Challenge, signature: bytes, verifier: Verifier, now: datetime, expected_domain: str,
-                     expected_network: str, expected_genesis: str) -> None:
+def verify_challenge(
+    ch: Challenge,
+    signature: bytes,
+    verifier: Verifier,
+    now: datetime,
+    expected_domain: str,
+    expected_network: str,
+    expected_genesis: str,
+) -> None:
     if ch.domain != expected_domain:
         raise ChallengeError("challenge domain mismatch")
     if ch.network != expected_network or ch.genesis_hash != expected_genesis:

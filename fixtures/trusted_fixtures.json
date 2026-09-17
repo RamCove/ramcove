@@ -1,0 +1,141 @@
+{
+  "083f11037a224ef8af403692d67c0451de1599b5028ea8a7f1d2628b440cc247": {
+    "name": "build-breaks",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "build-breaks",
+      "retention_bonus": 0.0,
+      "screen_failure": "build_failure",
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Patch that does not build"
+  },
+  "32a64d736c200896bb34dc5f8152e51236a7113cf6f1872400d1df9112b72a2a": {
+    "name": "kv8-conversation-retention",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 40
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.6,
+      "length_ratio_bp": 10000,
+      "name": "kv8-conversation-retention",
+      "retention_bonus": 0.25,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "8-bit KV entries with conversation-aware retention"
+  },
+  "4c564b21be17021d2c4eec3c781362606e467c071d77d27ddf43497dc81088d9": {
+    "name": "quality-drift",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_late": 150
+      },
+      "base_accuracy_bp": 8800,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.35,
+      "length_ratio_bp": 10000,
+      "name": "quality-drift",
+      "retention_bonus": 0.0,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Aggressive 4-bit KV with small quality losses"
+  },
+  "7af08ffae0941d0175331fe943a24d0829a2f3967f0daad70c5ec158e1e1c30a": {
+    "name": "decode-kernel-speedup",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.3,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "decode-kernel-speedup",
+      "retention_bonus": 0.0,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Faster decode attention kernel"
+  },
+  "89e6e462186107a5600e088661c8682a32f588073ea4fe74caf913e57ea69754": {
+    "name": "evict-quarter",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 1900,
+        "position_middle": 700
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.25,
+      "length_ratio_bp": 10000,
+      "name": "evict-quarter",
+      "retention_bonus": 0.0,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Evict to a quarter of the cache"
+  },
+  "_baseline": {
+    "name": "champion-v0-tuned",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "champion-v0-tuned",
+      "retention_bonus": 0.0,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true
+  },
+  "a4226089d2e36af67523bcbcdc774aeed3673884a4b0ad6b81dcc73de85bd434": {
+    "name": "fragmentation-aware-allocator",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "fragmentation-aware-allocator",
+      "retention_bonus": 0.0,
+      "screen_failure": null,
+      "usable_factor": 1.35
+    },
+    "simulated": true,
+    "title": "Fragmentation-aware block allocation"
+  }
+}

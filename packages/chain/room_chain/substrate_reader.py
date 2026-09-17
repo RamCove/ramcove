@@ -50,8 +50,14 @@ class SubstrateReader:
         events = []
         for rec in self._s.get_events(block_hash=bh):
             v = rec.value
-            events.append(Event(v.get("module_id", ""), v.get("event_id", ""), v.get("attributes") or {},
-                                v.get("extrinsic_idx") if v.get("phase") == "ApplyExtrinsic" else None))
+            events.append(
+                Event(
+                    v.get("module_id", ""),
+                    v.get("event_id", ""),
+                    v.get("attributes") or {},
+                    v.get("extrinsic_idx") if v.get("phase") == "ApplyExtrinsic" else None,
+                )
+            )
         out = []
         for i, ex in enumerate(block["extrinsics"]):
             v = ex.value
@@ -68,4 +74,6 @@ class SubstrateReader:
 
     def subnet_owner_hotkey(self, netuid: int) -> str:
         head = self.finalized_head()
-        return str(self._s.query("SubtensorModule", "SubnetOwnerHotkey", [netuid], block_hash=head.hash).value)
+        return str(
+            self._s.query("SubtensorModule", "SubnetOwnerHotkey", [netuid], block_hash=head.hash).value
+        )

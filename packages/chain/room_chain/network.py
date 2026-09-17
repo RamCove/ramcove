@@ -24,10 +24,12 @@ class NetworkIdentity:
 
 
 DEVCHAIN = NetworkIdentity("room-devchain", "0x" + "00" * 31 + "01", 42, 9, True, True)
-TESTNET = NetworkIdentity("test", "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105", 42, 9,
-                          False, False)
-FINNEY = NetworkIdentity("finney", "0x2f0555cc76fc2840a25a6ea3b9637146806f1f44b090c175ffde2a7e5ab36c03", 42, 9,
-                         False, False)
+TESTNET = NetworkIdentity(
+    "test", "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105", 42, 9, False, False
+)
+FINNEY = NetworkIdentity(
+    "finney", "0x2f0555cc76fc2840a25a6ea3b9637146806f1f44b090c175ffde2a7e5ab36c03", 42, 9, False, False
+)
 
 KNOWN = {n.name: n for n in (DEVCHAIN, TESTNET, FINNEY)}
 
@@ -39,4 +41,5 @@ class NetworkMismatch(RuntimeError):
 def require_identity(expected: NetworkIdentity, observed_genesis: str) -> None:
     if observed_genesis.lower() != expected.genesis_hash.lower():
         raise NetworkMismatch(
-            f"endpoint genesis {observed_genesis} does not match {expected.name} ({expected.genesis_hash}); refusing")
+            f"endpoint genesis {observed_genesis} does not match {expected.name} ({expected.genesis_hash}); refusing"
+        )

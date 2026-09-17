@@ -48,28 +48,50 @@ class PromotionDecision:
 
 def blockers_for(entry: QueueEntry, all_entries: list[QueueEntry]) -> list[QueueEntry]:
     return sorted(
-        (e for e in all_entries
-         if e.profile_id == entry.profile_id and e.submission_id != entry.submission_id
-         and e.key < entry.key and e.state in PAID_ACTIVE),
-        key=lambda e: e.key)
+        (
+            e
+            for e in all_entries
+            if e.profile_id == entry.profile_id
+            and e.submission_id != entry.submission_id
+            and e.key < entry.key
+            and e.state in PAID_ACTIVE
+        ),
+        key=lambda e: e.key,
+    )
 
 
-def decide_promotion(entry: QueueEntry, all_entries: list[QueueEntry], current_champion_version: int,
-                     current_rule_hash: str, registration_expired: bool) -> PromotionDecision:
+def decide_promotion(
+    entry: QueueEntry,
+    all_entries: list[QueueEntry],
+    current_champion_version: int,
+    current_rule_hash: str,
+    registration_expired: bool,
+) -> PromotionDecision:
     if entry.state != S.READY_FOR_PROMOTION:
         return PromotionDecision(False, (), f"state is {entry.state}", "none")
-    if entry.compared_champion_version != current_champion_version or entry.compared_rule_hash != current_rule_hash:
-        return PromotionDecision(False, (), "evidence was measured against a different champion or rule version",
-                                 "rebase")
+    if (
+        entry.compared_champion_version != current_champion_version
+        or entry.compared_rule_hash != current_rule_hash
+    ):
+        return PromotionDecision(
+            False, (), "evidence was measured against a different champion or rule version", "rebase"
+        )
     blockers = blockers_for(entry, all_entries)
     if blockers:
-        return PromotionDecision(False, tuple(b.submission_id for b in blockers),
-                                 f"{len(blockers)} earlier paid admission(s) still hold priority", "wait")
+        return PromotionDecision(
+            False,
+            tuple(b.submission_id for b in blockers),
+            f"{len(blockers)} earlier paid admission(s) still hold priority",
+            "wait",
+        )
     if not entry.hotkey_registered:
         if registration_expired:
-            return PromotionDecision(False, (), "hotkey not registered before the grace period ended",
-                                     "expire_registration")
-        return PromotionDecision(False, (), "waiting for hotkey registration; incumbent keeps its allocation",
-                                 "wait")
-    return PromotionDecision(True, (), "all earlier admissions settled; evidence current; hotkey registered",
-                             "promote")
+            return PromotionDecision(
+                False, (), "hotkey not registered before the grace period ended", "expire_registration"
+            )
+        return PromotionDecision(
+            False, (), "waiting for hotkey registration; incumbent keeps its allocation", "wait"
+        )
+    return PromotionDecision(
+        True, (), "all earlier admissions settled; evidence current; hotkey registered", "promote"
+    )

@@ -68,9 +68,15 @@ class QualityRule(Frozen):
     reference_id: str = Field(description="Frozen quality-reference implementation for this profile version")
     vs_champion_margin_bp: int = Field(200, description="Lower bound must exceed -2.00 points")
     vs_champion_stratum_margin_bp: int = 300
-    vs_reference_margin_bp: int = Field(300, description="Lower bound vs fixed reference must exceed -3.00 points")
-    absolute_min_accuracy_bp: dict[str, int] = Field(description="Per task group absolute floor, basis points")
-    length_ratio_vs_reference_bp: int = Field(9000, description="Median and p10 length >= 90% of fixed reference")
+    vs_reference_margin_bp: int = Field(
+        300, description="Lower bound vs fixed reference must exceed -3.00 points"
+    )
+    absolute_min_accuracy_bp: dict[str, int] = Field(
+        description="Per task group absolute floor, basis points"
+    )
+    length_ratio_vs_reference_bp: int = Field(
+        9000, description="Median and p10 length >= 90% of fixed reference"
+    )
 
 
 class LatencyGates(Frozen):
@@ -97,8 +103,14 @@ class StageEnvelope(Frozen):
     recalibration_on_promotion: int = 867
 
     def total(self) -> int:
-        return (self.screen + self.full + self.confirmation_worst + self.rebase_allowance
-                + self.soak + self.recalibration_on_promotion)
+        return (
+            self.screen
+            + self.full
+            + self.confirmation_worst
+            + self.rebase_allowance
+            + self.soak
+            + self.recalibration_on_promotion
+        )
 
 
 class Deadlines(Frozen):
@@ -153,6 +165,9 @@ class ProfileVersion(Frozen):
     deadlines: Deadlines
     fees: FeePolicy
     bootstrap: Bootstrap
+    plive_rate_bp: int = Field(
+        9000, description="P-live runs at this share of confirmed capacity (provisional)"
+    )
     archive_max_bytes: int = 20 * 1024 * 1024
     archive_max_unpacked_bytes: int = 80 * 1024 * 1024
     archive_max_entries: int = 2000
