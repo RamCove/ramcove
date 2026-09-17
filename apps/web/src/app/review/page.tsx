@@ -51,7 +51,7 @@ export default async function ReviewPage() {
     );
   }
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header>
         <h1 className="text-[22px] font-semibold tracking-tight">Promotion review</h1>
         <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">

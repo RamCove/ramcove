@@ -8,6 +8,7 @@ from room_chain.types import Call, Event, Extrinsic
 from sqlalchemy import Connection, func, select
 from sqlalchemy.dialects.postgresql import insert
 
+from .db import advisory_lock
 from .schema import devchain_balances, devchain_blocks, devchain_registrations
 
 
@@ -41,6 +42,8 @@ class SqlDevChainStore:
         self.conn = conn
 
     def head_number(self) -> int:
+        # Serialize block production: the controller, the API and scenarios can all produce blocks.
+        advisory_lock(self.conn, "devchain-head")
         return int(
             self.conn.execute(select(func.coalesce(func.max(devchain_blocks.c.number), 0))).scalar() or 0
         )

@@ -1,7 +1,7 @@
-import { AutoRefresh } from "@/components/client";
+import { AutoRefresh, TimeAgo } from "@/components/client";
 import { Card, Empty, Mono, Notice, Pill, Stat, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
-import { ago, centiHours, tao, when } from "@/lib/format";
+import { centiHours, tao, when } from "@/lib/format";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { OperatorControls, RefundControls } from "./controls";
@@ -50,7 +50,7 @@ export default async function OperatorPage() {
     );
   }
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight">Operator console</h1>
@@ -186,7 +186,7 @@ export default async function OperatorPage() {
                   <Mono>{v.rule_hash.slice(0, 14)}…</Mono>
                 </Td>
                 <Td>{v.active ? <Pill tone="ok">active</Pill> : <Pill tone="neutral">retired</Pill>}</Td>
-                <Td>{ago(v.published_at)}</Td>
+                <Td>{<TimeAgo at={v.published_at} />}</Td>
               </tr>
             ))}
           </Table>
@@ -219,7 +219,7 @@ export default async function OperatorPage() {
                     {i.resolved_at ? <Pill tone="ok">resolved</Pill> : <Pill tone="warn">open</Pill>}
                   </div>
                   <p className="mt-1 text-[12px] leading-relaxed text-muted">{i.summary}</p>
-                  <p className="mt-1 text-[11px] text-faint">started {ago(i.started_at)}</p>
+                  <p className="mt-1 text-[11px] text-faint">started {<TimeAgo at={i.started_at} />}</p>
                 </li>
               ))}
             </ul>
@@ -233,7 +233,7 @@ export default async function OperatorPage() {
             <Table head={["When", "Actor", "Action", "Subject"]}>
               {audit.items.slice(0, 25).map((e) => (
                 <tr key={e.id}>
-                  <Td>{ago(e.at)}</Td>
+                  <Td>{<TimeAgo at={e.at} />}</Td>
                   <Td>{e.actor.length > 14 ? `${e.actor.slice(0, 12)}…` : e.actor}</Td>
                   <Td>{e.action.replace(/_/g, " ")}</Td>
                   <Td>

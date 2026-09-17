@@ -3,7 +3,7 @@
 import { ApiFailure, clientFetch } from "@/lib/api";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 export type Session = { hotkey: string; demo: boolean; roles: string[] } | null;
 
@@ -122,19 +122,24 @@ export function ConfirmButton({
 export function useSession() {
   const [session, setSession] = useState<Session>(null);
   const [loaded, setLoaded] = useState(false);
-  const reload = useCallback(async () => {
-    try {
-      const r = await clientFetch<{ session: Session }>("/v1/auth/me");
-      setSession(r.session);
-    } catch {
-      setSession(null);
-    } finally {
-      setLoaded(true);
-    }
-  }, []);
+  const [nonce, setNonce] = useState(0);
+  const reload = useCallback(async () => setNonce((n) => n + 1), []);
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await clientFetch<{ session: Session }>("/v1/auth/me");
+        if (!cancelled) setSession(r.session);
+      } catch {
+        if (!cancelled) setSession(null);
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [nonce]);
   return { session, loaded, reload };
 }
 
@@ -193,12 +198,13 @@ export function AutoRefresh({ seconds = 5 }: { seconds?: number }) {
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  useEffect(() => {
-    const stored = (localStorage.getItem("room-theme") as "dark" | "light" | null) ?? "dark";
-    setTheme(stored);
-    document.documentElement.dataset.theme = stored;
-  }, []);
+  // The inline script in the layout applies the stored theme before paint; read it from the DOM so the
+  // server and the browser agree and no effect is needed.
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    () => (document.documentElement.dataset.theme === "light" ? "light" : "dark"),
+    () => "dark" as const,
+  );
   return (
     <Button
       variant="quiet"
@@ -206,14 +212,25 @@ export function ThemeToggle() {
       title="Switch between the dark and light theme"
       onClick={() => {
         const next = theme === "dark" ? "light" : "dark";
-        setTheme(next);
         document.documentElement.dataset.theme = next;
-        localStorage.setItem("room-theme", next);
+        try {
+          localStorage.setItem("room-theme", next);
+        } catch {
+          /* private mode: the choice simply does not persist */
+        }
+        themeListeners.forEach((l) => l());
       }}
     >
       {theme === "dark" ? "Light theme" : "Dark theme"}
     </Button>
   );
+}
+
+const themeListeners = new Set<() => void>();
+
+function subscribeTheme(listener: () => void) {
+  themeListeners.add(listener);
+  return () => themeListeners.delete(listener);
 }
 
 export function CopyRef({ value, label = "Copy" }: { value: string; label?: string }) {
@@ -236,4 +253,33 @@ export function CopyRef({ value, label = "Copy" }: { value: string; label?: stri
       {done ? "Copied" : label}
     </Button>
   );
+}
+
+/** Relative time without a hydration mismatch: the server renders the absolute UTC time, the browser
+ *  switches to "5 min ago" after mount. */
+export function TimeAgo({ at }: { at: string | null | undefined }) {
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => {
+    if (!at) return;
+    const update = () => setText(agoText(at));
+    update();
+    const id = setInterval(update, 30_000);
+    return () => clearInterval(id);
+  }, [at]);
+  if (!at) return <span className="text-faint">—</span>;
+  const absolute = new Date(at).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+  return (
+    <time dateTime={at} title={absolute} suppressHydrationWarning>
+      {text ?? absolute}
+    </time>
+  );
+}
+
+function agoText(value: string): string {
+  const secs = Math.round((Date.now() - new Date(value).getTime()) / 1000);
+  if (secs < 0) return "just now";
+  if (secs < 45) return "just now";
+  if (secs < 5400) return `${Math.round(secs / 60)} min ago`;
+  if (secs < 172800) return `${Math.round(secs / 3600)} h ago`;
+  return `${Math.round(secs / 86400)} days ago`;
 }

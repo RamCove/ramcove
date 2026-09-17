@@ -1,7 +1,7 @@
-import { AutoRefresh, CopyRef } from "@/components/client";
+import { AutoRefresh, CopyRef, TimeAgo } from "@/components/client";
 import { Card, Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, StatePill, Stat, Table, Td, Term } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
-import { admissionKey, ago, centiHours, gain, rps, shortHash, tao, when } from "@/lib/format";
+import { admissionKey, centiHours, gain, rps, shortHash, tao, when } from "@/lib/format";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -98,7 +98,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
   const owner = Boolean(v.artifact_sha256);
   const measured = v.comparisons.filter((c) => c.status === "measured");
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -192,7 +192,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                       </div>
                       <div className="mt-0.5 text-[12px] text-muted">
                         {t.worker ? `worker ${t.worker} · ` : ""}
-                        {ago(t.updated_at)}
+                        {<TimeAgo at={t.updated_at} />}
                         {t.gpu_centi_used ? ` · ${centiHours(t.gpu_centi_used)} used` : ""}
                         {t.lease_expires_at && t.status === "leased" ? ` · lease ends ${when(t.lease_expires_at)}` : ""}
                       </div>
@@ -267,7 +267,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                       {r.decision ?? "open"}
                     </Pill>
                     <span className="text-[12px] text-muted">
-                      {r.decided_at ? `decided ${ago(r.decided_at)}` : `due ${when(r.due_at)}`}
+                      {r.decided_at ? `decided ${<TimeAgo at={r.decided_at} />}` : `due ${when(r.due_at)}`}
                     </span>
                   </div>
                   <ul className="mt-2 grid gap-1 sm:grid-cols-2">

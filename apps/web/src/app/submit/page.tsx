@@ -20,7 +20,7 @@ export default async function SubmitPage() {
     apiGetOrNull<Fixtures>("/v1/demo/fixtures"),
   ]);
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header>
         <h1 className="text-[22px] font-semibold tracking-tight">Start a submission</h1>
         <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">

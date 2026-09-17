@@ -1,7 +1,7 @@
 import { AutoRefresh } from "@/components/client";
 import { Card, Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, Stat, Table, Td, Term } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
-import { ago, centiHours, gain, rps, usd, when } from "@/lib/format";
+import { centiHours, gain, rps, usd, when } from "@/lib/format";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +50,7 @@ export default async function OverviewPage() {
   }
   const { champion, capacity, queue, chain } = data;
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <section className="rounded-[var(--radius-card)] border border-line bg-surface px-5 py-6">
         <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-accent">More AI. Same GPU.</p>
         <h1 className="mt-2 max-w-3xl text-[26px] font-semibold leading-tight tracking-tight">
@@ -130,7 +130,7 @@ export default async function OverviewPage() {
                       {c.status}
                     </Pill>
                   </Td>
-                  <Td>{c.promoted_at ? ago(c.promoted_at) : "—"}</Td>
+                  <Td>{c.promoted_at ? when(c.promoted_at) : "—"}</Td>
                 </tr>
               ))}
             </Table>
@@ -185,7 +185,7 @@ export default async function OverviewPage() {
                     "—"
                   ),
                 ],
-                ["Observed", chain ? ago(chain.observed_at) : "—"],
+                ["Observed", chain ? when(chain.observed_at) : "—"],
                 ["Profile", <Mono key="p">{data.profile.id}@{data.profile.version}</Mono>],
                 ["Rule hash", <Mono key="r">{data.profile.rule_hash.slice(0, 16)}…</Mono>],
                 ["Bootstrap mode", data.profile.bootstrap_mode],

@@ -1,4 +1,4 @@
-import { Card, Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, Stat, Table, Td, Term } from "@/components/ui";
+import { Card, Empty, KeyValue, Mono, Notice, Pill, Stat, Table, Td, Term } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { centiHours, gain, rps, shortHash, usd, when } from "@/lib/format";
 import type { Metadata } from "next";
@@ -67,7 +67,7 @@ export default async function CompetitionPage() {
   const p = data.profile;
   const r = p.replacement;
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header>
         <h1 className="text-[22px] font-semibold tracking-tight">{p.title}</h1>
         <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">

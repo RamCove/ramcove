@@ -7,7 +7,7 @@ import { tao, usd } from "@/lib/format";
 import clsx from "clsx";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type Fixture = { name: string; title: string; mechanism: string; method: string };
 type Preflight = {
@@ -59,7 +59,7 @@ export function SubmitFlow({
   fixtures: Fixture[];
   demo: boolean;
 }) {
-  const { session, loaded, reload } = useSession();
+  const { session, loaded } = useSession();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [fixture, setFixture] = useState<string>(fixtures[0]?.name ?? "");
@@ -71,10 +71,6 @@ export function SubmitFlow({
   const [error, setError] = useState<ApiFailure | null>(null);
   const [busy, setBusy] = useState(false);
   const [idemKey] = useState(() => Math.random().toString(36).slice(2));
-
-  useEffect(() => {
-    if (preflight?.ok && step < 3) setStep(3);
-  }, [preflight, step]);
 
   async function run<T>(fn: () => Promise<T>): Promise<T | null> {
     setBusy(true);
@@ -229,7 +225,10 @@ uv run room-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"`}
                         idempotencyKey: `${idemKey}-preflight`,
                       }),
                     );
-                    if (r) setPreflight(r);
+                    if (r) {
+                      setPreflight(r);
+                      setStep(r.ok ? 3 : 2);
+                    }
                   }}
                 >
                   Build, sign and run free checks

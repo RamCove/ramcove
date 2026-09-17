@@ -18,7 +18,7 @@ const FAILURES: [string, string, string][] = [
 
 export default function DocsPage() {
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header>
         <h1 className="text-[22px] font-semibold tracking-tight">Documentation</h1>
         <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">

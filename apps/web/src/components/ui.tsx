@@ -19,7 +19,7 @@ export function Card({
   return (
     <section
       id={id}
-      className={clsx("rounded-[var(--radius-card)] border border-line bg-surface", className)}
+      className={clsx("min-w-0 rounded-[var(--radius-card)] border border-line bg-surface", className)}
       style={{ boxShadow: "var(--shadow)" }}
     >
       {(title || actions) && (
@@ -146,7 +146,7 @@ export function Table({
   caption?: string;
 }) {
   return (
-    <div className="table-scroll -mx-5 px-5">
+    <div className="table-scroll -mx-5 max-w-[calc(100%+2.5rem)] px-5">
       <table className="w-full min-w-[640px] border-collapse text-[13px]">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>

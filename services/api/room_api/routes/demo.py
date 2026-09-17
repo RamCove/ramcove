@@ -106,6 +106,29 @@ def manual_tick(ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require
     return {"result": tick(ctx)}
 
 
+class ScenarioIn(BaseModel):
+    name: str = Field(min_length=3, max_length=40)
+
+
+@router.get("/scenarios")
+def scenarios(ctx: AppContext = Depends(get_ctx)) -> dict:
+    _require_demo(ctx)
+    from ..services.scenarios import SCENARIOS
+
+    return {"scenarios": [{"name": k, "description": v} for k, v in SCENARIOS.items()]}
+
+
+@router.post("/scenario")
+def run_scenario(
+    body: ScenarioIn, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
+) -> dict:
+    """SIMULATION: drives the real services to produce a labelled demo state."""
+    _require_demo(ctx)
+    from ..services.scenarios import run
+
+    return run(ctx, body.name)
+
+
 @router.post("/reset")
 def reset(ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))) -> dict:
     _require_demo(ctx)

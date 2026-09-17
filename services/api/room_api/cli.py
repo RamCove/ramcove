@@ -31,6 +31,9 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("seed", help="seed the labelled demo dataset (demo mode only)")
     sub.add_parser("reset", help="drop, migrate and reseed the demo dataset (demo mode only)")
     sub.add_parser("tick", help="run one controller tick")
+    p_scen = sub.add_parser("scenario", help="seed a demo scenario by driving the real services")
+    p_scen.add_argument("name", nargs="?", default="champion")
+    p_scen.add_argument("--list", action="store_true")
     p_openapi = sub.add_parser("openapi", help="write the OpenAPI document")
     p_openapi.add_argument("--out", default=str(ROOT / "var/openapi.json"))
     args = parser.parse_args(argv)
@@ -57,6 +60,14 @@ def main(argv: list[str] | None = None) -> int:
         print(seed_svc.seed_base(ctx))
     elif args.cmd == "tick":
         print(tick(ctx))
+    elif args.cmd == "scenario":
+        from .services.scenarios import SCENARIOS
+        from .services.scenarios import run as run_scenario
+        if args.list:
+            for k, v in SCENARIOS.items():
+                print(f"{k:26s} {v}")
+            return 0
+        print(json.dumps(run_scenario(ctx, args.name), indent=2, default=str))
     return 0
 
 

@@ -119,6 +119,7 @@ body {
 /* Dense tables scroll inside their own container; the page itself never overflows sideways. */
 .table-scroll {
   overflow-x: auto;
+  max-width: 100%;
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
 }

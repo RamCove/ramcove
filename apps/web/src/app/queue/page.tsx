@@ -1,7 +1,7 @@
-import { AutoRefresh } from "@/components/client";
+import { AutoRefresh, TimeAgo } from "@/components/client";
 import { Card, Empty, Notice, Pill, StatePill, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
-import { admissionKey, ago, gain } from "@/lib/format";
+import { admissionKey, gain } from "@/lib/format";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -42,7 +42,7 @@ export default async function QueuePage({
   const qs = new URLSearchParams({ kind, ...(sp.cursor ? { cursor: sp.cursor } : {}) });
   const data = await apiGetOrNull<QueuePage>(`/v1/queue?${qs}`);
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight">Queue and competition history</h1>
@@ -134,7 +134,7 @@ export default async function QueuePage({
                         )}
                       </Td>
                       <Td className="num">{gain(it.triage_gain_ppm)}</Td>
-                      <Td>{ago(it.updated_at)}</Td>
+                      <Td>{<TimeAgo at={it.updated_at} />}</Td>
                     </>
                   )}
                   {kind === "waiting" && (
@@ -144,7 +144,7 @@ export default async function QueuePage({
                       <Td>
                         <StatePill state={it.state} label={it.state_label} />
                       </Td>
-                      <Td>{ago(it.updated_at)}</Td>
+                      <Td>{<TimeAgo at={it.updated_at} />}</Td>
                     </>
                   )}
                   {kind === "history" && (
@@ -167,7 +167,7 @@ export default async function QueuePage({
                         )}
                       </Td>
                       <Td className="num">{gain(it.bound_gain_ppm)}</Td>
-                      <Td>{ago(it.updated_at)}</Td>
+                      <Td>{<TimeAgo at={it.updated_at} />}</Td>
                     </>
                   )}
                 </tr>

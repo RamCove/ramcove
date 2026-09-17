@@ -1,7 +1,7 @@
-import { AutoRefresh } from "@/components/client";
+import { AutoRefresh, TimeAgo } from "@/components/client";
 import { Card, Empty, Pill, Stat, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
-import { ago } from "@/lib/format";
+import { when } from "@/lib/format";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -31,7 +31,7 @@ export default async function StatusPage() {
   const ready = s.workers.filter((w) => w.safe_and_ready).length;
   const open = s.incidents.filter((i) => !i.resolved_at);
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight">Service status</h1>
@@ -54,7 +54,7 @@ export default async function StatusPage() {
             label="Chain reads"
             value={s.chain ? "observed" : "stale"}
             tone={s.chain ? "ok" : "warn"}
-            hint={s.chain ? `#${s.chain.finalized_number} · ${ago(s.chain.observed_at)}` : "no observation"}
+            hint={s.chain ? `#${s.chain.finalized_number} · ${<TimeAgo at={s.chain.observed_at} />}` : "no observation"}
           />
         </Card>
         <Card>
@@ -107,7 +107,7 @@ export default async function StatusPage() {
                     {i.resolved_at ? "resolved" : i.severity}
                   </Pill>
                   <span className="text-[13px] font-medium text-text">{i.title}</span>
-                  <span className="text-[11px] text-faint">started {ago(i.started_at)}</span>
+                  <span className="text-[11px] text-faint">started {<TimeAgo at={i.started_at} />}</span>
                 </div>
                 <p className="mt-1 text-[12px] leading-relaxed text-muted">{i.summary}</p>
               </li>

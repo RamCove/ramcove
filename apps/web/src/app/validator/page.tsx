@@ -1,7 +1,7 @@
-import { AutoRefresh } from "@/components/client";
+import { AutoRefresh, TimeAgo } from "@/components/client";
 import { Card, Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, Stat, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
-import { ago, gain, rps, when } from "@/lib/format";
+import { gain, rps, when } from "@/lib/format";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 
@@ -67,7 +67,7 @@ export default async function ValidatorPage() {
   if (!ws.validator) return <Empty title="This hotkey is not a registered validator" />;
   const ready = ws.workers.filter((w) => w.safe_and_ready).length;
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight">{ws.validator.name}</h1>
@@ -95,7 +95,7 @@ export default async function ValidatorPage() {
           <Stat
             label="Chain"
             value={ws.chain ? `#${ws.chain.finalized_number}` : "—"}
-            hint={ws.chain ? `${ws.chain.simulated ? "dev chain · " : ""}${ago(ws.chain.observed_at)}` : "unknown"}
+            hint={ws.chain ? `${ws.chain.simulated ? "dev chain · " : ""}${<TimeAgo at={ws.chain.observed_at} />}` : "unknown"}
           />
         </Card>
       </div>
@@ -132,7 +132,7 @@ export default async function ValidatorPage() {
                   <KeyValue
                     rows={[
                       ["Provider", <Mono key="p">{w.provider}</Mono>],
-                      ["Calibrated", w.calibrated_at ? `${ago(w.calibrated_at)} (champion v${w.calibrated_champion_version})` : "never"],
+                      ["Calibrated", w.calibrated_at ? `${<TimeAgo at={w.calibrated_at} />} (champion v${w.calibrated_champion_version})` : "never"],
                       [
                         "Calibrated capacity",
                         w.readiness.calibration ? rps(w.readiness.calibration.capacity_milli_rps) : "—",
