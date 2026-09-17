@@ -24,3 +24,6 @@ var/
 secrets/
 # OS
 .DS_Store
+apps/web/.next/
+apps/web/node_modules/
+var/
