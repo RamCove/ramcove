@@ -53,6 +53,10 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
       (item.needs === "session" ? Boolean(session) : roles.has(item.needs as string) || roles.has("operator")),
   );
   const isActive = (href: string) => path === href || (href !== "/" && path.startsWith(href));
+  // The bar carries the public pages; personal and role workspaces live in the account menu, so the
+  // header never overflows however many roles a session holds.
+  const primary = visible.filter((item) => !("needs" in item));
+  const workspace = visible.filter((item) => "needs" in item);
   return (
     <>
       <div className="bg-band text-on-band">
@@ -84,7 +88,7 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
           </Link>
           <nav aria-label="Main" className="ml-auto hidden lg:block">
             <ul className="flex items-center gap-0.5">
-              {visible.map((item) => {
+              {primary.map((item) => {
                 const active = isActive(item.href);
                 return (
                   <li key={item.href}>
@@ -92,7 +96,7 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
                       href={item.href}
                       aria-current={active ? "page" : undefined}
                       className={clsx(
-                        "relative rounded-full px-3 py-1.5 text-[14px] transition-colors",
+                        "relative whitespace-nowrap rounded-full px-3 py-1.5 text-[14px] transition-colors",
                         active ? "text-text" : "text-muted hover:text-text",
                       )}
                     >
@@ -108,7 +112,12 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
           </nav>
           <div className="ml-auto flex items-center gap-1.5 lg:ml-2">
             <ThemeToggle />
-            <SessionButton session={session} loaded={loaded} reload={reload} />
+            <SessionButton
+              session={session}
+              loaded={loaded}
+              reload={reload}
+              workspace={workspace.map((w) => ({ href: w.href, label: w.label, active: isActive(w.href) }))}
+            />
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
@@ -125,8 +134,11 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
         {open && (
           <nav aria-label="Main (compact)" className="border-t border-line bg-bg px-5 pb-5 pt-3 lg:hidden">
             <ul className="grid gap-0.5">
-              {visible.map((item) => (
+              {[...primary, ...workspace].map((item, i) => (
                 <li key={item.href}>
+                  {i === primary.length && workspace.length > 0 && (
+                    <p className="eyebrow mb-1 mt-4 border-t border-line px-3 pt-4">Your workspace</p>
+                  )}
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
@@ -153,39 +165,27 @@ function SessionButton({
   session,
   loaded,
   reload,
+  workspace,
 }: {
   session: { hotkey: string; demo: boolean; roles: string[] } | null;
   loaded: boolean;
   reload: () => Promise<void>;
+  workspace: { href: string; label: string; active: boolean }[];
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const router = useRouter();
-  if (!loaded) return <span className="inline-block h-8 w-[72px] rounded-[var(--radius-sm)] bg-surface-2" aria-hidden />;
+  if (!loaded) return <span className="inline-block h-9 w-[84px] rounded-full bg-surface-2" aria-hidden />;
   if (session) {
     return (
-      <div className="flex items-center gap-2">
-        <span
-          className="hidden items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1.5 pr-3 text-[12.5px] text-muted sm:inline-flex"
-          title={session.hotkey}
-        >
-          <span aria-hidden className="h-5 w-5 rounded-full bg-accent-quiet ring-1 ring-accent/30" />
-          <span className="num font-mono">
-            {session.hotkey.slice(0, 5)}…{session.hotkey.slice(-4)}
-          </span>
-          {session.roles.length > 0 && <span className="text-faint">· {session.roles.join(", ")}</span>}
-        </span>
-        <Button
-          size="sm"
-          variant="quiet"
-          onClick={async () => {
-            await clientFetch("/v1/auth/logout", { method: "POST" });
-            await reload();
-            router.refresh();
-          }}
-        >
-          Sign out
-        </Button>
-      </div>
+      <AccountMenu
+        session={session}
+        workspace={workspace}
+        onSignOut={async () => {
+          await clientFetch("/v1/auth/logout", { method: "POST" });
+          await reload();
+          router.refresh();
+        }}
+      />
     );
   }
   return (
@@ -201,6 +201,105 @@ function SessionButton({
         }}
       />
     </>
+  );
+}
+
+function AccountMenu({
+  session,
+  workspace,
+  onSignOut,
+}: {
+  session: { hotkey: string; demo: boolean; roles: string[] };
+  workspace: { href: string; label: string; active: boolean }[];
+  onSignOut: () => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const short = `${session.hotkey.slice(0, 5)}…${session.hotkey.slice(-4)}`;
+  const anyActive = workspace.some((w) => w.active);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="true"
+        onClick={() => setOpen((v) => !v)}
+        title={session.hotkey}
+        className={clsx(
+          "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border bg-surface py-1 pl-1.5 pr-3 text-[13px] transition-colors hover:border-line-strong",
+          anyActive ? "border-accent/50" : "border-line",
+        )}
+      >
+        <span aria-hidden className="h-6 w-6 rounded-full bg-accent-quiet ring-1 ring-accent/30" />
+        <span className="num font-mono text-text">{short}</span>
+        {session.roles[0] && (
+          <span className="hidden text-muted xl:inline">· {session.roles[0]}</span>
+        )}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden className="text-faint">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-[calc(100%+8px)] z-40 w-64 overflow-hidden rounded-[var(--radius-sm)] border border-line bg-surface"
+          style={{ boxShadow: "var(--shadow-lift)" }}
+        >
+          <div className="border-b border-line px-4 py-3">
+            <p className="eyebrow">Signed in{session.demo ? " · demo" : ""}</p>
+            <p className="num mt-1 truncate font-mono text-[12.5px] text-text">{session.hotkey}</p>
+            {session.roles.length > 0 && (
+              <p className="mt-1 text-[12.5px] text-muted">{session.roles.join(" · ")}</p>
+            )}
+          </div>
+          {workspace.length > 0 && (
+            <nav aria-label="Your workspace" className="py-1.5">
+              {workspace.map((w) => (
+                <Link
+                  key={w.href}
+                  href={w.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={w.active ? "page" : undefined}
+                  className={clsx(
+                    "flex items-center justify-between px-4 py-2 text-[14px] transition-colors hover:bg-surface-2",
+                    w.active ? "text-text" : "text-muted hover:text-text",
+                  )}
+                >
+                  {w.label}
+                  {w.active && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />}
+                </Link>
+              ))}
+            </nav>
+          )}
+          <div className="border-t border-line p-1.5">
+            <button
+              type="button"
+              onClick={async () => {
+                setOpen(false);
+                await onSignOut();
+              }}
+              className="w-full rounded-[8px] px-3 py-2 text-left text-[14px] text-muted transition-colors hover:bg-surface-2 hover:text-text"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
