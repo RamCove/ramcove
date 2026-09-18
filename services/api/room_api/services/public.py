@@ -79,7 +79,7 @@ def mask_hotkey(hk: str | None) -> str | None:
 
 def meta(ctx: AppContext) -> dict:
     return {
-        "product": "ROOM",
+        "product": "RamCove",
         "tagline": "More AI. Same GPU.",
         "env": ctx.settings.env,
         "network": ctx.settings.network,
@@ -225,7 +225,7 @@ def profile_detail(ctx: AppContext) -> dict:
                 "bound_gain_ppm": champ.bound_gain_ppm,
             },
             "weight_plan": None if latest_plan is None else latest_plan.body,
-            "values_are": "provisional planning values from the ROOM v0.2 whitepaper; none is measured on H100",
+            "values_are": "provisional planning values from the v0.2 whitepaper; none is measured on H100",
         }
 
 

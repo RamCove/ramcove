@@ -87,7 +87,7 @@ export default async function CompetitionPage() {
 
       {!p.measured && (
         <Notice tone="warn" title="Nothing here is measured on an H100">
-          The thresholds, runtimes and costs come from the ROOM v0.2 whitepaper and its review. A Stage 1 noise
+          The thresholds, runtimes and costs come from the v0.2 whitepaper and its review. A Stage 1 noise
           study must replace them before real submissions are accepted.
         </Notice>
       )}

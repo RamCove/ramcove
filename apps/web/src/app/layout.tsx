@@ -6,9 +6,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: { default: "ROOM — More AI. Same GPU.", template: "%s · ROOM" },
+  title: { default: "RamCove — More AI. Same GPU.", template: "%s · RamCove" },
   description:
-    "ROOM is a proposed Bittensor subnet that rewards verified software improvements which let a fixed GPU serve more useful AI requests.",
+    "RamCove is a proposed Bittensor subnet that rewards verified software improvements which let a fixed GPU serve more useful AI requests.",
 };
 
 export const dynamic = "force-dynamic";
@@ -43,7 +43,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           {meta === null && (
             <div className="full-bleed mx-auto mt-6 max-w-[1200px] px-5 sm:px-8">
               <div className="rounded-[var(--radius-sm)] bg-danger-quiet px-5 py-4">
-                <p className="text-[14px] font-semibold text-text">The ROOM API is not reachable</p>
+                <p className="text-[14px] font-semibold text-text">The RamCove API is not reachable</p>
                 <p className="mt-1 text-[14px] text-muted">
                   Start it with <code className="font-mono">make api</code> (or{" "}
                   <code className="font-mono">uv run room-api</code>) and reload. Pages below show whatever data

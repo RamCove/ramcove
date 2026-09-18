@@ -51,7 +51,7 @@ DEMO_IDENTITIES = [
     DemoIdentity("miner-cyd", "//RoomDemoMinerCyd", "Cyd (demo miner)", ("miner",)),
     DemoIdentity("miner-dee", "//RoomDemoMinerDee", "Dee (demo miner, unregistered)", ("miner",)),
     DemoIdentity(
-        "validator-op", "//RoomDemoValidatorOperator", "ROOM bootstrap validator (demo)", ("validator",)
+        "validator-op", "//RoomDemoValidatorOperator", "RamCove bootstrap validator (demo)", ("validator",)
     ),
     DemoIdentity(
         "validator-shadow",
@@ -166,7 +166,7 @@ def seed_base(ctx: AppContext) -> dict:
         conn.execute(
             validators.insert().values(
                 hotkey=op,
-                name="ROOM bootstrap validator (demo)",
+                name="RamCove bootstrap validator (demo)",
                 operator_affiliated=True,
                 independence_group="room-operator",
                 scoring=True,

@@ -10,7 +10,7 @@ const FAILURES: [string, string, string][] = [
   ["screen gross accuracy", "Smoke answers were far below the champion's.", "Check that your change does not break correctness before resubmitting."],
   ["not a potential winner", "Gates failed, or the triage gain was below the margin.", "Read the failed gate on the submission page; each names what it measured."],
   ["margin not cleared", "The confirmed lower bound did not exceed the margin.", "A near-tie keeps the incumbent. Improve the method rather than resubmitting the same code."],
-  ["memory evidence", "The gain did not hold under a smaller cache budget, or the memory probe showed no change.", "ROOM rewards memory-driven capacity; a pure speedup is out of scope."],
+  ["memory evidence", "The gain did not hold under a smaller cache budget, or the memory probe showed no change.", "RamCove rewards memory-driven capacity; a pure speedup is out of scope."],
   ["review rejected", "A published criterion failed.", "The decision cites the criterion. You may appeal within 7 days."],
   ["operator failure", "Infrastructure, quorum or deadline failure on our side.", "Your fee returns as a refund or credit. Nothing is charged twice."],
   ["registration expired", "The winning hotkey was not registered within the grace period.", "Register the hotkey before the deadline shown on the submission."],
@@ -21,7 +21,7 @@ export default function DocsPage() {
     <div className="min-w-0 space-y-8">
       <PageHeader
         eyebrow="Documentation"
-        title="How ROOM works"
+        title="How RamCove works"
         lede="What a submission must contain, how it is measured, and what each failure means. The full protocol specification and the runbooks live in the repository."
       />
 
@@ -78,7 +78,7 @@ export default function DocsPage() {
           <Table head={["Term", "What it means"]}>
             <tr>
               <Td>
-                <Term term="Qualified serving capacity" plain="The comparison quantity ROOM measures">
+                <Term term="Qualified serving capacity" plain="The comparison quantity RamCove measures">
                   Qualified serving capacity
                 </Term>
               </Td>
@@ -94,7 +94,7 @@ export default function DocsPage() {
             </tr>
             <tr>
               <Td>KV cache</Td>
-              <Td>The per-conversation working memory a model keeps on the GPU. It is what ROOM is about.</Td>
+              <Td>The per-conversation working memory a model keeps on the GPU. It is what RamCove is about.</Td>
             </tr>
             <tr>
               <Td>Paired block</Td>
@@ -147,7 +147,7 @@ make reset      # wipe and reseed the demo data`}
           <p className="text-[13px] leading-relaxed text-muted">
             Approved champions are merged into an open reference stack and released on a quarterly cadence after
             a soak test, as a validated build for one profile with a capacity test on the customer&apos;s own
-            hardware. ROOM does not route production requests to miners and offers no inference API. There is no
+            hardware. RamCove does not route production requests to miners and offers no inference API. There is no
             customer billing portal in this build, and no customer, revenue or partnership exists.
           </p>
         </Card>

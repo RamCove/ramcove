@@ -149,7 +149,7 @@ export function SubmitFlow({
             </tr>
             <tr>
               <Td>Signature</Td>
-              <Td>Your hotkey signs the artifact hash. ROOM never asks for a seed phrase or key file</Td>
+              <Td>Your hotkey signs the artifact hash. RamCove never asks for a seed phrase or key file</Td>
             </tr>
             <tr>
               <Td>Baseline</Td>
@@ -356,7 +356,7 @@ uv run room-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"`}
                   ["Paid by", <Mono key="p">{quote.quote.payer}</Mono>],
                   ["Artifact", <Mono key="a">{quote.quote.artifact_sha256.slice(0, 20)}…</Mono>],
                   ["Quote expires", `block ${quote.quote.expires_block} (issued at ${quote.quote.issued_block})`],
-                  ["Network transaction fee", `${tao(quote.display.estimated_network_fee_rao)} TAO, paid to the chain, not to ROOM`],
+                  ["Network transaction fee", `${tao(quote.display.estimated_network_fee_rao)} TAO, paid to the chain, not to RamCove`],
                   ["Service cost basis", `${usd(quote.display.service_cost_usd_cents)} per admission (planning estimate)`],
                   ["Operator subsidy", usd(quote.display.subsidy_usd_cents)],
                 ]}

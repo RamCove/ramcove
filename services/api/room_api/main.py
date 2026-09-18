@@ -32,9 +32,9 @@ def build_context() -> AppContext:
 def create_app(ctx: AppContext | None = None) -> FastAPI:
     ctx = ctx or build_context()
     app = FastAPI(
-        title="ROOM API",
+        title="RamCove API",
         version="0.1.0",
-        description="Local development build of the ROOM subnet platform. Chain, beacon, workers and "
+        description="Local development build of the RamCove subnet platform. Chain, beacon, workers and "
         "payments are simulated and labelled.",
         openapi_tags=[
             {"name": "public"},

@@ -1,4 +1,4 @@
-/** Same-origin proxy to the ROOM API, so the session cookie stays first-party and CORS is not needed. */
+/** Same-origin proxy to the RamCove API, so the session cookie stays first-party and CORS is not needed. */
 
 import { API_ORIGIN } from "@/lib/api";
 import type { NextRequest } from "next/server";

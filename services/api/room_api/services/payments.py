@@ -232,7 +232,7 @@ def recover_payment(ctx: AppContext, hotkey: str, block_number: int, extrinsic_i
                 "payment_not_yours", "that extrinsic does not reference one of your quotes", 403
             )
         result = process_extrinsic(conn, ctx, exts[0])
-        return result or {"outcome": "rejected", "reason": "not a ROOM payment"}
+        return result or {"outcome": "rejected", "reason": "not a RamCove payment"}
 
 
 def expire_quotes(conn: Connection, ctx: AppContext) -> int:
