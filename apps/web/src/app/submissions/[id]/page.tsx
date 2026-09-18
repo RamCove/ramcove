@@ -1,6 +1,6 @@
 import { AutoRefresh, CopyRef, TimeAgo } from "@/components/client";
 import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, SimulatedTag, Stat, StatePill, Table, Td, Term } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { apiGetOrNull } from "@/lib/server-api";
 import { admissionKey, centiHours, gain, rps, shortHash, tao, when } from "@/lib/format";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";

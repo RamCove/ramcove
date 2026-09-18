@@ -15,28 +15,6 @@ export class ApiFailure extends Error {
   }
 }
 
-/** Server-side fetch (React Server Components). Never cached: the queue and champion must be current. */
-export async function apiGet<T>(path: string, cookie?: string): Promise<T> {
-  const res = await fetch(`${API_ORIGIN}${path}`, {
-    cache: "no-store",
-    headers: cookie ? { cookie } : undefined,
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new ApiFailure(res.status, body.error ?? { code: "unreachable", message: "API unavailable" });
-  }
-  return body as T;
-}
-
-/** Server-side fetch that returns null instead of throwing, for optional panels. */
-export async function apiGetOrNull<T>(path: string, cookie?: string): Promise<T | null> {
-  try {
-    return await apiGet<T>(path, cookie);
-  } catch {
-    return null;
-  }
-}
-
 /** Browser fetch through the proxy. */
 export async function clientFetch<T>(
   path: string,

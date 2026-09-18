@@ -1,5 +1,5 @@
 import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, Stat, Table, Td, Term } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { apiGetOrNull } from "@/lib/server-api";
 import { centiHours, gain, rps, shortHash, usd, when } from "@/lib/format";
 import type { Metadata } from "next";
 

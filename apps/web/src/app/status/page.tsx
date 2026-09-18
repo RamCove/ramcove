@@ -1,6 +1,6 @@
 import { AutoRefresh, TimeAgo } from "@/components/client";
 import { Card, Empty, PageHeader, Pill, Stat, Table, Td } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { apiGetOrNull } from "@/lib/server-api";
 import { when } from "@/lib/format";
 import type { Metadata } from "next";
 import Link from "next/link";
