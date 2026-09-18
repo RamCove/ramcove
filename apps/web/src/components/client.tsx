@@ -27,14 +27,15 @@ export function Button({
   title?: string;
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-55";
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-sm)] border font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0";
   const variants = {
-    primary: "border-accent bg-accent text-[#04201e] hover:bg-accent-strong",
-    secondary: "border-line-strong bg-surface-2 text-text hover:bg-surface-3",
-    quiet: "border-transparent bg-transparent text-muted hover:text-text hover:bg-surface-2",
-    danger: "border-danger bg-danger-quiet text-danger hover:bg-danger hover:text-[#1b0e0c]",
+    primary:
+      "border-accent bg-accent text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_18px_-8px_var(--accent)] hover:bg-accent-strong hover:border-accent-strong",
+    secondary: "border-line-strong bg-surface text-text hover:border-text/40 hover:bg-surface-2",
+    quiet: "border-transparent bg-transparent text-muted hover:bg-surface-2 hover:text-text",
+    danger: "border-danger/50 bg-danger-quiet text-danger hover:border-danger hover:bg-danger hover:text-surface",
   }[variant];
-  const sizes = { sm: "px-2.5 py-1 text-[12px]", md: "px-3.5 py-2 text-[13px]" }[size];
+  const sizes = { sm: "h-8 px-3 text-[13px]", md: "h-10 px-4 text-[14px]" }[size];
   return (
     <button
       type={type}
@@ -86,15 +87,15 @@ export function ConfirmButton({
       <dialog
         ref={ref}
         aria-labelledby={`${id}-title`}
-        className="w-[min(30rem,92vw)] rounded-[var(--radius-card)] border border-line bg-surface p-0 text-text backdrop:bg-black/60"
+        className="m-auto w-[min(30rem,92vw)] rounded-[var(--radius-card)] border border-line bg-surface p-0 text-text shadow-[var(--shadow-lift)]"
       >
-        <div className="px-5 py-4">
-          <h2 id={`${id}-title`} className="text-[15px] font-semibold">
+        <div className="px-6 pb-2 pt-6">
+          <h2 id={`${id}-title`} className="font-display text-[24px] leading-tight">
             {title}
           </h2>
-          <div className="mt-2 text-[13px] leading-relaxed text-muted">{body}</div>
+          <div className="mt-3 text-[14px] leading-relaxed text-muted">{body}</div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-line px-5 py-3">
+        <div className="flex justify-end gap-2 px-6 pb-5 pt-4">
           <Button variant="quiet" onClick={() => ref.current?.close()}>
             Cancel
           </Button>
@@ -147,7 +148,7 @@ export function ErrorText({ error }: { error: ApiFailure | Error | null }) {
   if (!error) return null;
   const ref = error instanceof ApiFailure ? error.error.reference : undefined;
   return (
-    <p role="alert" className="mt-2 text-[13px] text-danger">
+    <p role="alert" className="mt-3 text-[14px] text-danger">
       {error.message}
       {ref && (
         <>
@@ -176,23 +177,16 @@ export function AutoRefresh({ seconds = 5 }: { seconds?: number }) {
       role="switch"
       aria-checked={on}
       onClick={() => setOn((v) => !v)}
-      className="inline-flex select-none items-center gap-2 rounded-[var(--radius-sm)] px-1.5 py-1 text-[12px] text-muted hover:text-text"
+      className="inline-flex h-8 select-none items-center gap-2 rounded-full border border-line bg-surface px-3 text-[12.5px] text-muted transition-colors hover:text-text"
     >
       <span
         aria-hidden
-        className={clsx(
-          "inline-block h-3 w-6 rounded-full border transition-colors",
-          on ? "border-accent bg-accent" : "border-line-strong bg-surface-3",
-        )}
-      >
-        <span
-          className={clsx(
-            "block h-2 w-2 translate-y-[1px] rounded-full bg-bg transition-transform",
-            on ? "translate-x-[13px]" : "translate-x-[2px]",
-          )}
-        />
-      </span>
-      Live updates
+        className={clsx(on ? "live-dot text-ok" : "inline-block h-[7px] w-[7px] rounded-full bg-faint")}
+      />
+      {on ? "Live" : "Paused"}
+      <span className="sr-only"> updates</span>
+      <span aria-hidden className="text-faint">·</span>
+      <span className="text-faint">{on ? "pause" : "resume"}</span>
     </button>
   );
 }
@@ -202,16 +196,16 @@ export function ThemeToggle() {
   // server and the browser agree and no effect is needed.
   const theme = useSyncExternalStore(
     subscribeTheme,
-    () => (document.documentElement.dataset.theme === "light" ? "light" : "dark"),
-    () => "dark" as const,
+    () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light"),
+    () => "light" as const,
   );
+  const next = theme === "dark" ? "light" : "dark";
   return (
-    <Button
-      variant="quiet"
-      size="sm"
-      title="Switch between the dark and light theme"
+    <button
+      type="button"
+      aria-label={`Switch to the ${next} theme`}
+      title={`Switch to the ${next} theme`}
       onClick={() => {
-        const next = theme === "dark" ? "light" : "dark";
         document.documentElement.dataset.theme = next;
         try {
           localStorage.setItem("room-theme", next);
@@ -220,9 +214,19 @@ export function ThemeToggle() {
         }
         themeListeners.forEach((l) => l());
       }}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text"
     >
-      {theme === "dark" ? "Light theme" : "Dark theme"}
-    </Button>
+      {theme === "dark" ? (
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden>
+          <circle cx="12" cy="12" r="4.2" />
+          <path d="M12 2.5v2.2M12 19.3v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden>
+          <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
