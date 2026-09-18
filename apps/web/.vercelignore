@@ -1,0 +1,6 @@
+# Only the web app's source is uploaded; builds happen on Vercel.
+node_modules
+.next
+test-results
+playwright-report
+*.tsbuildinfo
