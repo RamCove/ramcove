@@ -15,6 +15,7 @@ const VIEWPORTS = { desktop: { width: 1440, height: 900 }, tablet: { width: 768,
 
 const PAGES = [
   { name: "overview", path: "/", as: null, viewports: ["desktop", "tablet", "phone"] },
+  { name: "dashboard", path: "/dashboard", as: null, viewports: ["desktop", "phone"] },
   { name: "competition", path: "/competition", as: null, viewports: ["desktop"] },
   { name: "queue", path: "/queue", as: null, viewports: ["desktop", "phone"] },
   { name: "queue-history", path: "/queue?kind=history", as: null, viewports: ["desktop"] },

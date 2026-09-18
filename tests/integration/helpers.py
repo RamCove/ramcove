@@ -15,7 +15,7 @@ from ramcove_api.signing import ServiceSigner
 from ramcove_api.store.db import make_engine, tx
 from ramcove_api.store.schema import reviews, submissions
 from ramcove_miner.artifact import pack, sign_artifact
-from ramcove_miner.fixtures import by_name, manifest_for
+from ramcove_miner.fixtures import by_name, manifest_for, variant_patch
 from ramcove_protocol.rules import ProfileVersion
 from ramcove_worker.isolation import SimulatedTrustedProvider
 from ramcove_worker.runner import execute
@@ -61,11 +61,13 @@ def bring_workers_online(ctx, ids=("w-op-1", "w-op-2")) -> None:
         workers_svc.heartbeat(ctx, wid, provider().readiness().as_dict())
 
 
-def submit_fixture(ctx, miner_key: str, fixture_name: str, parent_version: int = 0) -> dict:
+def submit_fixture(ctx, miner_key: str, fixture_name: str, parent_version: int = 0, variant: int = 0) -> dict:
+    """Submit a trusted demo fixture. A resubmission must use another variant: an identical artifact is
+    rightly refused as a duplicate, exactly as it would be for a real miner."""
     hk, kp = hotkey(miner_key)
     p = profile(ctx)
     fx = by_name(fixture_name)
-    data = pack(manifest_for(fx, hk, p.profile_id, p.version, parent_version), fx["patch"])
+    data = pack(manifest_for(fx, hk, p.profile_id, p.version, parent_version), variant_patch(fx, variant))
     sig = sign_artifact(kp, data, ctx.settings.network, p.profile_id, p.version)
     return intake.preflight(ctx, hk, data, sig)
 

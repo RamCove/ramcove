@@ -43,7 +43,7 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
     attempts, win, rejected = 0, None, []
     while attempts < 3:
         attempts += 1
-        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator")
+        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=attempts - 1)
         assert sub["ok"]
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
@@ -71,3 +71,20 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
         assert kinds.count("fee_received") == paid and kinds.count("fee_consumed") == paid
         ok, n, bad = audit.verify_chain(conn)
         assert ok and n > 20, bad
+
+
+def test_a_resubmission_needs_a_changed_artifact(ctx):
+    """The path the journey takes after a noisy rejection, exercised on purpose: resubmitting the very
+    same artifact is refused as a duplicate, while a changed one is accepted."""
+    from ramcove_api.services import intake
+
+    from .helpers import hotkey
+
+    hk, _ = hotkey("miner-ada")
+    first = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=0)
+    assert first["ok"]
+    intake.withdraw(ctx, first["submission_id"], hk, "trying again")
+    same = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=0)
+    assert not same["ok"] and "duplicate" in str(same).lower(), same
+    changed = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=1)
+    assert changed["ok"], changed

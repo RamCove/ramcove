@@ -104,8 +104,8 @@ def test_the_stand_in_reviewer_is_off_by_default_and_labels_what_it_approves(ctx
     bring_workers_online(ctx)
     # triage is noisy (about one clear winner in eight is rejected), so resubmit as a miner would
     sub_id = None
-    for _ in range(3):
-        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator")
+    for attempt in range(3):
+        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=attempt)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
         if state(ctx, sub["submission_id"]).state == "in_review":
