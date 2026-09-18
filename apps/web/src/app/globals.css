@@ -148,6 +148,15 @@ body {
   }
 }
 
+/* Grid items default to min-width: auto, so one wide table can stretch a whole column past the
+   viewport instead of scrolling inside its card. Let every grid child shrink; this sits in the base
+   layer so an explicit min-w-* utility still wins. */
+@layer base {
+  .grid > * {
+    min-width: 0;
+  }
+}
+
 /* Display type: Fraunces with its optical-size axis, so it sharpens as it grows. */
 .font-display {
   font-family: var(--font-display);
