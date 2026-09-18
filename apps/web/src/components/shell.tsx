@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 
 const NAV = [
   { href: "/", label: "Overview" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/competition", label: "Competition" },
   { href: "/queue", label: "Queue" },
   { href: "/submit", label: "Submit" },

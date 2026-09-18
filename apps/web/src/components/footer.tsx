@@ -5,6 +5,7 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
   {
     title: "Compete",
     links: [
+      { href: "/dashboard", label: "Miner dashboard" },
       { href: "/competition", label: "Competition rules" },
       { href: "/queue", label: "Queue and history" },
       { href: "/submit", label: "Start a submission" },

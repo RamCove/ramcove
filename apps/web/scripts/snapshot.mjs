@@ -11,7 +11,7 @@ import { writeFile } from "node:fs/promises";
 const API = process.env.RAMCOVE_API_ORIGIN ?? "http://127.0.0.1:8787";
 const OUT = new URL("../src/preview/snapshot.json", import.meta.url);
 
-const FIXED = ["/v1/meta", "/v1/overview", "/v1/profile", "/v1/status", "/v1/demo/fixtures"];
+const FIXED = ["/v1/meta", "/v1/overview", "/v1/dashboard", "/v1/profile", "/v1/status", "/v1/demo/fixtures"];
 const QUEUE_KINDS = ["admitted", "waiting", "history"];
 const MAX_QUEUE_PAGES = 3;
 
@@ -38,6 +38,7 @@ for (const kind of QUEUE_KINDS) {
     if (!cursor) break;
   }
 }
+for (const item of responses["/v1/dashboard"].items ?? []) submissionIds.add(item.submission_id);
 for (const id of submissionIds) responses[`/v1/submissions/${id}`] = await get(`/v1/submissions/${id}`);
 
 const snapshot = {

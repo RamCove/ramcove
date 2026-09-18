@@ -62,6 +62,18 @@ test("a visitor understands the competition without signing in", async ({ page }
   await expect(page.getByText("Local development build")).toBeVisible();
   // the call to action repeats down the page; the hero one comes first
   await expect(page.getByRole("link", { name: "Start a submission" }).first()).toBeVisible();
+  const bar = page.getByRole("navigation", { name: "Main" });
+  if (await bar.isVisible()) {
+    await bar.getByRole("link", { name: "Dashboard" }).click();
+  } else {
+    // phones: the menu sits behind the menu button
+    await page.getByRole("button", { name: "Menu" }).click();
+    await page.getByRole("navigation", { name: "Main (compact)" }).getByRole("link", { name: "Dashboard" }).click();
+  }
+  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+  await expect(page.getByText("Current champion")).toBeVisible();
+  await page.goto("/");
   await page.getByRole("link", { name: "Explore the competition" }).click();
   await expect(page).toHaveURL(/\/competition/);
   await expect(page.getByText("How a challenger replaces the champion")).toBeVisible();
