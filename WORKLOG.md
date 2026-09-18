@@ -54,7 +54,7 @@ Newest first. Commands are the ones actually run; results are what actually happ
 ## Next executable steps
 
 1. Real-hardware Stage 1: measure noise, runtimes and the memory diagnostics on one H100 SXM; replace every
-   provisional value in `config/profiles/room-p1@1.0.0.json`.
+   provisional value in `config/profiles/ramcove-p1@1.0.0.json`.
 2. Testnet: exercise `batch_all` payment verification, weight publication and the no-winner path with an
    authorized signer.
 3. Implement a real isolation backend behind `VfioVmProvider` and run the conformance checks on the host.

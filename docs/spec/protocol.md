@@ -1,8 +1,8 @@
-# ROOM protocol, as implemented
+# RamCove protocol, as implemented
 
-Version 0.1 of the implementation, against ROOM whitepaper v0.2 and its review. Every rule below exists in
+Version 0.1 of the implementation, against RamCove whitepaper v0.2 and its review. Every rule below exists in
 code; the column "where" names the module that owns it. Provisional values live in an immutable profile
-version (`config/profiles/room-p1@1.0.0.json`) whose hash is recorded with every quote, comparison and
+version (`config/profiles/ramcove-p1@1.0.0.json`) whose hash is recorded with every quote, comparison and
 promotion.
 
 **Nothing here is measured.** Runtimes, thresholds, capacities and costs are planning values until a Stage 1
@@ -14,11 +14,11 @@ A profile fixes everything that affects a raw capacity number: model repository 
 repository, tag and commit, image digests, driver and firmware, the single H100 SXM, the candidate VM
 (16 cores, 64 GiB, no swap, no network), context limit, decoding, workloads, gates, the replacement rule,
 deadlines, the fee formula and the bootstrap mode. Different hardware is a different profile; scores never
-share a leaderboard. *Where: `room_protocol.rules`.*
+share a leaderboard. *Where: `ramcove_protocol.rules`.*
 
 ## 2. Submission lifecycle
 
-States and the events between them are a single table (`room_protocol.state`). Terminal states never move
+States and the events between them are a single table (`ramcove_protocol.state`). Terminal states never move
 again, except that an upheld appeal reopens a rejected review.
 
 ```
@@ -36,13 +36,13 @@ No candidate code is executed. Checks: archive size (20 MiB, 80 MiB unpacked, 2,
 output), required manifest fields, hotkey signature over the artifact hash, profile version, allowed and
 forbidden paths from the diff, declared licences, exact duplicates and cosmetic duplicates (normalized
 diff hash). Rate limit: 10 preflights per hotkey per day. One active submission per hotkey and per
-lineage. *Where: `room_protocol.preflight`, `room_api.services.intake`.*
+lineage. *Where: `ramcove_protocol.preflight`, `ramcove_api.services.intake`.*
 
 ### 2.2 Waiting list and reservation
 
 If no evaluation slot can be reserved the submission joins a free waiting list ordered by signed preflight
 time. Invitations last 24 hours; a missed invitation returns the entry to the back of the list. A
-reservation holds one slot and produces a signed quote. *Where: `room_api.services.intake`, `control`.*
+reservation holds one slot and produces a signed quote. *Where: `ramcove_api.services.intake`, `control`.*
 
 ### 2.3 Quote and payment
 
@@ -55,7 +55,7 @@ Payment is one atomic call:
 ```
 Utility.batch_all([
   Balances.transfer_keep_alive(dest = evaluation wallet, value = fee),
-  System.remark_with_event(remark = "room:quote:<quote id>"),
+  System.remark_with_event(remark = "ramcove:quote:<quote id>"),
 ])
 ```
 
@@ -65,13 +65,13 @@ the published wallet at least the quoted amount and matches the call; `System.Re
 blake2-256 hash of the remark bytes and the payer; the signer is the authorized payer; the payment
 reference (block hash, extrinsic index) has never been used. Verdicts: verified, not finalized (retry
 later), late (refund or credit), rejected (with refund when funds actually arrived).
-*Where: `room_chain.payment`, `room_api.services.payments`.*
+*Where: `ramcove_chain.payment`, `ramcove_api.services.payments`.*
 
 ### 2.4 Admission
 
 Admission order is chain order: the finalized payment block number and extrinsic index. The receipt is
 signed and issued exactly once, inside the same transaction that consumes the payment and creates the
-screening job. *Where: `room_api.services.payments`.*
+screening job. *Where: `ramcove_api.services.payments`.*
 
 ### 2.5 Screening
 
@@ -87,14 +87,14 @@ Offline quality first; failing it ends the evaluation. Then a capacity search on
 evidence, the short-request control and the multi-turn check with real answers. The result is a triage
 estimate against the champion's calibration on the same worker. A submission becomes a *potential winner*
 when every gate passes and the triage gain is at least the margin minus a 2-point allowance, so one noisy
-estimate cannot reject it without confirmation. *Where: `room_evaluator.pipeline`.*
+estimate cannot reject it without confirmation. *Where: `ramcove_evaluator.pipeline`.*
 
 ### 2.7 Confirmation
 
 Promotion evidence is never triage data. It is five fresh **paired blocks**: one re-imaged worker session
 each, in which the frozen champion and the challenger are measured on the same newly generated tests, in
 an order set by the seed. Blocks are spread across separately provisioned workers, and after the sunset
-across independent validators. *Where: `room_api.services.queue`, `room_evaluator.pipeline`.*
+across independent validators. *Where: `ramcove_api.services.queue`, `ramcove_evaluator.pipeline`.*
 
 ## 3. Measurement
 
@@ -115,14 +115,14 @@ Rates are `base × (1 + step)^k` for integer `k` in a finite range. Confirmed ca
 three grid steps, bisect, then confirm three fresh runs at one step below the edge, then further steps down
 until a level passes. No pass at the lowest rate ⇒ `below_grid`; a pass at the ceiling ⇒ `at_grid_ceiling`
 (conservative). Block capacity is a single-run reading on the same grid, at most six runs per arm.
-*Where: `room_evaluator.capacity`.*
+*Where: `ramcove_evaluator.capacity`.*
 
 ### 3.3 Quality (review R1)
 
 Each challenger is compared with the current champion **and** with a frozen quality reference belonging to
 the profile version, on the same items, plus absolute per-group floors and an answer-length floor. Small
 permitted losses therefore cannot accumulate across generations. Paired comparisons use matched items;
-unpaired comparisons are labelled and use the wider interval. *Where: `room_protocol.scoring`.*
+unpaired comparisons are labelled and use the wider interval. *Where: `ramcove_protocol.scoring`.*
 
 ### 3.4 Memory evidence (review R7, ADR 0007)
 
@@ -157,7 +157,7 @@ replace only if exp(L) − 1 > δ and every gate, memory evidence, quorum and re
 Initial values: δ = 5%, n = 5 blocks, σ_floor = 0.02, one-sided 95%, grid step 3%. The replication unit is
 the block; requests inside a run are not replications. Ties and unclear evidence keep the incumbent. Each
 attempt needs a new submission, a new fee and fresh blocks; blocks are never pooled across attempts.
-*Where: `room_protocol.scoring.replacement_bound`.*
+*Where: `ramcove_protocol.scoring.replacement_bound`.*
 
 ## 5. Order, leases and settlement (review R2, R3, R4)
 
@@ -174,7 +174,7 @@ attempt needs a new submission, a new fee and fresh blocks; blocks are never poo
 - **Promotion:** an atomic check-and-set on the champion pointer. Evidence measured against an older
   champion or rule version is rebased with fresh blocks, keeping the admission key and charging no new fee,
   up to a published maximum.
-*Where: `room_protocol.settlement`, `room_protocol.reservation`, `room_api.services.queue`, `settlement`.*
+*Where: `ramcove_protocol.settlement`, `ramcove_protocol.reservation`, `ramcove_api.services.queue`, `settlement`.*
 
 ## 6. Champion, weights and registration (review R5, R6)
 
@@ -192,7 +192,7 @@ attempt needs a new submission, a new fee and fresh blocks; blocks are never poo
   redirects a reward.
 - With no eligible champion the allocation is proposed for the owner UID, which the chain burns. The
   writer stays disabled until that mechanism is verified on a testnet.
-*Where: `room_protocol.weights`, `room_api.services.settlement`.*
+*Where: `ramcove_protocol.weights`, `ramcove_api.services.settlement`.*
 
 ## 7. Verification and bootstrap (review R8)
 
@@ -212,7 +212,7 @@ Separate records, each idempotent: fee received, fee consumed, excess credit, cr
 refund liability, refund sent and confirmed. Fees are consumed once screening or evaluation has run,
 whatever the result. Operator or validator failures are never charged, and never require a second payment.
 The fee is derived from a published formula over service cost, a recovery share and a price observation
-with a maximum age; stale prices refuse new quotes. *Where: `room_protocol.fees`, `room_api.services.accounting`.*
+with a maximum age; stale prices refuse new quotes. *Where: `ramcove_protocol.fees`, `ramcove_api.services.accounting`.*
 
 ## 9. Randomness and audit
 

@@ -13,14 +13,14 @@ measurement agent and the queue state live on a trusted controller that never ru
 ## Running a worker
 
 ```bash
-ROOM_WORKER_ID=w-op-1 \
-ROOM_WORKER_KEY_URI="//YourWorkerDevKey" \
-ROOM_WORKER_PROVIDER=simulated \
-uv run room-worker
+RAMCOVE_WORKER_ID=w-op-1 \
+RAMCOVE_WORKER_KEY_URI="//YourWorkerDevKey" \
+RAMCOVE_WORKER_PROVIDER=simulated \
+uv run ramcove-worker
 ```
 
-`ROOM_WORKER_PROVIDER=vfio-vm` selects the real boundary and needs `ROOM_GPU_BDF`,
-`ROOM_VM_IMAGE_SHA256` and `ROOM_MEASUREMENT_AGENT_SOCKET`. It refuses to run until every readiness probe
+`RAMCOVE_WORKER_PROVIDER=vfio-vm` selects the real boundary and needs `RAMCOVE_GPU_BDF`,
+`RAMCOVE_VM_IMAGE_SHA256` and `RAMCOVE_MEASUREMENT_AGENT_SOCKET`. It refuses to run until every readiness probe
 passes, and a refusal is recorded as an infrastructure failure, never charged to a miner.
 
 The worker signs every request with its own key. It holds no database credentials, no chain key and no

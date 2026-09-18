@@ -1,6 +1,6 @@
 # ADR 0007 — Memory evidence: margin under a tighter budget, not "within 2 points"
 
-**Status:** accepted, 2026-09-18. This deviates from ROOM whitepaper v0.2 Section 7.3.
+**Status:** accepted, 2026-09-18. This deviates from RamCove whitepaper v0.2 Section 7.3.
 
 **Context.** The paper requires that a challenger's gain under a 25% smaller cache budget stays "within 2
 percentage points" of its full-budget gain. Both numbers are single-run readings on a 3% grid, so grid

@@ -1,6 +1,6 @@
 # Miner guide
 
-You submit a code change to a pinned serving engine. ROOM measures how much more qualified work one fixed
+You submit a code change to a pinned serving engine. RamCove measures how much more qualified work one fixed
 GPU serves with your change than with the current champion. If it is enough, and it passes review, you
 become the champion and receive that profile's miner allocation until someone beats you.
 
@@ -24,14 +24,14 @@ Limits: 20 MiB packed, 80 MiB unpacked, 2,000 entries. Licences must be Apache-2
 ## Submitting
 
 ```bash
-uv run room-miner pack   --patch patch.diff --manifest manifest.json --out artifact.tar.gz
-uv run room-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"
+uv run ramcove-miner pack   --patch patch.diff --manifest manifest.json --out artifact.tar.gz
+uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"
 ```
 
 The command runs the free checks, reserves capacity if any exists, shows the quote, and pays only after you
 agree. In a browser, `/submit` walks the same six steps.
 
-You sign two different things, and ROOM never asks for a seed phrase or a key file:
+You sign two different things, and RamCove never asks for a seed phrase or a key file:
 
 1. **Sign-in and your artifact hash** — proves who you are and what you submitted. Authorizes no payment.
 2. **The fee payment** — one atomic transaction: a transfer to the published evaluation wallet plus a note
@@ -51,7 +51,7 @@ Never charged: operator or validator failures, an expired quote, or withdrawal b
 If your payment went through but you lost the page, recover it by reference:
 
 ```bash
-uv run room-miner recover --block <N> --index <I> --key-uri "//YourDevKey"
+uv run ramcove-miner recover --block <N> --index <I> --key-uri "//YourDevKey"
 ```
 
 This never charges a second fee.

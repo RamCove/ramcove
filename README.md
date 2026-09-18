@@ -1,6 +1,6 @@
 # RamCove — More AI. Same GPU.
 
-RamCove (formerly ROOM) is a **proposed** Bittensor subnet that pays for independently verified software improvements which
+RamCove (formerly RamCove) is a **proposed** Bittensor subnet that pays for independently verified software improvements which
 let one fixed GPU serve more useful AI requests, by using its memory better. Miners submit reviewable
 code. Validators build it in controlled environments and measure *qualified serving capacity* against the
 current champion. One champion per profile holds that profile's miner allocation until a challenger proves
@@ -18,7 +18,7 @@ interface.
 | `services/api` | FastAPI surface, authoritative PostgreSQL store, transactional services |
 | `services/controller` | Loop: chain observation, payment verification, expiries, settlement |
 | `services/worker` | Isolation providers and stage execution; never runs candidate code outside a provider |
-| `miner_cli` | `room-miner`: reproducible packing, free checks, quote, payment, recovery |
+| `miner_cli` | `ramcove-miner`: reproducible packing, free checks, quote, payment, recovery |
 | `apps/web` | Next.js application: overview, competition, queue, submission flow, validator, review, operator, docs |
 
 ## Public preview
@@ -27,14 +27,13 @@ The web app can run without the Python API as a labelled, read-only preview, whi
 Vercel. Public pages render from `apps/web/src/preview/snapshot.json`, a recording of the local demo's
 public API responses; sign-in, submitting and every write are switched off, so the demo identities (whose
 keys are published) never reach the internet. Preview mode is on automatically on Vercel unless
-`ROOM_API_ORIGIN` points at a real API, and `ROOM_PREVIEW=1` forces it anywhere.
+`RAMCOVE_API_ORIGIN` points at a real API, and `RAMCOVE_PREVIEW=1` forces it anywhere.
 
 Refresh the snapshot from a running local demo with `cd apps/web && npm run snapshot`. It reads public
 routes only and refuses to write anything that looks like a credential.
 
-Internal identifiers still use the earlier name: the Python packages (`room_*`), the CLIs (`room-admin`,
-`room-miner`), `ROOM_*` environment variables, the profile id and the on-chain remark prefix `room:quote:`.
-Renaming those is a packaging and protocol change, not a copy change.
+The repository address (`RooM-Labs/room`) and the `room/build-v1` branch keep their original names;
+everything inside the code uses RamCove.
 
 ## Run it locally
 
@@ -50,8 +49,8 @@ make dev       # API :8787, controller, two simulated workers, web app :3787
 Open http://localhost:3787. Sign in with a demo identity (local build only) from the sign-in dialog.
 
 ```bash
-uv run room-admin scenario --list   # seeded scenarios
-uv run room-admin scenario busy     # drives the real services; takes a few minutes
+uv run ramcove-admin scenario --list   # seeded scenarios
+uv run ramcove-admin scenario busy     # drives the real services; takes a few minutes
 make reset                          # wipe and reseed
 make stop                           # stop background processes
 ```
