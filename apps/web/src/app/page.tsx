@@ -1,4 +1,5 @@
 import { AutoRefresh, TimeAgo } from "@/components/client";
+import { CoveContours } from "@/components/cove-contours";
 import { Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, Table, Td, Term } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { centiHours, gain, rps, usd } from "@/lib/format";
@@ -90,7 +91,7 @@ export default async function HomePage() {
 function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks: number }) {
   return (
     <section className="relative overflow-hidden border-b border-line">
-      <div aria-hidden className="grid-paper pointer-events-none absolute inset-0" />
+      <CoveContours className="contour-fade pointer-events-none absolute inset-0 h-full w-full" />
       <div aria-hidden className="glow pointer-events-none absolute -right-40 -top-40 h-[720px] w-[720px]" />
       <div className={clsx(CONTAINER, "relative pb-16 pt-14 sm:pt-20 lg:pb-20 lg:pt-24")}>
         <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
@@ -102,7 +103,7 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
               <span className="display-accent">Same GPU.</span>
             </h1>
             <p className="rise rise-2 mt-8 max-w-xl text-[18px] leading-[1.6] text-muted sm:text-[19px]">
-              ROOM pays for software changes that let one fixed GPU serve more useful AI requests. Every
+              RamCove pays for software changes that let one fixed GPU serve more useful AI requests. Every
               challenger is measured against the reigning champion, checked by people, and paid only when the
               gain is real.
             </p>
@@ -173,8 +174,8 @@ function ChampionPanel({ data }: { data: Overview }) {
             Version {champion.version}
             <span className="ml-2 font-normal text-muted">{champion.is_baseline ? "baseline" : "challenger"}</span>
           </p>
-          <p className="mt-1 truncate font-mono text-[11.5px] text-faint" title={data.profile.id}>
-            {data.profile.id}@{data.profile.version}
+          <p className="mt-1 truncate font-mono text-[11.5px] text-faint" title={`${data.profile.id}@${data.profile.version}`}>
+            {data.profile.title}
           </p>
         </div>
         <SimulatedTag what={champion.capacity_measured ? "measured" : "simulated"} />
@@ -317,7 +318,7 @@ function Idea() {
               serving stack decide how much useful work the same hardware does.
             </p>
             <p>
-              ROOM turns finding those changes into an open competition. Anyone can submit a patch to a pinned
+              RamCove turns finding those changes into an open competition. Anyone can submit a patch to a pinned
               inference engine. Validators build it in isolation, measure how many{" "}
               <Term
                 term="qualified requests"

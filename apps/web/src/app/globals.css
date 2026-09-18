@@ -40,6 +40,7 @@
   --sim: #5b3fa0;
   --sim-quiet: #ebe4f7;
   --grid-line: rgb(23 21 15 / 0.055);
+  --contour: rgb(23 21 15 / 0.16);
   --glow: rgb(194 65 12 / 0.13);
   --radius: 16px;
   --radius-sm: 10px;
@@ -79,6 +80,7 @@
   --sim: #b99bef;
   --sim-quiet: #241c35;
   --grid-line: rgb(239 235 226 / 0.05);
+  --contour: rgb(239 235 226 / 0.12);
   --glow: rgb(240 122 69 / 0.16);
   --shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 16px 40px -24px rgb(0 0 0 / 0.8);
   --shadow-lift: 0 1px 0 rgb(0 0 0 / 0.3), 0 28px 70px -30px rgb(0 0 0 / 0.9);
@@ -194,6 +196,11 @@ body {
     linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse 80% 70% at 50% 35%, #000 40%, transparent 100%);
+}
+
+/* The hero's depth contours fade out before they reach the headline and the edges. */
+.contour-fade {
+  mask-image: radial-gradient(ellipse 70% 90% at 0% 52%, #000 30%, rgb(0 0 0 / 0.4) 60%, transparent 88%);
 }
 
 .glow {
