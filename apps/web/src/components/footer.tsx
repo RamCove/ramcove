@@ -1,4 +1,4 @@
-import { Logomark } from "@/components/shell";
+import { Wordmark } from "@/components/shell";
 import Link from "next/link";
 
 const COLUMNS: { title: string; links: { href: string; label: string; external?: boolean }[] }[] = [
@@ -33,10 +33,7 @@ export function SiteFooter() {
     <footer className="border-t border-line">
       <div className="mx-auto grid max-w-[1200px] gap-12 px-5 pb-10 pt-16 sm:px-8 lg:grid-cols-[1.3fr_2fr]">
         <div>
-          <span className="inline-flex items-center gap-2.5">
-            <Logomark />
-            <span className="text-[15px] font-semibold tracking-[0.2em]">ROOM</span>
-          </span>
+          <Wordmark size={24} />
           <p className="font-display mt-6 max-w-sm text-[30px] leading-[1.1] text-text">
             More AI. <span className="display-accent">Same GPU.</span>
           </p>
@@ -75,7 +72,7 @@ export function SiteFooter() {
       </div>
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-6 sm:px-8">
         <p className="max-w-3xl text-[12.5px] leading-relaxed text-faint">
-          ROOM is a proposal. Nothing here is measured on an H100, no real tokens move, and mainnet writes are
+          RamCove is a proposal. Nothing here is measured on an H100, no real tokens move, and mainnet writes are
           disabled in this build.
         </p>
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-faint">Proposal stage · local build</p>

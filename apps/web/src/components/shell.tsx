@@ -20,24 +20,40 @@ const NAV = [
   { href: "/status", label: "Status" },
 ] as const;
 
-export function Wordmark({ className }: { className?: string }) {
+export function Wordmark({ className, size = 21 }: { className?: string; size?: number }) {
   return (
     <span className={clsx("inline-flex items-center gap-2.5", className)}>
-      <Logomark />
-      <span className="text-[15px] font-semibold tracking-[0.2em] text-text">ROOM</span>
+      <Logomark size={Math.round(size * 1.3)} />
+      <span
+        className="font-display leading-none text-text"
+        style={{ fontSize: size, fontWeight: 540, letterSpacing: "-0.02em" }}
+      >
+        Ram
+        <span className="display-accent" style={{ marginLeft: "-0.03em" }}>
+          Cove
+        </span>
+      </span>
     </span>
   );
 }
 
-/** A fixed frame with work packed into it, and one block of new room in the corner. */
-export function Logomark({ size = 26 }: { size?: number }) {
+/**
+ * The RamCove mark. A crescent of land curves around a bay, and one memory cell sits sheltered in its
+ * mouth: memory the GPU already has, made into room for more work. Reads as a cove, as a C, and as a
+ * block of RAM, and stays legible down to 16 px.
+ */
+export function Logomark({ size = 28, title = "RamCove" }: { size?: number; title?: string }) {
+  const id = `cove-${size}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 26 26" role="img" aria-label="ROOM" className="shrink-0">
-      <rect x="1" y="1" width="24" height="24" rx="7" fill="var(--ink)" />
-      <rect x="6" y="6" width="6" height="6" rx="1.6" fill="var(--on-ink)" />
-      <rect x="14" y="6" width="6" height="6" rx="1.6" fill="var(--on-ink)" opacity="0.55" />
-      <rect x="6" y="14" width="6" height="6" rx="1.6" fill="var(--on-ink)" opacity="0.55" />
-      <rect x="14" y="14" width="6" height="6" rx="1.6" fill="var(--accent)" />
+    <svg width={size} height={size} viewBox="0 0 32 32" role="img" aria-label={title} className="shrink-0">
+      <defs>
+        <mask id={id}>
+          <rect width="32" height="32" fill="#fff" />
+          <circle cx="24.5" cy="16" r="8.5" fill="#000" />
+        </mask>
+      </defs>
+      <circle cx="16" cy="16" r="13.5" fill="var(--ink)" mask={`url(#${id})`} />
+      <rect x="18.6" y="12.6" width="6.8" height="6.8" rx="2" fill="var(--accent)" />
     </svg>
   );
 }
@@ -83,7 +99,7 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
       </div>
       <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur-md supports-[backdrop-filter]:bg-bg/70">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-5 sm:px-8">
-          <Link href="/" className="shrink-0 rounded-[var(--radius-sm)]" aria-label="ROOM home">
+          <Link href="/" className="shrink-0 rounded-[var(--radius-sm)]" aria-label="RamCove home">
             <Wordmark />
           </Link>
           <nav aria-label="Main" className="ml-auto hidden lg:block">
@@ -348,7 +364,7 @@ export function SignInDialog({
           Sign in with your hotkey
         </h2>
         <p className="mt-2 text-[14px] leading-relaxed text-muted">
-          ROOM never asks for a seed phrase or a private key file. You sign a one-time message that says it
+          RamCove never asks for a seed phrase or a private key file. You sign a one-time message that says it
           only signs you in and authorizes no payment.
         </p>
 
