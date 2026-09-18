@@ -1,6 +1,6 @@
-# ROOM — More AI. Same GPU.
+# RamCove — More AI. Same GPU.
 
-ROOM is a **proposed** Bittensor subnet that pays for independently verified software improvements which
+RamCove (formerly ROOM) is a **proposed** Bittensor subnet that pays for independently verified software improvements which
 let one fixed GPU serve more useful AI requests, by using its memory better. Miners submit reviewable
 code. Validators build it in controlled environments and measure *qualified serving capacity* against the
 current champion. One champion per profile holds that profile's miner allocation until a challenger proves
@@ -20,6 +20,21 @@ interface.
 | `services/worker` | Isolation providers and stage execution; never runs candidate code outside a provider |
 | `miner_cli` | `room-miner`: reproducible packing, free checks, quote, payment, recovery |
 | `apps/web` | Next.js application: overview, competition, queue, submission flow, validator, review, operator, docs |
+
+## Public preview
+
+The web app can run without the Python API as a labelled, read-only preview, which is how it is hosted on
+Vercel. Public pages render from `apps/web/src/preview/snapshot.json`, a recording of the local demo's
+public API responses; sign-in, submitting and every write are switched off, so the demo identities (whose
+keys are published) never reach the internet. Preview mode is on automatically on Vercel unless
+`ROOM_API_ORIGIN` points at a real API, and `ROOM_PREVIEW=1` forces it anywhere.
+
+Refresh the snapshot from a running local demo with `cd apps/web && npm run snapshot`. It reads public
+routes only and refuses to write anything that looks like a credential.
+
+Internal identifiers still use the earlier name: the Python packages (`room_*`), the CLIs (`room-admin`,
+`room-miner`), `ROOM_*` environment variables, the profile id and the on-chain remark prefix `room:quote:`.
+Renaming those is a packaging and protocol change, not a copy change.
 
 ## Run it locally
 
