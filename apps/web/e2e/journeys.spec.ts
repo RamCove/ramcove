@@ -60,7 +60,8 @@ test("a visitor understands the competition without signing in", async ({ page }
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Same GPU");
   await expect(page.getByText(/serve more useful AI requests/).first()).toBeVisible();
   await expect(page.getByText("Local development build")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Start a submission" })).toBeVisible();
+  // the call to action repeats down the page; the hero one comes first
+  await expect(page.getByRole("link", { name: "Start a submission" }).first()).toBeVisible();
   await page.getByRole("link", { name: "Explore the competition" }).click();
   await expect(page).toHaveURL(/\/competition/);
   await expect(page.getByText("How a challenger replaces the champion")).toBeVisible();

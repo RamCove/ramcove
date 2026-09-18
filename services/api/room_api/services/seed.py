@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 
 from alembic import command
 from alembic.config import Config
+from psycopg.errors import DeadlockDetected, LockNotAvailable
 from room_chain.devchain import DevChain
 from room_protocol.rules import ProfileVersion
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import OperationalError
 from substrateinterface import Keypair
 
 from ..config import ROOT
@@ -93,7 +96,17 @@ def reset_database(ctx: AppContext) -> None:
     import os
 
     os.environ["ROOM_MIGRATE_URL"] = ctx.settings.database_url
-    command.downgrade(cfg, "base")
+    # Dropping every table deadlocks with a controller or worker that is mid-query. PostgreSQL runs the
+    # whole downgrade in one transaction and rolls it back cleanly when it picks this side as the victim,
+    # so retrying after the other short transaction finishes is safe.
+    for attempt in range(5):
+        try:
+            command.downgrade(cfg, "base")
+            break
+        except OperationalError as e:
+            if not isinstance(e.orig, (DeadlockDetected, LockNotAvailable)) or attempt == 4:
+                raise
+            time.sleep(0.5 * (2**attempt))
     command.upgrade(cfg, "head")
 
 
