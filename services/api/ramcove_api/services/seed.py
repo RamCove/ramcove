@@ -24,7 +24,6 @@ from ..store.schema import (
     champion_pointer,
     champions,
     identities,
-    incidents,
     price_observations,
     profile_versions,
     role_grants,
@@ -211,16 +210,6 @@ def seed_base(ctx: AppContext) -> dict:
             chain.store.register(
                 ctx.settings.netuid, Keypair.create_from_uri(identity(key)[0].uri).ss58_address
             )
-        conn.execute(
-            incidents.insert().values(
-                id="inc_demo_isolation",
-                severity="info",
-                title="Real isolation backend not available in this build",
-                public_summary="Workers run a simulated provider that only evaluates trusted demo fixtures. Untrusted "
-                "uploads pass free preflight but cannot be quoted for paid evaluation.",
-                opened_by="demo-seed",
-            )
-        )
         audit.append(
             conn,
             "demo-seed",
