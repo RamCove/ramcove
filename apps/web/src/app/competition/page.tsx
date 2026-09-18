@@ -1,4 +1,4 @@
-import { Card, Empty, KeyValue, Mono, Notice, Pill, Stat, Table, Td, Term } from "@/components/ui";
+import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, Stat, Table, Td, Term } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { centiHours, gain, rps, shortHash, usd, when } from "@/lib/format";
 import type { Metadata } from "next";
@@ -67,14 +67,13 @@ export default async function CompetitionPage() {
   const p = data.profile;
   const r = p.replacement;
   return (
-    <div className="min-w-0 space-y-5">
-      <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">{p.title}</h1>
-        <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">
-          A profile fixes everything that affects a raw capacity number. Scores from different profiles never
-          share a leaderboard, and every value below is a provisional planning value, not a measurement.
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow={`Profile · ${p.title}`}
+        title="Competition rules"
+        lede="A profile fixes everything that affects a raw capacity number. Scores from different profiles never share a leaderboard, and every value below is a provisional planning value, not a measurement."
+      >
+        <div className="flex flex-wrap items-center gap-2">
           <Pill tone="accent">
             {p.profile_id}@{p.version}
           </Pill>
@@ -84,7 +83,7 @@ export default async function CompetitionPage() {
           <Pill tone={p.measured ? "ok" : "warn"}>{p.measured ? "calibrated on hardware" : "not calibrated on hardware"}</Pill>
           <Pill tone="neutral">bootstrap: {p.bootstrap.mode}</Pill>
         </div>
-      </header>
+      </PageHeader>
 
       {!p.measured && (
         <Notice tone="warn" title="Nothing here is measured on an H100">
@@ -189,7 +188,11 @@ export default async function CompetitionPage() {
           </div>
         </Card>
 
-        <Card title="Quality and response-time gates" subtitle="A faster answer that is wrong or late never counts.">
+        <Card
+          title="Quality and response-time gates"
+          subtitle="A faster answer that is wrong or late never counts."
+          className="lg:col-span-2"
+        >
           <Table head={["Gate", "Value", "What it protects"]}>
             <tr>
               <Td>

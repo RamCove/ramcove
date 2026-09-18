@@ -1,5 +1,5 @@
 import { AutoRefresh, TimeAgo } from "@/components/client";
-import { Card, Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, Stat, Table, Td } from "@/components/ui";
+import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, SimulatedTag, Stat, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { gain, rps, when } from "@/lib/format";
 import type { Metadata } from "next";
@@ -67,14 +67,13 @@ export default async function ValidatorPage() {
   if (!ws.validator) return <Empty title="This hotkey is not a registered validator" />;
   const ready = ws.workers.filter((w) => w.safe_and_ready).length;
   return (
-    <div className="min-w-0 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">{ws.validator.name}</h1>
-          <p className="num mt-1 font-mono text-[12px] text-muted">{ws.validator.hotkey}</p>
-        </div>
-        <AutoRefresh seconds={5} />
-      </header>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow="Validator workspace"
+        title={ws.validator.name}
+        lede={<span className="num font-mono text-[13px]">{ws.validator.hotkey}</span>}
+        actions={<AutoRefresh seconds={5} />}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Card>

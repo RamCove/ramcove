@@ -1,4 +1,4 @@
-import { Card, Empty } from "@/components/ui";
+import { Card, Empty, PageHeader } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -51,14 +51,12 @@ export default async function ReviewPage() {
     );
   }
   return (
-    <div className="min-w-0 space-y-5">
-      <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">Promotion review</h1>
-        <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">
-          Every promotion passes review against published criteria. A rejection must cite a failed criterion and
-          explain the evidence. Declare a conflict instead of deciding if you are involved with the author.
-        </p>
-      </header>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow="Reviewers"
+        title="Promotion review"
+        lede="Every promotion passes review against published criteria. A rejection must cite a failed criterion and explain the evidence. Declare a conflict instead of deciding if you are involved with the author."
+      />
       <ReviewPanel queue={queue} appeals={appeals?.items ?? []} />
     </div>
   );

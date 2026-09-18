@@ -1,4 +1,4 @@
-import { Card, Mono, Notice, Table, Td, Term } from "@/components/ui";
+import { Card, Mono, Notice, PageHeader, Table, Td, Term } from "@/components/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -18,14 +18,12 @@ const FAILURES: [string, string, string][] = [
 
 export default function DocsPage() {
   return (
-    <div className="min-w-0 space-y-5">
-      <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">Documentation</h1>
-        <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">
-          How ROOM works, what a submission must contain, and what each failure means. The full protocol
-          specification and the runbooks live in the repository.
-        </p>
-      </header>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow="Documentation"
+        title="How ROOM works"
+        lede="What a submission must contain, how it is measured, and what each failure means. The full protocol specification and the runbooks live in the repository."
+      />
 
       <Notice tone="sim" title="This build is a local development environment">
         The chain, the randomness beacon, the workers and the payments are simulated and labelled. No GPU is

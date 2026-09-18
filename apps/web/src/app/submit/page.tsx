@@ -1,4 +1,4 @@
-import { Notice } from "@/components/ui";
+import { Notice, PageHeader } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import type { Metadata } from "next";
 import { SubmitFlow } from "./submit-flow";
@@ -20,15 +20,12 @@ export default async function SubmitPage() {
     apiGetOrNull<Fixtures>("/v1/demo/fixtures"),
   ]);
   return (
-    <div className="min-w-0 space-y-5">
-      <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">Start a submission</h1>
-        <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">
-          Six steps: see the requirements, prepare and sign your artifact, run the free checks, reserve
-          capacity, review the quote and pay, then follow the work. You are only asked to pay once a slot is
-          reserved for you.
-        </p>
-      </header>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow="For miners"
+        title="Start a submission"
+        lede="Six steps: see the requirements, prepare and sign your artifact, run the free checks, reserve capacity, review the quote and pay, then follow the work. You are only asked to pay once a slot is reserved for you."
+      />
       {overview && !overview.capacity.accepting_paid_submissions && (
         <Notice tone="warn" title="Paid admissions are closed right now">
           {overview.capacity.reason} The free checks and the waiting list still work.

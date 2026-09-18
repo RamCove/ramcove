@@ -1,5 +1,5 @@
 import { AutoRefresh, TimeAgo } from "@/components/client";
-import { Card, Empty, Pill, Stat, Table, Td } from "@/components/ui";
+import { Card, Empty, PageHeader, Pill, Stat, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { when } from "@/lib/format";
 import type { Metadata } from "next";
@@ -31,14 +31,13 @@ export default async function StatusPage() {
   const ready = s.workers.filter((w) => w.safe_and_ready).length;
   const open = s.incidents.filter((i) => !i.resolved_at);
   return (
-    <div className="min-w-0 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Service status</h1>
-          <p className="mt-1 text-[14px] text-muted">{s.meta.notice}</p>
-        </div>
-        <AutoRefresh seconds={8} />
-      </header>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow="System"
+        title="Service status"
+        lede={s.meta.notice}
+        actions={<AutoRefresh seconds={8} />}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Card>

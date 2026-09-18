@@ -87,23 +87,39 @@ export function SubmitFlow({
 
   return (
     <div className="space-y-5">
-      <ol className="flex flex-wrap gap-2" aria-label="Submission steps">
+      <ol
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-3 lg:grid-cols-6"
+        aria-label="Submission steps"
+      >
         {STEPS.map((s, i) => (
-          <li key={s}>
+          <li key={s} className="bg-surface">
             <button
               type="button"
               onClick={() => setStep(i)}
               aria-current={i === step ? "step" : undefined}
               className={clsx(
-                "rounded-full border px-3 py-1 text-[12px]",
-                i === step
-                  ? "border-accent bg-accent-quiet text-accent-strong"
-                  : i < step
-                    ? "border-ok bg-ok-quiet text-ok"
-                    : "border-line bg-surface-2 text-muted",
+                "relative flex h-full w-full items-center gap-3 px-4 py-3.5 text-left text-[14px] transition-colors",
+                i === step ? "bg-bg text-text" : "text-muted hover:bg-surface-2 hover:text-text",
               )}
             >
-              {i + 1}. {s}
+              <span
+                aria-hidden
+                className={clsx(
+                  "num inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px]",
+                  i === step
+                    ? "bg-accent text-on-accent"
+                    : i < step
+                      ? "bg-ok-quiet text-ok"
+                      : "border border-line-strong text-faint",
+                )}
+              >
+                {i < step ? "✓" : i + 1}
+              </span>
+              <span>
+                <span className="sr-only">{i + 1}. </span>
+                {s}
+              </span>
+              {i === step && <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] bg-accent" />}
             </button>
           </li>
         ))}
@@ -462,7 +478,7 @@ uv run room-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"`}
             {preflight?.submission_id && (
               <Link
                 href={`/submissions/${preflight.submission_id}`}
-                className="rounded-[var(--radius-sm)] border border-accent bg-accent px-3.5 py-2 text-[13px] font-medium text-[#04201e]"
+                className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-sm)] bg-accent px-4 text-[14px] font-medium text-on-accent transition-colors hover:bg-accent-strong"
               >
                 Open submission
               </Link>

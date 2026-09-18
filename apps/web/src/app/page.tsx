@@ -441,7 +441,7 @@ function LiveBoard({ data }: { data: Overview }) {
       aside={<AutoRefresh />}
     >
       <div className="grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]">
-        <div className="min-w-0 space-y-5">
+        <div className="min-w-0 space-y-8">
           <div
             className="min-w-0 rounded-[var(--radius-card)] border border-line bg-bg"
             style={{ boxShadow: "var(--shadow)" }}

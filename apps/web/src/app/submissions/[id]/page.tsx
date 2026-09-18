@@ -1,5 +1,5 @@
 import { AutoRefresh, CopyRef, TimeAgo } from "@/components/client";
-import { Card, Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, StatePill, Stat, Table, Td, Term } from "@/components/ui";
+import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, SimulatedTag, Stat, StatePill, Table, Td, Term } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { admissionKey, centiHours, gain, rps, shortHash, tao, when } from "@/lib/format";
 import type { Metadata } from "next";
@@ -98,21 +98,22 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
   const owner = Boolean(v.artifact_sha256);
   const measured = v.comparisons.filter((c) => c.status === "measured");
   return (
-    <div className="min-w-0 space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-[20px] font-semibold tracking-tight">Submission</h1>
-            <StatePill state={v.state} label={v.state_label} />
-            {v.trusted_fixture && <SimulatedTag what={`fixture: ${v.trusted_fixture}`} />}
-          </div>
-          <p className="num mt-1 font-mono text-[12px] text-muted">{v.submission_id}</p>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow={<span className="num">{v.submission_id}</span>}
+        title="Submission"
+        actions={
+          <>
+            <AutoRefresh seconds={5} />
+            <CopyRef value={v.support_ref} label={`Support ref ${v.support_ref}`} />
+          </>
+        }
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <StatePill state={v.state} label={v.state_label} />
+          {v.trusted_fixture && <SimulatedTag what={`fixture: ${v.trusted_fixture}`} />}
         </div>
-        <div className="flex items-center gap-2">
-          <AutoRefresh seconds={5} />
-          <CopyRef value={v.support_ref} label={`Support ref ${v.support_ref}`} />
-        </div>
-      </header>
+      </PageHeader>
 
       {v.outcome.summary && (
         <Notice

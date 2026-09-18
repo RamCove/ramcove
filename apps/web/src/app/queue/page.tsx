@@ -1,5 +1,5 @@
 import { AutoRefresh, TimeAgo } from "@/components/client";
-import { Card, Empty, Notice, Pill, StatePill, Table, Td } from "@/components/ui";
+import { Card, Empty, Notice, PageHeader, Pill, StatePill, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { admissionKey, gain } from "@/lib/format";
 import type { Metadata } from "next";
@@ -42,19 +42,15 @@ export default async function QueuePage({
   const qs = new URLSearchParams({ kind, ...(sp.cursor ? { cursor: sp.cursor } : {}) });
   const data = await apiGetOrNull<QueuePage>(`/v1/queue?${qs}`);
   return (
-    <div className="min-w-0 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Queue and competition history</h1>
-          <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">
-            Paid admissions are ordered by their finalized payment. The free waiting list is separate and costs
-            nothing.
-          </p>
-        </div>
-        <AutoRefresh seconds={6} />
-      </header>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow="Queue"
+        title="Queue and competition history"
+        lede="Paid admissions are ordered by their finalized payment. The free waiting list is separate and costs nothing."
+        actions={<AutoRefresh seconds={6} />}
+      />
 
-      <nav aria-label="Queue views" className="flex flex-wrap gap-2">
+      <nav aria-label="Queue views" className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface p-1">
         {TABS.map((t) => (
           <Link
             key={t.kind}
@@ -62,8 +58,8 @@ export default async function QueuePage({
             aria-current={t.kind === kind ? "page" : undefined}
             className={
               t.kind === kind
-                ? "rounded-[var(--radius-sm)] border border-accent bg-accent-quiet px-3 py-1.5 text-[13px] text-accent-strong"
-                : "rounded-[var(--radius-sm)] border border-line bg-surface-2 px-3 py-1.5 text-[13px] text-muted hover:text-text"
+                ? "rounded-full bg-ink px-4 py-1.5 text-[14px] font-medium text-on-ink"
+                : "rounded-full px-4 py-1.5 text-[14px] text-muted transition-colors hover:bg-surface-2 hover:text-text"
             }
           >
             {t.label}

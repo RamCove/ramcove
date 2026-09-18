@@ -1,5 +1,5 @@
 import { AutoRefresh, TimeAgo } from "@/components/client";
-import { Card, Empty, Mono, Notice, Pill, Stat, Table, Td } from "@/components/ui";
+import { Card, Empty, Mono, Notice, PageHeader, Pill, Stat, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { centiHours, tao, when } from "@/lib/format";
 import type { Metadata } from "next";
@@ -50,16 +50,13 @@ export default async function OperatorPage() {
     );
   }
   return (
-    <div className="min-w-0 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Operator console</h1>
-          <p className="mt-1 max-w-3xl text-[14px] text-muted">
-            Admissions, capacity, leases, money and evidence. No control here crowns a champion by hand.
-          </p>
-        </div>
-        <AutoRefresh seconds={5} />
-      </header>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow="Operator"
+        title="Operator console"
+        lede="Admissions, capacity, leases, money and evidence. No control here crowns a champion by hand."
+        actions={<AutoRefresh seconds={5} />}
+      />
 
       <Notice tone="info" title="Guardrails">
         <ul className="mt-1 list-disc space-y-1 pl-5">

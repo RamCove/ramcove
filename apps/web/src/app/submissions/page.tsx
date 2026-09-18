@@ -1,5 +1,5 @@
 import { TimeAgo } from "@/components/client";
-import { Card, Empty, Notice, Pill, StatePill, Table, Td } from "@/components/ui";
+import { Card, Empty, Notice, PageHeader, Pill, StatePill, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/api";
 import { gain, when } from "@/lib/format";
 import type { Metadata } from "next";
@@ -39,19 +39,20 @@ export default async function MySubmissionsPage() {
     );
   }
   return (
-    <div className="min-w-0 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">My submissions</h1>
-          <p className="mt-1 text-[14px] text-muted">Every submission you have started, with its outcome and fee.</p>
-        </div>
-        <Link
-          href="/submit"
-          className="rounded-[var(--radius-sm)] border border-accent bg-accent px-3.5 py-2 text-[13px] font-medium text-[#04201e]"
-        >
-          New submission
-        </Link>
-      </header>
+    <div className="min-w-0 space-y-8">
+      <PageHeader
+        eyebrow="For miners"
+        title="My submissions"
+        lede="Every submission you have started, with its outcome and its fee."
+        actions={
+          <Link
+            href="/submit"
+            className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-sm)] bg-accent px-4 text-[14px] font-medium text-on-accent transition-colors hover:bg-accent-strong"
+          >
+            New submission <span aria-hidden>→</span>
+          </Link>
+        }
+      />
 
       {data.credits.length > 0 && (
         <Notice tone="ok" title="You have unused credits">
