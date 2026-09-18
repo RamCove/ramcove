@@ -28,7 +28,7 @@ def ctx(tmp_path):
 def test_failing_and_passing_challengers_end_to_end(ctx):
     bring_workers_online(ctx)
     fail = submit_fixture(ctx, "miner-bao", "evict-quarter")
-    win = submit_fixture(ctx, "miner-ada", "kv8-conversation-retention")
+    win = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator")
     assert fail["ok"] and win["ok"]
     pay_and_admit(ctx, fail["submission_id"], "miner-bao")
     pay_and_admit(ctx, win["submission_id"], "miner-ada")
