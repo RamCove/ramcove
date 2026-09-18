@@ -204,3 +204,20 @@ def test_untrusted_artifact_passes_preflight_but_cannot_be_quoted(client, app_ct
     )
     q = client.post(f"/v1/miner/submissions/{sub_id}/reserve", json={})
     assert q.json()["status"] == "waitlisted" and "capacity" in q.json()
+
+
+def test_lock_contention_is_a_retryable_busy_answer_not_an_internal_error(app_ctx, monkeypatch):
+    from psycopg.errors import LockNotAvailable
+    from room_api.services import public
+    from sqlalchemy.exc import OperationalError
+
+    def busy(*_a, **_k):
+        raise OperationalError("SELECT pg_advisory_xact_lock(...)", {}, LockNotAvailable("lock timeout"))
+
+    monkeypatch.setattr(public, "status_page", busy)
+    app, _ = app_ctx
+    r = TestClient(app, raise_server_exceptions=False).get("/v1/status")
+    assert r.status_code == 503
+    assert r.headers["retry-after"] == "2"
+    assert r.json()["error"]["code"] == "busy"
+    assert "reference" not in r.json()["error"]

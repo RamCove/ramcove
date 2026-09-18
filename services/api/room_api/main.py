@@ -13,7 +13,7 @@ from .config import load_settings
 from .routes import demo, miner, operator, public_routes, review_routes, worker_routes
 from .services.context import AppContext, ArtifactStore, ServiceError
 from .signing import ServiceSigner
-from .store.db import make_engine, new_id
+from .store.db import is_contention, make_engine, new_id
 
 log = logging.getLogger("room.api")
 SESSION_COOKIE = "room_session"
@@ -81,6 +81,19 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception):
+        if is_contention(exc):
+            # Lost a lock race even after retrying. Nothing was committed, so say so plainly and invite a
+            # retry instead of reporting an internal fault.
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "busy",
+                        "message": "Many requests arrived at once and nothing was changed. Please try again.",
+                    }
+                },
+                status_code=503,
+                headers={"Retry-After": "2"},
+            )
         ref = new_id("err")
         log.exception("unhandled error ref=%s path=%s", ref, request.url.path)
         return JSONResponse(

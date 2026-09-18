@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ..signing import verify_sr25519
 from ..store import audit
-from ..store.db import advisory_lock, new_id, now, support_ref, tx
+from ..store.db import advisory_lock, new_id, now, retry_on_contention, support_ref, tx
 from ..store.schema import artifacts, quotes, rate_counters, submissions
 from .context import AppContext, ServiceError, load_trusted_fixtures
 
@@ -169,6 +169,7 @@ def preflight(ctx: AppContext, hotkey: str, data: bytes, signature_hex: str) -> 
         return public
 
 
+@retry_on_contention()
 def reserve(ctx: AppContext, sub_id: str, hotkey: str, payer: str) -> dict[str, Any]:
     """Reserve capacity and issue a signed quote, or place the submission on the free waiting list."""
     with tx(ctx.engine) as conn:

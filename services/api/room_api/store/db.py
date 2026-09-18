@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+import functools
+import random
 import secrets
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from typing import ParamSpec, TypeVar
 
+from psycopg.errors import DeadlockDetected, LockNotAvailable
 from sqlalchemy import Connection, Engine, create_engine, text
+from sqlalchemy.exc import OperationalError
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 _CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -27,6 +35,39 @@ def tx(engine: Engine) -> Iterator[Connection]:
 def advisory_lock(conn: Connection, name: str) -> None:
     """Transaction-scoped lock serializing a protocol-critical section (capacity, settlement, audit)."""
     conn.execute(text("SELECT pg_advisory_xact_lock(hashtext(:n))"), {"n": name})
+
+
+def is_contention(error: BaseException) -> bool:
+    """True when PostgreSQL cancelled a transaction to break a deadlock or a lock wait. Nothing from that
+    transaction was committed, so the caller can safely run it again."""
+    return isinstance(error, OperationalError) and isinstance(
+        error.orig, (DeadlockDetected, LockNotAvailable)
+    )
+
+
+def retry_on_contention(attempts: int = 4) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """Re-run a function whose whole effect is one transaction when it loses a lock race.
+
+    The lock timeout stays short on purpose, so a burst of simultaneous requests fails closed rather than
+    queueing forever. Retrying with jittered backoff turns that into a short wait for the caller. Only
+    use this on functions that do all their writes inside a single ``tx``.
+    """
+
+    def decorate(fn: Callable[P, R]) -> Callable[P, R]:
+        @functools.wraps(fn)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            for attempt in range(attempts):
+                try:
+                    return fn(*args, **kwargs)
+                except OperationalError as e:
+                    if not is_contention(e) or attempt == attempts - 1:
+                        raise
+                    time.sleep(0.05 * 2**attempt + random.random() * 0.05)  # noqa: S311 - jitter, not security
+            raise AssertionError("unreachable")
+
+        return wrapper
+
+    return decorate
 
 
 def now() -> datetime:
