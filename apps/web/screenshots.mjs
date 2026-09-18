@@ -7,7 +7,7 @@
 import { chromium } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 
-const base = process.argv[2] ?? "http://localhost:3787";
+const base = process.argv[2] ?? "http://127.0.0.1:3787";
 const out = process.argv[3] ?? "../../docs/screenshots";
 await mkdir(out, { recursive: true });
 

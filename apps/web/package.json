@@ -3,9 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "next dev -p 3787",
+    "dev": "next dev -H 127.0.0.1 -p 3787",
     "build": "next build",
-    "start": "next start -p 3787",
+    "start": "next start -H 127.0.0.1 -p 3787",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "gen:api": "openapi-typescript ../../var/openapi.json -o src/lib/api-types.ts",
