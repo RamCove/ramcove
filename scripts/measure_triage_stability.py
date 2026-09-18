@@ -17,9 +17,9 @@ import argparse
 import collections
 import json
 
-from room_evaluator.pipeline import calibrate, full_evaluation
-from room_miner.fixtures import FIXTURES, by_name
-from room_protocol.rules import ProfileVersion
+from ramcove_evaluator.pipeline import calibrate, full_evaluation
+from ramcove_miner.fixtures import FIXTURES, by_name
+from ramcove_protocol.rules import ProfileVersion
 
 
 def main() -> None:
@@ -30,7 +30,7 @@ def main() -> None:
     ap.add_argument("--out", default="var/triage-stability.json")
     args = ap.parse_args()
 
-    with open("config/profiles/room-p1@1.0.0.json") as f:
+    with open("config/profiles/ramcove-p1@1.0.0.json") as f:
         profile = ProfileVersion.model_validate(json.load(f))
     champion = by_name("champion-v0-tuned")["params"]
 

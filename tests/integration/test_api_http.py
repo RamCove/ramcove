@@ -6,9 +6,9 @@ import time
 
 import pytest
 from fastapi.testclient import TestClient
-from room_api.main import create_app
-from room_api.services.seed import worker_keypair
-from room_protocol.canonical import signing_payload
+from ramcove_api.main import create_app
+from ramcove_api.services.seed import worker_keypair
+from ramcove_protocol.canonical import signing_payload
 
 from .helpers import make_ctx, provider
 
@@ -48,9 +48,9 @@ def worker_headers(ctx, worker_id: str, method: str, path: str, body: bytes) -> 
         },
     )
     return {
-        "x-room-worker": worker_id,
-        "x-room-timestamp": str(ts),
-        "x-room-signature": "0x" + kp.sign(payload).hex(),
+        "x-ramcove-worker": worker_id,
+        "x-ramcove-timestamp": str(ts),
+        "x-ramcove-signature": "0x" + kp.sign(payload).hex(),
         "content-type": "application/json",
     }
 
@@ -92,7 +92,7 @@ def test_miner_journey_over_http_and_idempotent_payment(client, app_ctx):
     q = client.post(f"/v1/miner/submissions/{sub_id}/reserve", json={})
     assert q.status_code == 200 and q.json()["status"] == "quoted", q.text
     quote = q.json()["quote"]
-    assert quote["amount_rao"] > 0 and quote["remark"].startswith("room:quote:")
+    assert quote["amount_rao"] > 0 and quote["remark"].startswith("ramcove:quote:")
     p1 = client.post(f"/v1/miner/quotes/{quote['quote_id']}/pay-simulated", headers={"idempotency-key": "k1"})
     p2 = client.post(f"/v1/miner/quotes/{quote['quote_id']}/pay-simulated", headers={"idempotency-key": "k1"})
     assert p1.status_code == 200 and p2.json().get("idempotent_replay") is True
@@ -140,7 +140,7 @@ def test_worker_requests_need_a_valid_signature(client, app_ctx):
     bad = worker_headers(ctx, "w-op-1", "POST", "/v1/worker/heartbeat", b"different-body")
     assert client.post("/v1/worker/heartbeat", content=body, headers=bad).status_code == 401
     good = worker_headers(ctx, "w-op-1", "POST", "/v1/worker/heartbeat", body)
-    stale = {**good, "x-room-timestamp": str(int(time.time()) - 600)}
+    stale = {**good, "x-ramcove-timestamp": str(int(time.time()) - 600)}
     assert client.post("/v1/worker/heartbeat", content=body, headers=stale).status_code == 401
     assert client.post("/v1/worker/heartbeat", content=body, headers=good).status_code == 200
 
@@ -166,14 +166,14 @@ def test_one_active_submission_per_hotkey(client):
 def test_untrusted_artifact_passes_preflight_but_cannot_be_quoted(client, app_ctx):
     """No isolation backend for untrusted code: free checks still run, paid admission does not."""
     app, ctx = app_ctx
-    from room_api.services.auth import demo_keypair
-    from room_miner.artifact import pack, sign_artifact
+    from ramcove_api.services.auth import demo_keypair
+    from ramcove_miner.artifact import pack, sign_artifact
 
     sign_in(client, "miner-dee")
-    with __import__("room_api.store.db", fromlist=["tx"]).tx(ctx.engine) as conn:
+    with __import__("ramcove_api.store.db", fromlist=["tx"]).tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
     manifest = {
-        "schema": "room.manifest/1",
+        "schema": "ramcove.manifest/1",
         "profile_id": profile.profile_id,
         "profile_version": profile.version,
         "hotkey": None,
@@ -208,7 +208,7 @@ def test_untrusted_artifact_passes_preflight_but_cannot_be_quoted(client, app_ct
 
 def test_lock_contention_is_a_retryable_busy_answer_not_an_internal_error(app_ctx, monkeypatch):
     from psycopg.errors import LockNotAvailable
-    from room_api.services import public
+    from ramcove_api.services import public
     from sqlalchemy.exc import OperationalError
 
     def busy(*_a, **_k):

@@ -4,17 +4,17 @@ import json
 import tarfile
 
 import pytest
-from room_chain.devchain import DevChain, MemoryStore, payment_call
-from room_chain.payment import Outcome, QuoteTerms, verify_payment
-from room_chain.types import Call
-from room_protocol.preflight import run_preflight
+from ramcove_chain.devchain import DevChain, MemoryStore, payment_call
+from ramcove_chain.payment import Outcome, QuoteTerms, verify_payment
+from ramcove_chain.types import Call
+from ramcove_protocol.preflight import run_preflight
 
 HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 
 
 def manifest(profile, **over):
     m = {
-        "schema": "room.manifest/1",
+        "schema": "ramcove.manifest/1",
         "profile_id": profile.profile_id,
         "profile_version": profile.version,
         "hotkey": HOTKEY,
@@ -135,7 +135,7 @@ def chain():
 
 
 def terms(expires=100, amount=120_000_000, quote="q1", payer=PAYER):
-    return QuoteTerms(quote, payer, WALLET, amount, expires, "room-devchain")
+    return QuoteTerms(quote, payer, WALLET, amount, expires, "ramcove-devchain")
 
 
 def pay(chain, signer=PAYER, amount=120_000_000, quote="q1", plain=False, call=None):
@@ -144,7 +144,7 @@ def pay(chain, signer=PAYER, amount=120_000_000, quote="q1", plain=False, call=N
     return chain.extrinsics(n)[0]
 
 
-def check(chain, ext, t, used=None, network="room-devchain"):
+def check(chain, ext, t, used=None, network="ramcove-devchain"):
     return verify_payment(
         ext, t, chain.finalized_head(), chain.block_hash(ext.block_number), used or set(), network
     )
@@ -210,7 +210,10 @@ def test_forged_event_mismatch_rejected(chain):
         "Utility",
         "batch_all",
         {},
-        (ext.call.inner[0], Call("System", "remark_with_event", {"remark": "0x" + b"room:quote:q1".hex()})),
+        (
+            ext.call.inner[0],
+            Call("System", "remark_with_event", {"remark": "0x" + b"ramcove:quote:q1".hex()}),
+        ),
     )
     forged = type(ext)(
         ext.block_number,
@@ -225,5 +228,5 @@ def test_forged_event_mismatch_rejected(chain):
 
 def test_non_canonical_block_rejected(chain):
     ext = pay(chain)
-    v = verify_payment(ext, terms(), chain.finalized_head(), "0xdeadbeef", set(), "room-devchain")
+    v = verify_payment(ext, terms(), chain.finalized_head(), "0xdeadbeef", set(), "ramcove-devchain")
     assert v.outcome == Outcome.REJECTED and "canonical" in v.reason

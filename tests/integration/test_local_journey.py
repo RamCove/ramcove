@@ -1,10 +1,10 @@
 """Milestone 2: one local journey through the real services and database (SIMULATED chain, beacon and worker)."""
 
 import pytest
-from room_api.services import control
-from room_api.store import audit
-from room_api.store.db import tx
-from room_api.store.schema import champions, ledger, receipts, weight_plans
+from ramcove_api.services import control
+from ramcove_api.store import audit
+from ramcove_api.store.db import tx
+from ramcove_api.store.schema import champions, ledger, receipts, weight_plans
 from sqlalchemy import select
 
 from .helpers import (

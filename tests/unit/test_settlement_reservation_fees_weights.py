@@ -1,12 +1,12 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from room_protocol.fees import PriceObservation, StalePriceError, compute_fee
-from room_protocol.money import RAO_PER_TAO
-from room_protocol.reservation import CapacityPlan, can_issue_quote, remaining_envelope
-from room_protocol.settlement import AdmissionKey, QueueEntry, decide_promotion
-from room_protocol.state import TERMINAL, S, TransitionError, fee_outcome, next_state
-from room_protocol.weights import ChampionState, UidSnapshot, build_weight_plan
+from ramcove_protocol.fees import PriceObservation, StalePriceError, compute_fee
+from ramcove_protocol.money import RAO_PER_TAO
+from ramcove_protocol.reservation import CapacityPlan, can_issue_quote, remaining_envelope
+from ramcove_protocol.settlement import AdmissionKey, QueueEntry, decide_promotion
+from ramcove_protocol.state import TERMINAL, S, TransitionError, fee_outcome, next_state
+from ramcove_protocol.weights import ChampionState, UidSnapshot, build_weight_plan
 
 RH = "rulehash"
 

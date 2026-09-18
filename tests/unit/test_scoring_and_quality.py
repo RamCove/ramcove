@@ -3,7 +3,7 @@
 import math
 
 import pytest
-from room_protocol.scoring import (
+from ramcove_protocol.scoring import (
     Block,
     PairedQuality,
     QualityEvidence,

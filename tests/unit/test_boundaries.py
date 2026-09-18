@@ -9,8 +9,8 @@ import ast
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-PROTOCOL = ROOT / "packages/protocol/room_protocol"
-EVALUATOR = ROOT / "packages/evaluator/room_evaluator"
+PROTOCOL = ROOT / "packages/protocol/ramcove_protocol"
+EVALUATOR = ROOT / "packages/evaluator/ramcove_evaluator"
 
 FORBIDDEN_IN_PROTOCOL = {
     "fastapi",
@@ -23,11 +23,11 @@ FORBIDDEN_IN_PROTOCOL = {
     "scalecodec",
     "httpx",
     "requests",
-    "room_api",
-    "room_chain",
-    "room_evaluator",
-    "room_worker",
-    "room_miner",
+    "ramcove_api",
+    "ramcove_chain",
+    "ramcove_evaluator",
+    "ramcove_worker",
+    "ramcove_miner",
 }
 FORBIDDEN_IN_EVALUATOR = {
     "fastapi",
@@ -37,8 +37,8 @@ FORBIDDEN_IN_EVALUATOR = {
     "psycopg",
     "alembic",
     "substrateinterface",
-    "room_api",
-    "room_worker",
+    "ramcove_api",
+    "ramcove_worker",
 }
 
 

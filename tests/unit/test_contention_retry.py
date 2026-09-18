@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from psycopg.errors import DeadlockDetected, LockNotAvailable, UndefinedTable
-from room_api.store.db import is_contention, retry_on_contention
+from ramcove_api.store.db import is_contention, retry_on_contention
 from sqlalchemy.exc import OperationalError
 
 

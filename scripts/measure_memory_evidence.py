@@ -18,26 +18,26 @@ import argparse
 import json
 import statistics
 
-from room_evaluator.pipeline import (
+from ramcove_evaluator.pipeline import (
     FULL_BUDGET_GIB,
     TIGHT_BUDGET_GIB,
     _capacity,
     _memory_evidence,
     calibrate,
 )
-from room_miner.fixtures import FIXTURES, by_name
-from room_protocol.rules import ProfileVersion
+from ramcove_miner.fixtures import FIXTURES, by_name
+from ramcove_protocol.rules import ProfileVersion
 
 
 def load_profile() -> ProfileVersion:
-    with open("config/profiles/room-p1@1.0.0.json") as f:
+    with open("config/profiles/ramcove-p1@1.0.0.json") as f:
         return ProfileVersion.model_validate(json.load(f))
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, default=6)
-    # the starting rate the worker uses in services/worker/room_worker/runner.py
+    # the starting rate the worker uses in services/worker/ramcove_worker/runner.py
     ap.add_argument("--base-rps", type=float, default=0.5)
     ap.add_argument("--out", default="var/memory-evidence.json")
     args = ap.parse_args()

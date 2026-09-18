@@ -99,7 +99,7 @@ def main() -> None:
     ap.add_argument("--out", default="var/local-performance.json")
     args = ap.parse_args()
 
-    print("ROOM local performance. Simulated worker, local PostgreSQL, one machine.")
+    print("RamCove local performance. Simulated worker, local PostgreSQL, one machine.")
     api = report("API reads", API, API_READS, args.warm, args.runs)
     pages = report("Server-rendered pages", WEB, PAGES, args.warm, max(6, args.runs // 4))
 

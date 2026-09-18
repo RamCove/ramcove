@@ -7,34 +7,35 @@ import os
 
 from alembic import command
 from alembic.config import Config
-from room_api.config import ROOT, load_settings
-from room_api.services import control, intake, queue, review, seed
-from room_api.services import workers as workers_svc
-from room_api.services.context import AppContext, ArtifactStore, baseline_fixture, load_trusted_fixtures
-from room_api.signing import ServiceSigner
-from room_api.store.db import make_engine, tx
-from room_api.store.schema import reviews, submissions
-from room_miner.artifact import pack, sign_artifact
-from room_miner.fixtures import by_name, manifest_for
-from room_protocol.rules import ProfileVersion
-from room_worker.isolation import SimulatedTrustedProvider
-from room_worker.runner import execute
+from ramcove_api.config import ROOT, load_settings
+from ramcove_api.services import control, intake, queue, review, seed
+from ramcove_api.services import workers as workers_svc
+from ramcove_api.services.context import AppContext, ArtifactStore, baseline_fixture, load_trusted_fixtures
+from ramcove_api.signing import ServiceSigner
+from ramcove_api.store.db import make_engine, tx
+from ramcove_api.store.schema import reviews, submissions
+from ramcove_miner.artifact import pack, sign_artifact
+from ramcove_miner.fixtures import by_name, manifest_for
+from ramcove_protocol.rules import ProfileVersion
+from ramcove_worker.isolation import SimulatedTrustedProvider
+from ramcove_worker.runner import execute
 from sqlalchemy import select
 from substrateinterface import Keypair
 
 TEST_URL = os.environ.get(
-    "ROOM_TEST_DATABASE_URL", "postgresql+psycopg://room:room-local-dev-only@127.0.0.1:54329/room_test"
+    "RAMCOVE_TEST_DATABASE_URL",
+    "postgresql+psycopg://ramcove:ramcove-local-dev-only@127.0.0.1:54329/ramcove_test",
 )
 
 
 def make_ctx(tmp_path) -> AppContext:
-    os.environ["ROOM_ENV"] = "test"
-    os.environ["ROOM_DATABASE_URL"] = TEST_URL
+    os.environ["RAMCOVE_ENV"] = "test"
+    os.environ["RAMCOVE_DATABASE_URL"] = TEST_URL
     settings = load_settings()
     engine = make_engine(TEST_URL)
     ctx = AppContext(engine, settings, ServiceSigner(settings), ArtifactStore(tmp_path / "artifacts"))
     cfg = Config(str(ROOT / "alembic.ini"))
-    os.environ["ROOM_MIGRATE_URL"] = TEST_URL
+    os.environ["RAMCOVE_MIGRATE_URL"] = TEST_URL
     command.downgrade(cfg, "base")
     command.upgrade(cfg, "head")
     seed.seed_base(ctx)
@@ -80,7 +81,7 @@ def pay_and_admit(ctx, sub_id: str, miner_key: str) -> dict:
 
 
 def artifact_bytes(ctx, sha: str) -> bytes:
-    from room_api.store.schema import artifacts
+    from ramcove_api.store.schema import artifacts
 
     with tx(ctx.engine) as conn:
         key = conn.execute(select(artifacts.c.storage_key).where(artifacts.c.sha256 == sha)).scalar()

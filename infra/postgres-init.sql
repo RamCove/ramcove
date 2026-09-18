@@ -1,1 +1,1 @@
-CREATE DATABASE room_test OWNER room;
+CREATE DATABASE ramcove_test OWNER ramcove;

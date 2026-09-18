@@ -7,10 +7,10 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import pytest
-from room_api.services import control, intake, payments, queue, settlement
-from room_api.services.context import ServiceError
-from room_api.store.db import now, tx
-from room_api.store.schema import (
+from ramcove_api.services import control, intake, payments, queue, settlement
+from ramcove_api.services.context import ServiceError
+from ramcove_api.store.db import now, tx
+from ramcove_api.store.schema import (
     champion_pointer,
     champions,
     credits,
@@ -21,12 +21,12 @@ from room_api.store.schema import (
     receipts,
     submissions,
 )
-from room_api.store.schema import (
+from ramcove_api.store.schema import (
     payments as payments_t,
 )
-from room_miner.artifact import pack, sign_artifact
-from room_miner.fixtures import by_name, manifest_for
-from room_protocol.state import S
+from ramcove_miner.artifact import pack, sign_artifact
+from ramcove_miner.fixtures import by_name, manifest_for
+from ramcove_protocol.state import S
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from substrateinterface import Keypair
@@ -48,7 +48,7 @@ def allow_untrusted(ctx) -> None:
 
     Production readiness comes from the provider's own probes; this only exercises the queue arithmetic.
     """
-    from room_api.store.schema import workers
+    from ramcove_api.store.schema import workers
 
     with tx(ctx.engine) as conn:
         for w in conn.execute(select(workers)).all():
@@ -61,7 +61,7 @@ def allow_untrusted(ctx) -> None:
 
 def pretend_calibrated(ctx, capacity_milli: int = 500) -> None:
     """Test-only: skip the (simulated) calibration run so a test can lease the stage it cares about."""
-    from room_api.store.schema import workers
+    from ramcove_api.store.schema import workers
 
     with tx(ctx.engine) as conn:
         for w in conn.execute(select(workers)).all():
@@ -112,8 +112,8 @@ def test_simultaneous_quotes_cannot_oversell_capacity(ctx):
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
         plan = ctx.capacity_plan(conn, profile, trusted_fixture=True)
-    room_for = plan.capacity_centi() // profile.envelope.total()
-    assert 1 < room_for < 14, room_for
+    fits = plan.capacity_centi() // profile.envelope.total()
+    assert 1 < fits < 14, fits
 
     def reserve(pair):
         sub_id, hotkey = pair
@@ -125,8 +125,8 @@ def test_simultaneous_quotes_cannot_oversell_capacity(ctx):
     with ThreadPoolExecutor(max_workers=14) as pool:
         results = list(pool.map(reserve, subs))
     quoted = results.count("quoted")
-    assert quoted == room_for, results
-    assert results.count("waitlisted") == 14 - room_for
+    assert quoted == fits, results
+    assert results.count("waitlisted") == 14 - fits
     with tx(ctx.engine) as conn:
         committed = ctx.committed_centi(conn, profile.profile_id)
     assert committed <= plan.capacity_centi()
@@ -168,7 +168,7 @@ def test_second_payment_for_the_same_quote_is_refunded_not_admitted(ctx):
         control.tick(ctx)
     with tx(ctx.engine) as conn:  # the miner pays a second time by mistake
         chain = ctx.chain(conn)
-        from room_chain.devchain import payment_call
+        from ramcove_chain.devchain import payment_call
 
         chain.produce_block(
             [(hotkey, payment_call(ctx.evaluation_wallet, q["quote"]["amount_rao"], q["quote"]["quote_id"]))]
@@ -179,7 +179,7 @@ def test_second_payment_for_the_same_quote_is_refunded_not_admitted(ctx):
         assert conn.execute(select(func.count()).select_from(receipts)).scalar() == 1
         outcomes = [r.outcome for r in conn.execute(select(payments_t))]
         assert sorted(outcomes) == ["rejected", "verified"]
-        from room_api.store.schema import refunds
+        from ramcove_api.store.schema import refunds
 
         assert conn.execute(select(func.count()).select_from(refunds)).scalar() == 1
 
@@ -193,7 +193,7 @@ def test_underpayment_is_rejected_and_opens_a_refund(ctx):
         control.tick(ctx)
     assert state(ctx, sub_id).state == S.QUOTED
     with tx(ctx.engine) as conn:
-        from room_api.store.schema import refunds
+        from ramcove_api.store.schema import refunds
 
         r = conn.execute(select(refunds)).first()
         assert r is not None and "underpaid" in r.reason
@@ -212,8 +212,8 @@ def test_stale_price_refuses_new_quotes(ctx):
 def test_paused_intake_and_no_ready_worker_fail_closed(ctx):
     allow_untrusted(ctx)
     sub_id, hotkey = unique_submission(ctx, 104)
-    from room_api.store.schema import settings as settings_t
-    from room_api.store.schema import workers
+    from ramcove_api.store.schema import settings as settings_t
+    from ramcove_api.store.schema import workers
 
     with tx(ctx.engine) as conn:
         conn.execute(
@@ -257,7 +257,7 @@ def test_worker_payload_carries_no_credentials(ctx):
     pay_and_admit_like(ctx, sub_id, hotkey)
     payload = queue.lease_next(ctx, "w-op-1")
     blob = json.dumps(payload).lower()
-    for secret in ("password", "postgres", "ghp_", "database_url", "//roomdemo", "token", "private"):
+    for secret in ("password", "postgres", "ghp_", "database_url", "//ramcovedemo", "token", "private"):
         assert secret not in blob, (secret, blob[:200])
 
 
