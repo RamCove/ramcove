@@ -1,7 +1,7 @@
 import { AutoRefresh, TimeAgo } from "@/components/client";
-import { Card, Empty, Mono, PageHeader, Pill, StatePill, Table, Td } from "@/components/ui";
+import { Card, Empty, Mono, Notice, PageHeader, Pill, StatePill, Table, Td } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/server-api";
-import { gain, rps } from "@/lib/format";
+import { admissionKey, gain, rps } from "@/lib/format";
 import clsx from "clsx";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -51,6 +51,18 @@ type Dashboard = {
   }[];
 };
 
+type QueueItem = {
+  submission_id: string;
+  hotkey: string | null;
+  lineage: string;
+  state: string;
+  state_label: string;
+  admission_key: [number, number] | null;
+  current_stage: { stage: string; status: string; worker: string | null } | null;
+  updated_at: string;
+};
+type QueuePage = { items: QueueItem[] };
+
 const GROUPS: { key: Group; label: string; hint: string; tone: string; bar: string }[] = [
   { key: "in_progress", label: "In evaluation", hint: "paid, being measured or reviewed", tone: "text-accent-ink", bar: "bg-accent" },
   { key: "waiting", label: "Waiting", hint: "checked, quoted or on the free list", tone: "text-text", bar: "bg-line-strong" },
@@ -68,7 +80,11 @@ const STAGE_NAMES: Record<string, string> = {
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
   const { show } = await searchParams;
-  const data = await apiGetOrNull<Dashboard>("/v1/dashboard");
+  const [data, admitted, waiting] = await Promise.all([
+    apiGetOrNull<Dashboard>("/v1/dashboard"),
+    apiGetOrNull<QueuePage>("/v1/queue?kind=admitted"),
+    apiGetOrNull<QueuePage>("/v1/queue?kind=waiting"),
+  ]);
   if (!data) {
     return <Empty title="The dashboard is unavailable">Start the API and reload this page.</Empty>;
   }
@@ -150,6 +166,78 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             );
           })}
         </div>
+      </section>
+
+      <section id="queue" className="scroll-mt-24 space-y-5">
+        <div className="grid items-start gap-5 lg:grid-cols-[1.6fr_1fr]">
+          <Card
+            eyebrow="Order of work"
+            title="Paid, in the order they are tested"
+            subtitle="Ordered by when each payment was finalized on the chain. Finishing first never lets a later submission jump ahead."
+          >
+            {!admitted || admitted.items.length === 0 ? (
+              <p className="py-3 text-[14px] text-muted">No paid submission is being evaluated right now.</p>
+            ) : (
+              <ol className="divide-y divide-line">
+                {admitted.items.map((it, i) => (
+                  <li key={it.submission_id} className="flex items-start gap-4 py-3.5">
+                    <span className="num w-8 shrink-0 pt-0.5 font-mono text-[20px] leading-none text-accent-ink">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/submissions/${it.submission_id}`}
+                        className="font-medium text-text hover:underline"
+                      >
+                        {it.lineage}
+                      </Link>
+                      <p className="num mt-0.5 font-mono text-[11.5px] text-faint">
+                        {it.hotkey ?? "—"} · paid at {admissionKey(it.admission_key)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <StatePill state={it.state} label={it.state_label} />
+                      {it.current_stage && (
+                        <p className="mt-1 text-[12px] text-muted">
+                          {STAGE_NAMES[it.current_stage.stage] ?? it.current_stage.stage} · {it.current_stage.status}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+          <Card
+            eyebrow="Waiting list"
+            title="Free, waiting for capacity"
+            subtitle="No fee is taken. When capacity frees up, the oldest waiting submission is invited to pay."
+          >
+            {!waiting || waiting.items.length === 0 ? (
+              <p className="py-3 text-[14px] text-muted">Nobody is waiting.</p>
+            ) : (
+              <ol className="divide-y divide-line">
+                {waiting.items.map((it, i) => (
+                  <li key={it.submission_id} className="flex items-center gap-3 py-3">
+                    <span className="num w-6 shrink-0 font-mono text-[14px] text-faint">{i + 1}</span>
+                    <Link
+                      href={`/submissions/${it.submission_id}`}
+                      className="min-w-0 flex-1 truncate text-[14px] text-text hover:underline"
+                    >
+                      {it.lineage}
+                    </Link>
+                    <StatePill state={it.state} label={it.state_label} />
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+        </div>
+        <Notice tone="info" title="Order of work versus order of promotion">
+          Workers can test several submissions at once, so results can finish out of order. A crown still
+          changes hands in payment order: an earlier paid submission that is still being tested keeps its place
+          until it finishes or reaches its published deadline.
+        </Notice>
       </section>
 
       <Card

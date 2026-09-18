@@ -16,9 +16,7 @@ const VIEWPORTS = { desktop: { width: 1440, height: 900 }, tablet: { width: 768,
 const PAGES = [
   { name: "overview", path: "/", as: null, viewports: ["desktop", "tablet", "phone"] },
   { name: "dashboard", path: "/dashboard", as: null, viewports: ["desktop", "phone"] },
-  { name: "competition", path: "/competition", as: null, viewports: ["desktop"] },
-  { name: "queue", path: "/queue", as: null, viewports: ["desktop", "phone"] },
-  { name: "queue-history", path: "/queue?kind=history", as: null, viewports: ["desktop"] },
+  { name: "docs-rules", path: "/docs/rules", as: null, viewports: ["desktop"] },
   { name: "docs", path: "/docs", as: null, viewports: ["desktop"] },
   { name: "status", path: "/status", as: null, viewports: ["desktop"] },
   { name: "submit", path: "/submit", as: "miner-cyd", viewports: ["desktop", "phone"] },
@@ -50,7 +48,7 @@ async function signIn(context, identity) {
 // find a promoted submission to screenshot in detail
 const probe = await browser.newContext();
 const probePage = await probe.newPage();
-await probePage.goto(`${base}/queue?kind=history`);
+await probePage.goto(`${base}/dashboard`);
 const detailHref = await probePage.evaluate(() => {
   const a = Array.from(document.querySelectorAll('a[href^="/submissions/"]'))[0];
   return a ? a.getAttribute("href") : null;

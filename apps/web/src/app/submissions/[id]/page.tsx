@@ -386,7 +386,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
         </div>
       </div>
       <p className="text-[12px] text-muted">
-        <Link href="/queue" className="text-accent hover:underline">
+        <Link href="/dashboard#queue" className="text-accent hover:underline">
           ← Back to the queue
         </Link>
       </p>

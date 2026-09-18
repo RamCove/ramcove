@@ -11,9 +11,6 @@ import { useEffect, useRef, useState } from "react";
 const NAV = [
   { href: "/", label: "Overview" },
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/competition", label: "Competition" },
-  { href: "/queue", label: "Queue" },
-  { href: "/submit", label: "Submit" },
   { href: "/submissions", label: "My work", needs: "session" },
   { href: "/validator", label: "Validator", needs: "validator" },
   { href: "/review", label: "Review", needs: "reviewer" },
@@ -166,6 +163,13 @@ export function TopNav({
             </ul>
           </nav>
           <div className="ml-auto flex items-center gap-1.5 lg:ml-2">
+            <Link
+              href="/submit"
+              aria-current={isActive("/submit") ? "page" : undefined}
+              className="hidden h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-accent px-4 text-[14px] font-medium text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_18px_-8px_var(--accent)] transition-colors hover:bg-accent-strong sm:inline-flex"
+            >
+              Submit
+            </Link>
             <ThemeToggle />
             {preview.on ? (
               <span
@@ -199,6 +203,13 @@ export function TopNav({
         </div>
         {open && (
           <nav aria-label="Main (compact)" className="border-t border-line bg-bg px-5 pb-5 pt-3 lg:hidden">
+            <Link
+              href="/submit"
+              onClick={() => setOpen(false)}
+              className="mb-3 flex h-11 items-center justify-center rounded-[var(--radius-sm)] bg-accent text-[15px] font-medium text-on-accent sm:hidden"
+            >
+              Submit
+            </Link>
             <ul className="grid gap-0.5">
               {[...primary, ...workspace].map((item, i) => (
                 <li key={item.href}>
@@ -256,7 +267,7 @@ function SessionButton({
   }
   return (
     <>
-      <Button size="sm" variant="primary" onClick={() => ref.current?.showModal()}>
+      <Button size="sm" variant="secondary" onClick={() => ref.current?.showModal()}>
         Sign in
       </Button>
       <SignInDialog

@@ -1,6 +1,7 @@
 import { Card, Mono, Notice, PageHeader, Table, Td, Term } from "@/components/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DocsTabs } from "@/components/docs-tabs";
 
 export const metadata: Metadata = { title: "Docs" };
 
@@ -19,13 +20,14 @@ const FAILURES: [string, string, string][] = [
 export default function DocsPage() {
   return (
     <div className="min-w-0 space-y-8">
+      <DocsTabs active="guide" />
       <PageHeader
         eyebrow="Documentation"
         title="How RamCove works"
         lede="What a submission must contain, how it is measured, and what each failure means. The full protocol specification and the runbooks live in the repository."
       />
 
-      <Notice tone="sim" title="This build is a local development environment">
+      <Notice tone="sim" title="Everything here runs on a simulation">
         The chain, the randomness beacon, the workers and the payments are simulated and labelled. No GPU is
         measured, no tokens move, and mainnet writes are disabled.
       </Notice>
@@ -35,7 +37,7 @@ export default function DocsPage() {
           <ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
             <li>
               Build your change against the pinned engine commit shown on the{" "}
-              <Link href="/competition" className="text-accent hover:underline">
+              <Link href="/docs/rules" className="text-accent hover:underline">
                 profile page
               </Link>
               , inside the allowed paths.

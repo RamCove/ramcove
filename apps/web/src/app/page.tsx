@@ -116,10 +116,10 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
                 Start a submission <span aria-hidden>→</span>
               </Link>
               <Link
-                href="/competition"
+                href="/docs/rules"
                 className="inline-flex h-12 items-center rounded-[var(--radius-sm)] border border-line-strong bg-surface/70 px-6 text-[15px] font-medium text-text backdrop-blur transition-colors hover:bg-surface"
               >
-                Explore the competition
+                Read the rules
               </Link>
             </div>
             <p className="rise rise-4 mt-6 text-[14px] text-muted">
@@ -468,7 +468,7 @@ function LiveBoard({ data }: { data: Overview }) {
                 <p className="eyebrow">Approved capacity history</p>
                 <p className="mt-1.5 text-[16px] font-semibold text-text">Every champion, in order</p>
               </div>
-              <Link href="/competition" className="link text-[14px]">
+              <Link href="/docs/rules" className="link text-[14px]">
                 Full rules →
               </Link>
             </div>

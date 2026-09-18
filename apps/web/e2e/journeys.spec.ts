@@ -74,19 +74,25 @@ test("a visitor understands the competition without signing in", async ({ page }
   await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
   await expect(page.getByText("Current champion")).toBeVisible();
   await page.goto("/");
-  await page.getByRole("link", { name: "Explore the competition" }).click();
-  await expect(page).toHaveURL(/\/competition/);
+  await page.getByRole("link", { name: "Read the rules" }).first().click();
+  await expect(page).toHaveURL(/\/docs\/rules/);
   await expect(page.getByText("How a challenger replaces the champion")).toBeVisible();
   await expect(page.getByText(/rule hash/i).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 
-test("the queue separates paid admissions from the free waiting list", async ({ page }) => {
-  await page.goto("/queue");
-  await expect(page.getByRole("link", { name: "Waiting list (free)" })).toBeVisible();
-  await page.getByRole("link", { name: "Finished" }).click();
-  await expect(page).toHaveURL(/kind=history/);
+test("the dashboard shows the order of work and the free waiting list; old links still land", async ({ page }) => {
+  await page.goto("/dashboard");
+  await expect(page.getByText("Paid, in the order they are tested")).toBeVisible();
+  await expect(page.getByText("Free, waiting for capacity")).toBeVisible();
   await expect(page.getByText("Order of work versus order of promotion")).toBeVisible();
+  // the pages the menu no longer lists redirect to where their content moved
+  await page.goto("/queue");
+  await expect(page).toHaveURL(/\/dashboard/);
+  await page.goto("/competition");
+  await expect(page).toHaveURL(/\/docs\/rules/);
+  const tabs = page.getByRole("navigation", { name: "Documentation" });
+  await expect(tabs.getByRole("link", { name: "Rules" })).toHaveAttribute("aria-current", "page");
 });
 
 test("a miner sees the fee before signing and can recover an existing payment", async ({ page }) => {
