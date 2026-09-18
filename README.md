@@ -57,6 +57,7 @@ uv run pytest -m chain_readonly     # read-only queries against the public Bitte
 - `docs/spec/protocol.md` — the corrected protocol, rule by rule
 - `docs/requirements-matrix.md` — whitepaper and review requirements mapped to code, tests and status
 - `docs/readiness-report.md` — what is implemented, simulated, externally verified or blocked
+- `docs/acceptance-matrix.md` — every claim with the command that produced it, and the measured numbers
 - `docs/threat-model.md`, `docs/integration-readiness.md`
 - `docs/adr/` — architecture decisions, including where this build deviates from the whitepaper and why
 - `docs/guides/` — miner, validator and operator guides
