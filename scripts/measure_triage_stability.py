@@ -19,7 +19,6 @@ import json
 
 from room_evaluator.pipeline import calibrate, full_evaluation
 from room_miner.fixtures import FIXTURES, by_name
-
 from room_protocol.rules import ProfileVersion
 
 
