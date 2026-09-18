@@ -7,6 +7,7 @@ worker, reviewer or operator would make, so what you see on screen is produced b
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 
 from room_miner.artifact import sign_artifact
@@ -74,8 +75,13 @@ class Harness:
             control.tick(self.ctx)
         return q
 
-    def work(self, steps: int = 60, workers: tuple[str, ...] = ("w-op-1", "w-op-2")) -> int:
+    def work(
+        self, steps: int = 60, workers: tuple[str, ...] = ("w-op-1", "w-op-2"), patience_s: int = 12
+    ) -> int:
+        # Confirmation blocks are scheduled against a future beacon round, so "no job to lease right now"
+        # often means "wait a few seconds", not "finished". Give up only after patience_s idle seconds.
         done = 0
+        idle = 0
         for _ in range(steps):
             progressed = False
             for wid in workers:
@@ -88,8 +94,13 @@ class Harness:
                 progressed = True
                 done += 1
             control.tick(self.ctx)
-            if not progressed:
+            if progressed:
+                idle = 0
+                continue
+            idle += 1
+            if idle > patience_s:
                 break
+            time.sleep(1)
         return done
 
     def _artifact(self, sha: str) -> bytes:
