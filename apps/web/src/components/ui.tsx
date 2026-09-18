@@ -264,15 +264,19 @@ export function Mono({ children, title }: { children: ReactNode; title?: string 
   );
 }
 
+/** Label and value pairs. Two columns only when the card itself is wide enough, so the same component
+ *  reads well in a main column and in a narrow sidebar. */
 export function KeyValue({ rows }: { rows: [ReactNode, ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-      {rows.map(([k, v], i) => (
-        <div key={i} className="min-w-0 border-t border-line pt-3">
-          <dt className="eyebrow">{k}</dt>
-          <dd className="num mt-1.5 break-words text-[14px] text-text">{v}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="@container">
+      <dl className="grid grid-cols-1 gap-x-8 gap-y-4 @md:grid-cols-2">
+        {rows.map(([k, v], i) => (
+          <div key={i} className="min-w-0 border-t border-line pt-3">
+            <dt className="eyebrow">{k}</dt>
+            <dd className="num mt-1.5 break-words text-[14px] text-text">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
