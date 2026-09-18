@@ -1,0 +1,16 @@
+[Unit]
+Description=RamCove api (public demo backend)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/draven/room
+EnvironmentFile=/etc/ramcove/ramcove.env
+ExecStart=/root/draven/room/.venv/bin/ramcove-api
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

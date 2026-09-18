@@ -1,0 +1,18 @@
+[Unit]
+Description=RamCove simulated evaluation worker w-op-2 (trusted demo fixtures only)
+After=ramcove-api.service
+Wants=ramcove-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/draven/room
+EnvironmentFile=/etc/ramcove/ramcove.env
+Environment=RAMCOVE_WORKER_ID=w-op-2
+Environment=RAMCOVE_WORKER_KEY_URI=//RamCoveDemoWorkerTwo
+ExecStart=/root/draven/room/.venv/bin/ramcove-worker
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

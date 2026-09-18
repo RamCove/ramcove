@@ -1,0 +1,77 @@
+[project]
+name = "ramcove"
+version = "0.1.0"
+description = "RamCove: a proposed Bittensor subnet for verified, memory-driven LLM serving capacity. Local development build."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi==0.141.1",
+  "uvicorn==0.53.0",
+  "sqlalchemy==2.0.54",
+  "psycopg[binary]==3.3.5",
+  "alembic==1.20.0",
+  "pydantic==2.13.5",
+  "httpx==0.28.1",
+  "substrate-interface==1.8.1",
+  "python-multipart==0.0.32",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "ruff==0.16.8",
+  "mypy==2.3.1",
+  "hypothesis==6.168.0",
+]
+
+[project.scripts]
+ramcove-api = "ramcove_api.main:run"
+ramcove-admin = "ramcove_api.cli:main"
+ramcove-controller = "ramcove_controller.main:run"
+ramcove-worker = "ramcove_worker.main:run"
+ramcove-miner = "ramcove_miner.cli:main"
+
+[build-system]
+requires = ["hatchling==1.32.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "packages/protocol/ramcove_protocol",
+  "packages/evaluator/ramcove_evaluator",
+  "packages/chain/ramcove_chain",
+  "services/api/ramcove_api",
+  "services/controller/ramcove_controller",
+  "services/worker/ramcove_worker",
+  "miner_cli/ramcove_miner",
+]
+
+
+[tool.hatch.build]
+dev-mode-dirs = ["packages/protocol", "packages/evaluator", "packages/chain", "services/api", "services/controller", "services/worker", "miner_cli"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM"]
+ignore = ["S101", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B"]
+# the evaluator's `random` use is workload simulation, not cryptography
+"packages/evaluator/**" = ["S311"]
+# fixed-argument-list subprocess call to nvidia-smi, no shell
+"services/worker/ramcove_worker/isolation.py" = ["S603"]
+# FastAPI declares dependencies as argument defaults; Depends() in a default is the framework's idiom
+"services/api/ramcove_api/routes/**" = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "db: needs the local PostgreSQL test database",
+  "chain_readonly: reads a public Bittensor RPC endpoint (network access)",
+  "gpu: needs an authorized H100 SXM isolation host (never runs in CI)",
+  "testnet: needs explicit testnet credentials and authorization",
+]
+addopts = "-m 'not chain_readonly and not gpu and not testnet'"
