@@ -1,0 +1,15 @@
+[Unit]
+Description=RamCove web app for the operator's own console (loopback only; reach it over an SSH tunnel)
+After=ramcove-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/draven/room/apps/web
+Environment=RAMCOVE_API_ORIGIN=http://127.0.0.1:8787
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
