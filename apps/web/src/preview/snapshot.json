@@ -1,0 +1,1021 @@
+{
+ "taken_at": "2026-09-18T15:53:36.915Z",
+ "source": "public routes of the local demo simulation at 127.0.0.1:8787",
+ "responses": {
+  "/v1/meta": {
+   "product": "RamCove",
+   "tagline": "More AI. Same GPU.",
+   "env": "demo",
+   "network": "room-devchain",
+   "simulated_chain": true,
+   "chain_writes_enabled": false,
+   "demo_features": true,
+   "notice": "Local development build. The chain, beacon, workers and payments are simulated and labelled; no real tokens move and no real GPU is measured."
+  },
+  "/v1/overview": {
+   "profile": {
+    "id": "room-p1-h100sxm-qwen3-32b-fp8",
+    "version": "1.0.0",
+    "title": "H100 SXM 80 GB · Qwen3-32B-FP8 · vLLM v0.29.0",
+    "rule_hash": "8d7071c85e2c728e6964602ca2eb7149ca3f15a0efd8bab67fa55cbef8957c27",
+    "measured": false,
+    "bootstrap_mode": "local"
+   },
+   "champion": {
+    "version": 1,
+    "author": "5DXEjp…HboZ",
+    "is_baseline": false,
+    "status": "current",
+    "capacity_milli_rps": 712,
+    "capacity_measured": false,
+    "bound_gain_ppm": 319691,
+    "explain": "The champion's author receives this profile's whole miner allocation while it stays eligible."
+   },
+   "champion_history": [
+    {
+     "version": 0,
+     "author": null,
+     "status": "superseded",
+     "capacity_milli_rps": 530,
+     "capacity_measured": false,
+     "bound_gain_ppm": null,
+     "promoted_at": "2026-09-18T15:51:22.552903Z",
+     "simulated": true
+    },
+    {
+     "version": 1,
+     "author": "5DXEjp…HboZ",
+     "status": "current",
+     "capacity_milli_rps": 712,
+     "capacity_measured": false,
+     "bound_gain_ppm": 319691,
+     "promoted_at": "2026-09-18T15:52:18.095504Z",
+     "simulated": true
+    }
+   ],
+   "queue": {
+    "counts_by_state": {
+     "promoted": 1,
+     "not_promoted": 1
+    },
+    "admitted_active": 0,
+    "waiting_list": 0
+   },
+   "capacity": {
+    "workers_ready": 2,
+    "workers_total": 2,
+    "committed_centi_gpu_hours": 0,
+    "capacity_centi_gpu_hours": 52088,
+    "envelope_per_admission_centi": 6244,
+    "intake_paused": false,
+    "accepting_paid_submissions": true,
+    "reason": "capacity reserved",
+    "horizon_hours": 336
+   },
+   "fee": {
+    "price_usd_micros": 227920000,
+    "price_simulated": true,
+    "price_observed_at": "2026-09-18T15:51:22.730521Z",
+    "service_cost_usd_cents": 5246,
+    "recovery_bp": 5000
+   },
+   "chain": {
+    "network": "room-devchain",
+    "finalized_number": 132,
+    "finalized_hash": "0x5f02125dfc807dfe90bfad302cdff9fb573020ddfb893c445cb8941ce5c95aa4",
+    "genesis_hash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "simulated": true,
+    "observed_at": "2026-09-18T15:53:34.296027Z"
+   },
+   "incidents": [
+    {
+     "id": "inc_demo_isolation",
+     "severity": "info",
+     "title": "Real isolation backend not available in this build",
+     "summary": "Workers run a simulated provider that only evaluates trusted demo fixtures. Untrusted uploads pass free preflight but cannot be quoted for paid evaluation.",
+     "started_at": "2026-09-18T15:51:22.552903Z",
+     "resolved_at": null
+    }
+   ],
+   "meta": {
+    "product": "RamCove",
+    "tagline": "More AI. Same GPU.",
+    "env": "demo",
+    "network": "room-devchain",
+    "simulated_chain": true,
+    "chain_writes_enabled": false,
+    "demo_features": true,
+    "notice": "Local development build. The chain, beacon, workers and payments are simulated and labelled; no real tokens move and no real GPU is measured."
+   }
+  },
+  "/v1/profile": {
+   "profile": {
+    "schema": "room.profile/1",
+    "profile_id": "room-p1-h100sxm-qwen3-32b-fp8",
+    "version": "1.0.0",
+    "title": "H100 SXM 80 GB · Qwen3-32B-FP8 · vLLM v0.29.0",
+    "model": {
+     "repo": "Qwen/Qwen3-32B-FP8",
+     "revision": "aa55da1ecc13d006e8b8e4f54579b1ea8c3db2df",
+     "license": "Apache-2.0",
+     "shard_sha256": []
+    },
+    "engine": {
+     "repo": "vllm-project/vllm",
+     "tag": "v0.29.0",
+     "commit": "98dff2a81d747d1dba01a47f939f48c3526d4206",
+     "image_digest": null,
+     "allowed_paths": [
+      "vllm/v1/core/*",
+      "vllm/v1/core/**",
+      "vllm/v1/attention/**",
+      "vllm/v1/kv_offload/**"
+     ],
+     "forbidden_paths": [
+      "vllm/model_executor/models/**",
+      "vllm/entrypoints/**",
+      "tests/**"
+     ]
+    },
+    "hardware": {
+     "gpu": "NVIDIA H100 SXM 80GB (whole device, no MIG)",
+     "gpu_count": 1,
+     "cpu_cores": 16,
+     "vm_ram_gib": 64,
+     "swap": false,
+     "network": "none",
+     "gpu_ceiling_margin_mib": 1536,
+     "isolation": "hardware VM with VFIO whole-GPU passthrough; trusted host-side measurement"
+    },
+    "workloads": [
+     "P-mem-v1",
+     "P-live-v1",
+     "P-ctl-v1"
+    ],
+    "replacement": {
+     "delta_ppm": 50000,
+     "blocks": 5,
+     "sigma_floor_ppm": 20000,
+     "confidence": "one_sided_95",
+     "grid_step_ppm": 30000,
+     "grid_min_steps": -8,
+     "grid_max_steps": 16,
+     "max_runs_per_arm_per_block": 6,
+     "triage_allowance_ppm": 20000,
+     "calibrated": false
+    },
+    "quality": {
+     "reference_id": "room-quality-ref-p1-v1 (tuned vLLM v0.29.0, 16-bit KV cache, frozen)",
+     "vs_champion_margin_bp": 200,
+     "vs_champion_stratum_margin_bp": 300,
+     "vs_reference_margin_bp": 300,
+     "absolute_min_accuracy_bp": {
+      "general": 8500,
+      "overall": 8500,
+      "position_late": 8000,
+      "position_early": 8000,
+      "position_middle": 8000
+     },
+     "length_ratio_vs_reference_bp": 9000
+    },
+    "latency": {
+     "ttft_base_ms": 1000,
+     "ttft_per_1k_prompt_ms": 100,
+     "tpot_mean_ms": 100,
+     "stall_ms": 2000,
+     "e2e_per_output_token_ms": 150,
+     "deadline_ms": 60000,
+     "attainment_bp": 9500,
+     "band_attainment_bp": 9000,
+     "max_error_bp": 50,
+     "drift_q4_over_q2_bp": 12500
+    },
+    "envelope": {
+     "screen": 35,
+     "full": 892,
+     "confirmation_worst": 1925,
+     "rebase_allowance": 1925,
+     "soak": 600,
+     "recalibration_on_promotion": 867
+    },
+    "deadlines": {
+     "quote_ttl_blocks": 100,
+     "invitation_ttl_s": 86400,
+     "screen_start_target_s": 86400,
+     "lease_screen_s": 7200,
+     "lease_full_s": 86400,
+     "lease_block_s": 28800,
+     "max_lease_retries": 1,
+     "max_rebases": 2,
+     "quorum_wait_s": 604800,
+     "max_quorum_reschedules": 1,
+     "review_s": 1209600,
+     "review_extension_s": 1209600,
+     "registration_grace_s": 1209600,
+     "end_to_end_s": 5184000,
+     "upload_hold_s": 259200,
+     "credit_expiry_s": 15552000
+    },
+    "fees": {
+     "service_cost_usd_cents_per_admission": 5246,
+     "recovery_bp": 5000,
+     "round_step_rao": 10000000,
+     "price_max_age_s": 900,
+     "price_source": "coingecko:bittensor:usd"
+    },
+    "bootstrap": {
+     "mode": "local",
+     "min_independent_validators_for_mainnet": 3,
+     "max_stake_share_bp": 3333,
+     "quorum_validators_after_sunset": 2
+    },
+    "plive_rate_bp": 9000,
+    "archive_max_bytes": 20971520,
+    "archive_max_unpacked_bytes": 83886080,
+    "archive_max_entries": 2000,
+    "allowed_licenses": [
+     "Apache-2.0",
+     "MIT",
+     "BSD-3-Clause"
+    ],
+    "measured": false,
+    "no_winner_writer_verified": false
+   },
+   "rule_hash": "8d7071c85e2c728e6964602ca2eb7149ca3f15a0efd8bab67fa55cbef8957c27",
+   "champion": {
+    "version": 1,
+    "author": "5DXEjp…HboZ",
+    "artifact_sha256": "b4e98c18d865d3c119285ed8b8f321e076ed80c6db15c8c07601b0a4d3dafdb2",
+    "attribution": {
+     "note": "Champion is the complete stack actually tested; earlier components are not assumed to be included unless present in this artifact.",
+     "components": [
+      {
+       "hotkey": "5DXEjpGHVNbEaiszJr7DE7TgKeRxJqLWiGbroNDPAirHHboZ",
+       "method": "Allocates KV blocks to reduce fragmentation so more tokens fit in the same budget.",
+       "lineage": "frag-allocator",
+       "artifact_sha256": "b4e98c18d865d3c119285ed8b8f321e076ed80c6db15c8c07601b0a4d3dafdb2"
+      }
+     ]
+    },
+    "status": "current",
+    "capacity_milli_rps": 712,
+    "capacity_measured": false,
+    "promoted_at": "2026-09-18T15:52:18.095504Z",
+    "bound_gain_ppm": 319691
+   },
+   "weight_plan": {
+    "notes": [],
+    "netuid": 0,
+    "schema": "room.weight_plan/1",
+    "status": "proposed_not_submitted",
+    "entries": [
+     {
+      "uid": 1,
+      "role": "champion",
+      "hotkey": "5DXEjpGHVNbEaiszJr7DE7TgKeRxJqLWiGbroNDPAirHHboZ",
+      "weight_u16": 65535
+     }
+    ],
+    "no_winner": false,
+    "simulated": true,
+    "snapshot_block": 64,
+    "writer_enabled": false,
+    "champion_version": 1
+   },
+   "values_are": "provisional planning values from the v0.2 whitepaper; none is measured on H100"
+  },
+  "/v1/status": {
+   "profile": "room-p1-h100sxm-qwen3-32b-fp8",
+   "workers": [
+    {
+     "id": "w-shadow-1",
+     "online": false,
+     "safe_and_ready": false,
+     "provider": "simulated-trusted-fixtures",
+     "untrusted_code_isolation": false
+    },
+    {
+     "id": "w-op-2",
+     "online": true,
+     "safe_and_ready": true,
+     "provider": "simulated-trusted-fixtures",
+     "untrusted_code_isolation": false
+    },
+    {
+     "id": "w-op-1",
+     "online": true,
+     "safe_and_ready": true,
+     "provider": "simulated-trusted-fixtures",
+     "untrusted_code_isolation": false
+    }
+   ],
+   "expired_leases_waiting_for_sweep": 0,
+   "chain": {
+    "finalized_number": 132,
+    "simulated": true,
+    "observed_at": "2026-09-18T15:53:34.296027Z"
+   },
+   "incidents": [
+    {
+     "id": "inc_demo_isolation",
+     "severity": "info",
+     "title": "Real isolation backend not available in this build",
+     "summary": "Workers run a simulated provider that only evaluates trusted demo fixtures. Untrusted uploads pass free preflight but cannot be quoted for paid evaluation.",
+     "started_at": "2026-09-18T15:51:22.552903Z",
+     "resolved_at": null
+    }
+   ],
+   "meta": {
+    "product": "RamCove",
+    "tagline": "More AI. Same GPU.",
+    "env": "demo",
+    "network": "room-devchain",
+    "simulated_chain": true,
+    "chain_writes_enabled": false,
+    "demo_features": true,
+    "notice": "Local development build. The chain, beacon, workers and payments are simulated and labelled; no real tokens move and no real GPU is measured."
+   }
+  },
+  "/v1/demo/fixtures": {
+   "fixtures": [
+    {
+     "name": "kv8-conversation-retention",
+     "title": "8-bit KV entries with conversation-aware retention",
+     "role": "challenger",
+     "mechanism": "cache_storage",
+     "method": "Stores KV entries in 8 bits with online scales and keeps idle conversation prefixes resident longer."
+    },
+    {
+     "name": "fragmentation-aware-allocator",
+     "title": "Fragmentation-aware block allocation",
+     "role": "challenger",
+     "mechanism": "allocation",
+     "method": "Allocates KV blocks to reduce fragmentation so more tokens fit in the same budget."
+    },
+    {
+     "name": "evict-quarter",
+     "title": "Evict to a quarter of the cache",
+     "role": "challenger",
+     "mechanism": "retention",
+     "method": "Keeps only the most attended quarter of cached tokens."
+    },
+    {
+     "name": "decode-kernel-speedup",
+     "title": "Faster decode attention kernel",
+     "role": "challenger",
+     "mechanism": "mixed",
+     "method": "A faster decode attention kernel; no memory change."
+    },
+    {
+     "name": "build-breaks",
+     "title": "Patch that does not build",
+     "role": "challenger",
+     "mechanism": "allocation",
+     "method": "Refactors the allocator but leaves a syntax error."
+    },
+    {
+     "name": "quality-drift",
+     "title": "Aggressive 4-bit KV with small quality losses",
+     "role": "challenger",
+     "mechanism": "cache_storage",
+     "method": "4-bit KV entries; small per-generation accuracy losses that the fixed reference floor catches."
+    }
+   ],
+   "note": "Trusted repository fixtures. The simulated worker evaluates only these; any other artifact passes free preflight but cannot be quoted, because no real isolation backend is available."
+  },
+  "/v1/queue?kind=admitted": {
+   "kind": "admitted",
+   "items": [],
+   "next_cursor": null,
+   "note": "Paid admissions are ordered by their finalized payment. Workers may run different submissions at the same time; promotion still follows admission order, so a single rank across stages would be misleading."
+  },
+  "/v1/queue?kind=waiting": {
+   "kind": "waiting",
+   "items": [],
+   "next_cursor": null,
+   "note": "Paid admissions are ordered by their finalized payment. Workers may run different submissions at the same time; promotion still follows admission order, so a single rank across stages would be misleading."
+  },
+  "/v1/queue?kind=history": {
+   "kind": "history",
+   "items": [
+    {
+     "submission_id": "sub_01m2tkea0276eqyfv72g",
+     "hotkey": "5DXEjp…HboZ",
+     "lineage": "frag-allocator",
+     "state": "promoted",
+     "state_label": "Champion",
+     "admission_key": [
+      8,
+      0
+     ],
+     "admitted_at": "2026-09-18T15:51:27.172168Z",
+     "updated_at": "2026-09-18T15:52:18.458488Z",
+     "current_stage": null,
+     "triage_gain_ppm": 343916,
+     "bound_gain_ppm": 319691,
+     "rebases_used": 0,
+     "outcome": {
+      "code": "promoted",
+      "summary": "Promoted to champion version 1.",
+      "fee": "consumed"
+     }
+    },
+    {
+     "submission_id": "sub_01m2tkecfjrsr670zrp4",
+     "hotkey": "5F9DZj…Dfok",
+     "lineage": "evict-quarter",
+     "state": "not_promoted",
+     "state_label": "Did not replace the champion",
+     "admission_key": [
+      13,
+      0
+     ],
+     "admitted_at": "2026-09-18T15:51:29.466631Z",
+     "updated_at": "2026-09-18T15:51:32.430483Z",
+     "current_stage": null,
+     "triage_gain_ppm": null,
+     "bound_gain_ppm": null,
+     "rebases_used": 0,
+     "outcome": {
+      "code": "not_potential_winner",
+      "summary": "Offline quality failed; capacity was not measured. overall: lower bound -7.98 pts vs champion is not above -2.00; position_early: lower bound -21.67 pts vs champion is not above -3.00; position_middle: lower bound -8.90 pts vs champion is not above -3.00; overall: lower bound -7.79 pts vs fixed quality reference is not above -3.00; position_early: lower bound -20.82 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -9",
+      "fee": "consumed"
+     }
+    }
+   ],
+   "next_cursor": null,
+   "note": "Paid admissions are ordered by their finalized payment. Workers may run different submissions at the same time; promotion still follows admission order, so a single rank across stages would be misleading."
+  },
+  "/v1/submissions/sub_01m2tkea0276eqyfv72g": {
+   "submission_id": "sub_01m2tkea0276eqyfv72g",
+   "state": "promoted",
+   "state_label": "Champion",
+   "hotkey": "5DXEjp…HboZ",
+   "lineage": "frag-allocator",
+   "profile_id": "room-p1-h100sxm-qwen3-32b-fp8",
+   "profile_version": "1.0.0",
+   "rule_hash": "8d7071c85e2c728e6964602ca2eb7149ca3f15a0efd8bab67fa55cbef8957c27",
+   "support_ref": "RM-9S6N-7D69",
+   "created_at": "2026-09-18T15:51:25.938397Z",
+   "updated_at": "2026-09-18T15:52:18.458488Z",
+   "admission_key": [
+    8,
+    0
+   ],
+   "admitted_at": "2026-09-18T15:51:27.172168Z",
+   "deadline_at": "2026-11-17T15:51:27.172168Z",
+   "rebases_used": 0,
+   "max_rebases": 2,
+   "compared_champion_version": 0,
+   "current_champion_version": 1,
+   "triage_gain_ppm": 343916,
+   "bound_gain_ppm": 319691,
+   "margin_ppm": 50000,
+   "blocks_required": 5,
+   "outcome": {
+    "code": "promoted",
+    "summary": "Promoted to champion version 1.",
+    "fee": "consumed"
+   },
+   "method": "Allocates KV blocks to reduce fragmentation so more tokens fit in the same budget.",
+   "mechanism": "allocation",
+   "trusted_fixture": "fragmentation-aware-allocator",
+   "changed_paths": null,
+   "artifact_sha256": null,
+   "blocking_submissions": [],
+   "timeline": [
+    {
+     "stage": "screen",
+     "status": "done",
+     "block_no": null,
+     "worker": "w-op-1",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:27.057878Z",
+     "updated_at": "2026-09-18T15:51:28.908053Z",
+     "lease_expires_at": "2026-09-18T17:51:28.387278Z",
+     "gpu_centi_used": 35
+    },
+    {
+     "stage": "full",
+     "status": "done",
+     "block_no": null,
+     "worker": "w-op-1",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:28.868120Z",
+     "updated_at": "2026-09-18T15:51:45.499899Z",
+     "lease_expires_at": "2026-09-19T15:51:29.586868Z",
+     "gpu_centi_used": 892
+    },
+    {
+     "stage": "confirm_block",
+     "status": "done",
+     "block_no": 0,
+     "worker": "w-op-1",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:45.390931Z",
+     "updated_at": "2026-09-18T15:51:47.426976Z",
+     "lease_expires_at": "2026-09-18T23:51:45.786279Z",
+     "gpu_centi_used": 243
+    },
+    {
+     "stage": "confirm_block",
+     "status": "done",
+     "block_no": 1,
+     "worker": "w-op-1",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:45.390931Z",
+     "updated_at": "2026-09-18T15:51:48.084383Z",
+     "lease_expires_at": "2026-09-18T23:51:46.971779Z",
+     "gpu_centi_used": 243
+    },
+    {
+     "stage": "confirm_block",
+     "status": "done",
+     "block_no": 3,
+     "worker": "w-op-2",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:45.390931Z",
+     "updated_at": "2026-09-18T15:51:49.667207Z",
+     "lease_expires_at": "2026-09-18T23:51:48.196788Z",
+     "gpu_centi_used": 243
+    },
+    {
+     "stage": "confirm_block",
+     "status": "done",
+     "block_no": 2,
+     "worker": "w-op-1",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:45.390931Z",
+     "updated_at": "2026-09-18T15:51:50.211798Z",
+     "lease_expires_at": "2026-09-18T23:51:47.967359Z",
+     "gpu_centi_used": 243
+    },
+    {
+     "stage": "confirm_block",
+     "status": "done",
+     "block_no": 4,
+     "worker": "w-op-2",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:45.390931Z",
+     "updated_at": "2026-09-18T15:51:51.013945Z",
+     "lease_expires_at": "2026-09-18T23:51:49.056027Z",
+     "gpu_centi_used": 243
+    }
+   ],
+   "comparisons": [
+    {
+     "id": "cmp_01m2tkexeeecv03963zy",
+     "champion_version": 0,
+     "status": "measured",
+     "validator": "5GEkfr…pu5K",
+     "worker": "w-op-1",
+     "anchor_block": 33,
+     "beacon_round": 32314448,
+     "beacon_simulated": true,
+     "void_reason": null,
+     "challenger_milli_rps": 778,
+     "champion_milli_rps": 562
+    },
+    {
+     "id": "cmp_01m2tkeyhnha127rqnbj",
+     "champion_version": 0,
+     "status": "measured",
+     "validator": "5GEkfr…pu5K",
+     "worker": "w-op-1",
+     "anchor_block": 33,
+     "beacon_round": 32314448,
+     "beacon_simulated": true,
+     "void_reason": null,
+     "challenger_milli_rps": 778,
+     "champion_milli_rps": 562
+    },
+    {
+     "id": "cmp_01m2tkezg72tyqd6akdm",
+     "champion_version": 0,
+     "status": "measured",
+     "validator": "5GEkfr…pu5K",
+     "worker": "w-op-1",
+     "anchor_block": 34,
+     "beacon_round": 32314448,
+     "beacon_simulated": true,
+     "void_reason": null,
+     "challenger_milli_rps": 801,
+     "champion_milli_rps": 545
+    },
+    {
+     "id": "cmp_01m2tkezqttvpzhscwsw",
+     "champion_version": 0,
+     "status": "measured",
+     "validator": "5GEkfr…pu5K",
+     "worker": "w-op-2",
+     "anchor_block": 34,
+     "beacon_round": 32314449,
+     "beacon_simulated": true,
+     "void_reason": null,
+     "challenger_milli_rps": 733,
+     "champion_milli_rps": 545
+    },
+    {
+     "id": "cmp_01m2tkf0ktwtkd2f49we",
+     "champion_version": 0,
+     "status": "measured",
+     "validator": "5GEkfr…pu5K",
+     "worker": "w-op-2",
+     "anchor_block": 34,
+     "beacon_round": 32314449,
+     "beacon_simulated": true,
+     "void_reason": null,
+     "challenger_milli_rps": 733,
+     "champion_milli_rps": 562
+    }
+   ],
+   "reviews": [
+    {
+     "id": "rev_01m2tkf2hnnkw9vmxdjc",
+     "reviewer": "5Cfh2w…mhkL",
+     "decision": "approve",
+     "criteria": [
+      {
+       "id": "license",
+       "title": "License compatibility and complete attribution",
+       "passed": true
+      },
+      {
+       "id": "reproducible_build",
+       "title": "Build reproduces from the frozen artifact",
+       "passed": true
+      },
+      {
+       "id": "adaptivity",
+       "title": "No forbidden benchmark-recognition adaptivity",
+       "passed": true
+      },
+      {
+       "id": "security",
+       "title": "Security scans and fuzzing clean",
+       "passed": true
+      },
+      {
+       "id": "native_review",
+       "title": "Independent review of native code",
+       "passed": true
+      },
+      {
+       "id": "soak",
+       "title": "6-hour soak at 90% of confirmed capacity without errors above the gate",
+       "passed": true
+      },
+      {
+       "id": "mechanism",
+       "title": "Declared memory mechanism confirmed in the code",
+       "passed": true
+      }
+     ],
+     "reasons": "Demo review: published criteria all pass.",
+     "due_at": "2026-10-02T15:51:51.093950Z",
+     "decided_at": "2026-09-18T15:52:17.061216Z"
+    }
+   ],
+   "appeals": [],
+   "reports": [
+    {
+     "id": "rep_01m2tkecxm6c8vrz7m3h",
+     "kind": "screen",
+     "hash": "3aba6bc529cffc16c11f2cc14c1579708a0d43e74cb47cacf443a8d6942403c7",
+     "simulated": true,
+     "body": null,
+     "created_at": "2026-09-18T15:51:28.868120Z"
+    },
+    {
+     "id": "rep_01m2tkex313cp7c01srf",
+     "kind": "full",
+     "hash": "41c0563b583012ce95bd90b04474d92f70e524399e8a7db6bd9bf2bec880961e",
+     "simulated": true,
+     "body": {
+      "gates": {
+       "pooled_gates": true,
+       "per_run_gates": true,
+       "memory_evidence": true,
+       "offline_quality": true,
+       "resource_ceilings": true,
+       "short_request_control": true,
+       "live_conversation_check": true
+      },
+      "p_ctl": {
+       "rule": "paired regression control: not more than 2 points below the champion",
+       "passed": true,
+       "attainment_bp": 10000,
+       "rate_milli_rps": 1158,
+       "champion_attainment_bp": 10000
+      },
+      "p_live": {
+       "passed": true,
+       "offered": 1315,
+       "reasons": [],
+       "qualified": 1315,
+       "conversations_per_s_milli": 272
+      },
+      "quality": {
+       "passed": true,
+       "reasons": [],
+       "accuracy_bp": {
+        "general": 8925,
+        "overall": 9032,
+        "position_late": 9043,
+        "position_early": 9044,
+        "position_middle": 9090
+       }
+      },
+      "summary": "Potential winner: confirmation blocks will be scheduled.",
+      "capacity": {
+       "flag": "ok",
+       "runs": 10,
+       "trace": [
+        [
+         0,
+         true
+        ],
+        [
+         3,
+         true
+        ],
+        [
+         6,
+         true
+        ],
+        [
+         9,
+         true
+        ],
+        [
+         12,
+         false
+        ],
+        [
+         10,
+         true
+        ],
+        [
+         11,
+         true
+        ],
+        [
+         10,
+         true
+        ],
+        [
+         10,
+         true
+        ],
+        [
+         10,
+         true
+        ]
+       ],
+       "units": "requests per second, P-mem",
+       "milli_rps": 778
+      },
+      "failed_gates": [],
+      "memory_evidence": {
+       "limits": "Diagnostic evidence only; it does not prove that the gain was caused by memory. Validate the diagnostics against known memory and compute-only methods before trusting them.",
+       "passed": true,
+       "tight_ok": true,
+       "margin_ppm": 50000,
+       "tight_flags": {
+        "champion": "ok",
+        "challenger": "at_grid_ceiling"
+       },
+       "accounting_ok": true,
+       "tolerance_ppm": 60000,
+       "recompute_note": "reported only: recomputation also falls for a faster stack, so it cannot by itself show a memory cause",
+       "tight_measured": true,
+       "full_budget_gain_ppm": 343916,
+       "tight_budget_gain_ppm": 425760,
+       "holds_within_tolerance": true,
+       "tight_capacity_milli_rps": {
+        "champion": 403,
+        "challenger": 575,
+        "worker_calibration_champion": 0
+       },
+       "external_resident_capacity_gain_ppm": 800000,
+       "recomputed_prefill_tokens_per_qualified": {
+        "champion": 5606,
+        "challenger": 5565
+       }
+      },
+      "triage_gain_ppm": 343916,
+      "potential_winner": true,
+      "pooled_gate_reasons": []
+     },
+     "created_at": "2026-09-18T15:51:45.390931Z"
+    },
+    {
+     "id": "rep_01m2tkez2n7fc1p90q42",
+     "kind": "confirm_block",
+     "hash": "e61118766129a523f5764deb7823f281451dbba0408c3489ffba38d04d065f39",
+     "simulated": true,
+     "body": {
+      "arm_order": [
+       "challenger",
+       "champion"
+      ],
+      "report_hash": "3529c2399fe6a3190af8e1846d9be8b58810f2676f0bba5039c2b52b3a0a88ba",
+      "champion_milli_rps": 562,
+      "challenger_milli_rps": 778
+     },
+     "created_at": "2026-09-18T15:51:47.370578Z"
+    },
+    {
+     "id": "rep_01m2tkezme8kfpvmxn76",
+     "kind": "confirm_block",
+     "hash": "cb3e2f31e0930ac79ba0bb5fa1c7001278c58679d9d8f7034978f750c01ee440",
+     "simulated": true,
+     "body": {
+      "arm_order": [
+       "challenger",
+       "champion"
+      ],
+      "report_hash": "3529c2399fe6a3190af8e1846d9be8b58810f2676f0bba5039c2b52b3a0a88ba",
+      "champion_milli_rps": 562,
+      "challenger_milli_rps": 778
+     },
+     "created_at": "2026-09-18T15:51:48.017378Z"
+    },
+    {
+     "id": "rep_01m2tkf15v9tbdgp3n1x",
+     "kind": "confirm_block",
+     "hash": "81896261011e74045028dbdd67e0926e9bf2ef192a4ace968fad6638337c1446",
+     "simulated": true,
+     "body": {
+      "arm_order": [
+       "challenger",
+       "champion"
+      ],
+      "report_hash": "47ceb980a079caace30ae2518647b06e0a8bdf4ac6a53c8c5afb289d7632954d",
+      "champion_milli_rps": 545,
+      "challenger_milli_rps": 733
+     },
+     "created_at": "2026-09-18T15:51:49.653783Z"
+    },
+    {
+     "id": "rep_01m2tkf1qmmf7a61b2re",
+     "kind": "confirm_block",
+     "hash": "ec35292152eaf9a455981a1085c7d1025a98a16739665264af246d8cdea84da5",
+     "simulated": true,
+     "body": {
+      "arm_order": [
+       "champion",
+       "challenger"
+      ],
+      "report_hash": "f7532a0fbcbf738c744c60b15589681eb78fb0ddb2dec62c7c07b8bad59de12a",
+      "champion_milli_rps": 545,
+      "challenger_milli_rps": 801
+     },
+     "created_at": "2026-09-18T15:51:50.104814Z"
+    },
+    {
+     "id": "rep_01m2tkf2fzp4wkh39ej7",
+     "kind": "confirm_block",
+     "hash": "28960a70129445ab36db8bf9d105ae97ab8252b5c869ba3b0addab08bdf19309",
+     "simulated": true,
+     "body": {
+      "arm_order": [
+       "challenger",
+       "champion"
+      ],
+      "report_hash": "1af06134baf54f1d7316e133f211e960332d671d8eedd234f318a188bdc84e93",
+      "champion_milli_rps": 562,
+      "challenger_milli_rps": 733
+     },
+     "created_at": "2026-09-18T15:51:51.003847Z"
+    }
+   ],
+   "simulated": true
+  },
+  "/v1/submissions/sub_01m2tkecfjrsr670zrp4": {
+   "submission_id": "sub_01m2tkecfjrsr670zrp4",
+   "state": "not_promoted",
+   "state_label": "Did not replace the champion",
+   "hotkey": "5F9DZj…Dfok",
+   "lineage": "evict-quarter",
+   "profile_id": "room-p1-h100sxm-qwen3-32b-fp8",
+   "profile_version": "1.0.0",
+   "rule_hash": "8d7071c85e2c728e6964602ca2eb7149ca3f15a0efd8bab67fa55cbef8957c27",
+   "support_ref": "RM-6PTH-HXGZ",
+   "created_at": "2026-09-18T15:51:28.236489Z",
+   "updated_at": "2026-09-18T15:51:32.430483Z",
+   "admission_key": [
+    13,
+    0
+   ],
+   "admitted_at": "2026-09-18T15:51:29.466631Z",
+   "deadline_at": "2026-11-17T15:51:29.466631Z",
+   "rebases_used": 0,
+   "max_rebases": 2,
+   "compared_champion_version": 0,
+   "current_champion_version": 1,
+   "triage_gain_ppm": null,
+   "bound_gain_ppm": null,
+   "margin_ppm": 50000,
+   "blocks_required": 5,
+   "outcome": {
+    "code": "not_potential_winner",
+    "summary": "Offline quality failed; capacity was not measured. overall: lower bound -7.98 pts vs champion is not above -2.00; position_early: lower bound -21.67 pts vs champion is not above -3.00; position_middle: lower bound -8.90 pts vs champion is not above -3.00; overall: lower bound -7.79 pts vs fixed quality reference is not above -3.00; position_early: lower bound -20.82 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -9",
+    "fee": "consumed"
+   },
+   "method": "Keeps only the most attended quarter of cached tokens.",
+   "mechanism": "retention",
+   "trusted_fixture": "evict-quarter",
+   "changed_paths": null,
+   "artifact_sha256": null,
+   "blocking_submissions": [],
+   "timeline": [
+    {
+     "stage": "screen",
+     "status": "done",
+     "block_no": null,
+     "worker": "w-op-2",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:29.152357Z",
+     "updated_at": "2026-09-18T15:51:30.730689Z",
+     "lease_expires_at": "2026-09-18T17:51:30.392789Z",
+     "gpu_centi_used": 35
+    },
+    {
+     "stage": "full",
+     "status": "done",
+     "block_no": null,
+     "worker": "w-op-2",
+     "champion_version": 0,
+     "attempts": 1,
+     "created_at": "2026-09-18T15:51:30.686430Z",
+     "updated_at": "2026-09-18T15:51:32.408426Z",
+     "lease_expires_at": "2026-09-19T15:51:31.728029Z",
+     "gpu_centi_used": 150
+    }
+   ],
+   "comparisons": [],
+   "reviews": [],
+   "appeals": [],
+   "reports": [
+    {
+     "id": "rep_01m2tkeepd1s9vyeg9hb",
+     "kind": "screen",
+     "hash": "2eb246d60ffdc9ac8f3d1d588579afbb95bf57ec616162fdf3f20c7db6f6d98a",
+     "simulated": true,
+     "body": null,
+     "created_at": "2026-09-18T15:51:30.686430Z"
+    },
+    {
+     "id": "rep_01m2tkeg9yv53h8gkbzr",
+     "kind": "full",
+     "hash": "6597013125004db3412cd12539ae4569d164cd8190d9f7746897120283e7fc4f",
+     "simulated": true,
+     "body": {
+      "gates": {
+       "pooled_gates": false,
+       "per_run_gates": false,
+       "memory_evidence": false,
+       "offline_quality": false,
+       "resource_ceilings": true,
+       "short_request_control": false,
+       "live_conversation_check": false
+      },
+      "quality": {
+       "passed": false,
+       "reasons": [
+        "overall: lower bound -7.98 pts vs champion is not above -2.00",
+        "position_early: lower bound -21.67 pts vs champion is not above -3.00",
+        "position_middle: lower bound -8.90 pts vs champion is not above -3.00",
+        "overall: lower bound -7.79 pts vs fixed quality reference is not above -3.00",
+        "position_early: lower bound -20.82 pts vs fixed quality reference is not above -3.00",
+        "position_middle: lower bound -9.05 pts vs fixed quality reference is not above -3.00",
+        "overall: accuracy 84.72% is below the absolute floor 85.00%",
+        "position_early: accuracy 73.28% is below the absolute floor 80.00%"
+       ],
+       "accuracy_bp": {
+        "general": 9187,
+        "overall": 8472,
+        "position_late": 9230,
+        "position_early": 7328,
+        "position_middle": 8322
+       }
+      },
+      "summary": "Offline quality failed; capacity was not measured. overall: lower bound -7.98 pts vs champion is not above -2.00; position_early: lower bound -21.67 pts vs champion is not above -3.00; position_middle: lower bound -8.90 pts vs champion is not above -3.00; overall: lower bound -7.79 pts vs fixed quality reference is not above -3.00; position_early: lower bound -20.82 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -9",
+      "potential_winner": false
+     },
+     "created_at": "2026-09-18T15:51:32.397028Z"
+    }
+   ],
+   "simulated": true
+  }
+ }
+}
