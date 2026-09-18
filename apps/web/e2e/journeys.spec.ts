@@ -93,7 +93,8 @@ test("a miner sees the fee before signing and can recover an existing payment", 
     await fixtures.nth(i).check();
     await build.click();
     const result = page.getByRole("heading", { name: /^Free checks (passed|found problems)$/ });
-    const alert = page.getByRole("alert");
+    // scoped to the page content: Next.js adds a hidden route announcer that also has role="alert"
+    const alert = page.getByRole("main").getByRole("alert");
     await expect(result.or(alert).first()).toBeVisible({ timeout: 30_000 });
     if (await result.isVisible()) {
       if ((await result.textContent())?.includes("passed")) {
