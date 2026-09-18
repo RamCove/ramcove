@@ -22,14 +22,23 @@ const NAV = [
 
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={clsx("inline-flex items-center gap-2", className)}>
-      <svg width="22" height="22" viewBox="0 0 22 22" role="img" aria-label="ROOM">
-        <rect x="1.5" y="1.5" width="19" height="19" rx="5" fill="none" stroke="var(--accent)" strokeWidth="1.6" />
-        <rect x="6" y="6" width="6" height="6" rx="1.5" fill="var(--accent)" />
-        <rect x="13" y="13" width="3" height="3" rx="1" fill="var(--accent-strong)" opacity="0.8" />
-      </svg>
-      <span className="text-[15px] font-semibold tracking-[0.14em] text-text">ROOM</span>
+    <span className={clsx("inline-flex items-center gap-2.5", className)}>
+      <Logomark />
+      <span className="text-[15px] font-semibold tracking-[0.2em] text-text">ROOM</span>
     </span>
+  );
+}
+
+/** A fixed frame with work packed into it, and one block of new room in the corner. */
+export function Logomark({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 26 26" role="img" aria-label="ROOM" className="shrink-0">
+      <rect x="1" y="1" width="24" height="24" rx="7" fill="var(--ink)" />
+      <rect x="6" y="6" width="6" height="6" rx="1.6" fill="var(--on-ink)" />
+      <rect x="14" y="6" width="6" height="6" rx="1.6" fill="var(--on-ink)" opacity="0.55" />
+      <rect x="6" y="14" width="6" height="6" rx="1.6" fill="var(--on-ink)" opacity="0.55" />
+      <rect x="14" y="14" width="6" height="6" rx="1.6" fill="var(--accent)" />
+    </svg>
   );
 }
 
@@ -43,68 +52,100 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
       !("needs" in item) ||
       (item.needs === "session" ? Boolean(session) : roles.has(item.needs as string) || roles.has("operator")),
   );
+  const isActive = (href: string) => path === href || (href !== "/" && path.startsWith(href));
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-bg/95 backdrop-blur">
-      <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-4 py-3">
-        <Link href="/" className="shrink-0" aria-label="ROOM home">
-          <Wordmark />
-        </Link>
-        <span className="hidden text-[12px] text-faint sm:inline">More AI. Same GPU.</span>
-        <nav aria-label="Main" className="ml-auto hidden lg:block">
-          <ul className="flex items-center gap-1">
-            {visible.map((item) => {
-              const active = path === item.href || (item.href !== "/" && path.startsWith(item.href));
-              return (
+    <>
+      <div className="bg-band text-on-band">
+        <div className="mx-auto flex max-w-[1200px] items-center gap-3 px-5 py-2 sm:px-8">
+          <span aria-hidden className="live-dot shrink-0 text-accent" />
+          <p className="min-w-0 truncate font-mono text-[11px] uppercase tracking-[0.12em] opacity-85" title={`network ${network}`}>
+            <span>Local development build</span>
+            <span className="opacity-60"> · env </span>
+            <span>{env}</span>
+            {simulated && (
+              <span className="hidden md:inline">
+                <span className="opacity-60"> · </span>simulated chain, beacon, payments and workers
+                <span className="opacity-60"> · </span>no real tokens move
+              </span>
+            )}
+          </p>
+          <Link
+            href="/status"
+            className="ml-auto hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] opacity-70 transition-opacity hover:opacity-100 sm:inline"
+          >
+            What is real →
+          </Link>
+        </div>
+      </div>
+      <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur-md supports-[backdrop-filter]:bg-bg/70">
+        <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-5 sm:px-8">
+          <Link href="/" className="shrink-0 rounded-[var(--radius-sm)]" aria-label="ROOM home">
+            <Wordmark />
+          </Link>
+          <nav aria-label="Main" className="ml-auto hidden lg:block">
+            <ul className="flex items-center gap-0.5">
+              {visible.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={clsx(
+                        "relative rounded-full px-3 py-1.5 text-[14px] transition-colors",
+                        active ? "text-text" : "text-muted hover:text-text",
+                      )}
+                    >
+                      {item.label}
+                      {active && (
+                        <span aria-hidden className="absolute inset-x-3 -bottom-[17px] h-[2px] rounded-full bg-accent" />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+          <div className="ml-auto flex items-center gap-1.5 lg:ml-2">
+            <ThemeToggle />
+            <SessionButton session={session} loaded={loaded} reload={reload} />
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-text hover:bg-surface-2 lg:hidden"
+            >
+              <span className="sr-only">Menu</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+                {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 8h16M4 16h16" />}
+              </svg>
+            </button>
+          </div>
+        </div>
+        {open && (
+          <nav aria-label="Main (compact)" className="border-t border-line bg-bg px-5 pb-5 pt-3 lg:hidden">
+            <ul className="grid gap-0.5">
+              {visible.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    aria-current={active ? "page" : undefined}
+                    onClick={() => setOpen(false)}
+                    aria-current={isActive(item.href) ? "page" : undefined}
                     className={clsx(
-                      "rounded-[var(--radius-sm)] px-2.5 py-1.5 text-[13px] transition-colors",
-                      active ? "bg-surface-2 text-text" : "text-muted hover:bg-surface-2 hover:text-text",
+                      "flex items-center justify-between rounded-[var(--radius-sm)] px-3 py-3 text-[16px]",
+                      isActive(item.href) ? "bg-surface-2 text-text" : "text-muted hover:bg-surface-2 hover:text-text",
                     )}
                   >
                     {item.label}
+                    <span aria-hidden className="text-faint">→</span>
                   </Link>
                 </li>
-              );
-            })}
-          </ul>
-        </nav>
-        <div className="ml-auto flex items-center gap-2 lg:ml-0">
-          <ThemeToggle />
-          <SessionButton session={session} loaded={loaded} reload={reload} />
-          <span className="lg:hidden">
-            <Button variant="quiet" size="sm" onClick={() => setOpen((v) => !v)}>
-              Menu
-              <span className="sr-only">Toggle navigation</span>
-            </Button>
-          </span>
-        </div>
-      </div>
-      {open && (
-        <nav aria-label="Main (compact)" className="border-t border-line px-4 py-2 lg:hidden">
-          <ul className="grid grid-cols-2 gap-1">
-            {visible.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="block rounded-[var(--radius-sm)] px-2.5 py-2 text-[13px] text-muted hover:bg-surface-2 hover:text-text"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
-      <div className="border-t border-line bg-sim-quiet px-4 py-1.5 text-center text-[12px] text-sim">
-        Local development build · env <strong className="font-semibold">{env}</strong> · network{" "}
-        <strong className="font-semibold">{network}</strong>
-        {simulated && " · chain, beacon, payments and workers are simulated; no real tokens move"}
-      </div>
-    </header>
+              ))}
+            </ul>
+          </nav>
+        )}
+      </header>
+    </>
   );
 }
 
@@ -119,13 +160,19 @@ function SessionButton({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const router = useRouter();
-  if (!loaded) return <span className="text-[12px] text-faint">…</span>;
+  if (!loaded) return <span className="inline-block h-8 w-[72px] rounded-[var(--radius-sm)] bg-surface-2" aria-hidden />;
   if (session) {
     return (
       <div className="flex items-center gap-2">
-        <span className="hidden text-[12px] text-muted sm:inline" title={session.hotkey}>
-          {session.hotkey.slice(0, 6)}…{session.hotkey.slice(-4)}
-          {session.roles.length > 0 && ` · ${session.roles.join(", ")}`}
+        <span
+          className="hidden items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1.5 pr-3 text-[12.5px] text-muted sm:inline-flex"
+          title={session.hotkey}
+        >
+          <span aria-hidden className="h-5 w-5 rounded-full bg-accent-quiet ring-1 ring-accent/30" />
+          <span className="num font-mono">
+            {session.hotkey.slice(0, 5)}…{session.hotkey.slice(-4)}
+          </span>
+          {session.roles.length > 0 && <span className="text-faint">· {session.roles.join(", ")}</span>}
         </span>
         <Button
           size="sm"
@@ -194,21 +241,24 @@ export function SignInDialog({
     <dialog
       ref={dialogRef}
       aria-labelledby="signin-title"
-      className="w-[min(36rem,94vw)] rounded-[var(--radius-card)] border border-line bg-surface p-0 text-text backdrop:bg-black/60"
+      className="m-auto w-[min(34rem,94vw)] rounded-[var(--radius-card)] border border-line bg-surface p-0 text-text shadow-[var(--shadow-lift)]"
     >
-      <div className="px-5 py-4">
-        <h2 id="signin-title" className="text-[15px] font-semibold">
+      <div className="px-6 pb-2 pt-6">
+        <p className="eyebrow">Sign in</p>
+        <h2 id="signin-title" className="font-display mt-2 text-[28px] leading-tight">
           Sign in with your hotkey
         </h2>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted">
+        <p className="mt-2 text-[14px] leading-relaxed text-muted">
           ROOM never asks for a seed phrase or a private key file. You sign a one-time message that says it
           only signs you in and authorizes no payment.
         </p>
 
         {identities.length > 0 && (
-          <div className="mt-4 rounded-[var(--radius-sm)] border border-sim bg-sim-quiet px-3 py-3">
-            <p className="text-[12px] font-semibold text-sim">Demo identities (local build only)</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-5 rounded-[var(--radius-sm)] bg-sim-quiet px-4 py-4">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-sim">
+              Demo identities · local build only
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
               {identities.map((i) => (
                 <Button
                   key={i.key}
@@ -231,17 +281,17 @@ export function SignInDialog({
           </div>
         )}
 
-        <div className="mt-4">
-          <label htmlFor="hotkey" className="text-[12px] font-medium text-muted">
+        <div className="mt-5">
+          <label htmlFor="hotkey" className="eyebrow">
             Hotkey address (ss58)
           </label>
-          <div className="mt-1 flex gap-2">
+          <div className="mt-2 flex gap-2">
             <input
               id="hotkey"
               value={hotkey}
               onChange={(e) => setHotkey(e.target.value.trim())}
               placeholder="5F…"
-              className="num min-w-0 flex-1 rounded-[var(--radius-sm)] border border-line bg-surface-2 px-3 py-2 font-mono text-[12px] text-text placeholder:text-faint"
+              className="num h-10 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-line-strong bg-bg px-3 font-mono text-[13px] text-text placeholder:text-faint focus:border-accent"
             />
             <Button
               busy={busy}
@@ -266,7 +316,7 @@ export function SignInDialog({
             <p className="text-[12px] font-medium text-muted">
               Sign this message with your hotkey, then paste the signature.
             </p>
-            <pre className="mt-1 max-h-40 overflow-auto rounded-[var(--radius-sm)] border border-line bg-surface-2 p-3 font-mono text-[11px] leading-relaxed text-muted">
+            <pre className="mt-2 max-h-40 overflow-auto rounded-[var(--radius-sm)] border border-line bg-bg p-3 font-mono text-[12px] leading-relaxed text-muted">
               {challenge.message}
             </pre>
             <div className="mt-1 flex justify-end">
@@ -278,7 +328,7 @@ export function SignInDialog({
                 value={signature}
                 onChange={(e) => setSignature(e.target.value.trim())}
                 placeholder="0x…"
-                className="num min-w-0 flex-1 rounded-[var(--radius-sm)] border border-line bg-surface-2 px-3 py-2 font-mono text-[12px] text-text placeholder:text-faint"
+                className="num h-10 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-line-strong bg-bg px-3 font-mono text-[13px] text-text placeholder:text-faint focus:border-accent"
               />
               <Button
                 variant="primary"
@@ -304,7 +354,7 @@ export function SignInDialog({
         )}
         <ErrorText error={error} />
       </div>
-      <div className="flex justify-end border-t border-line px-5 py-3">
+      <div className="flex justify-end px-6 pb-5 pt-3">
         <Button variant="quiet" onClick={() => dialogRef.current?.close()}>
           Close
         </Button>
