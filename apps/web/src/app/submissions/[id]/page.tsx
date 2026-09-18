@@ -267,7 +267,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                       {r.decision ?? "open"}
                     </Pill>
                     <span className="text-[12px] text-muted">
-                      {r.decided_at ? `decided ${<TimeAgo at={r.decided_at} />}` : `due ${when(r.due_at)}`}
+                      {r.decided_at ? <>{"decided "}<TimeAgo at={r.decided_at} /></> : `due ${when(r.due_at)}`}
                     </span>
                   </div>
                   <ul className="mt-2 grid gap-1 sm:grid-cols-2">

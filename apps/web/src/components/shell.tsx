@@ -9,10 +9,10 @@ import { useEffect, useRef, useState } from "react";
 
 const NAV = [
   { href: "/", label: "Overview" },
-  { href: "/competition", label: "Profile and champion" },
+  { href: "/competition", label: "Competition" },
   { href: "/queue", label: "Queue" },
   { href: "/submit", label: "Submit" },
-  { href: "/submissions", label: "My submissions", needs: "session" },
+  { href: "/submissions", label: "My work", needs: "session" },
   { href: "/validator", label: "Validator", needs: "validator" },
   { href: "/review", label: "Review", needs: "reviewer" },
   { href: "/operator", label: "Operator", needs: "operator" },

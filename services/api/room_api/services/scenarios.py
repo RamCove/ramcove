@@ -9,8 +9,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-from room_miner.artifact import pack, sign_artifact
-from room_miner.fixtures import by_name, manifest_for
+from room_miner.artifact import sign_artifact
 from room_protocol.rules import ProfileVersion
 from room_worker.isolation import SimulatedTrustedProvider
 from room_worker.runner import execute
@@ -18,7 +17,7 @@ from sqlalchemy import select, update
 
 from ..store.db import now, tx
 from ..store.schema import artifacts, jobs, reviews, submissions
-from . import control, intake, queue, review, seed
+from . import control, demo_artifacts, intake, queue, review, seed
 from .context import AppContext, ServiceError, baseline_fixture, load_trusted_fixtures
 from .queue import review_criteria
 
@@ -58,10 +57,7 @@ class Harness:
     def submit(self, miner: str, fixture: str) -> str:
         hk, kp = self.hotkey(miner)
         p = self.profile()
-        fx = by_name(fixture)
-        with tx(self.ctx.engine) as conn:
-            champ = queue.current_champion(conn, p.profile_id)
-        data = pack(manifest_for(fx, hk, p.profile_id, p.version, champ.version), fx["patch"])
+        data = demo_artifacts.build(self.ctx, hk, fixture)
         sig = sign_artifact(kp, data, self.ctx.settings.network, p.profile_id, p.version)
         r = intake.preflight(self.ctx, hk, data, sig)
         if not r.get("ok"):
@@ -164,9 +160,12 @@ def run(ctx: AppContext, name: str) -> dict:
             out["note"] = (
                 f"{hk} is not registered, so the incumbent keeps the allocation until the grace ends."
             )
-        if h.state(win) == "in_review":
-            h.approve(win)
-        h.work()
+        # review can open only after the confirmation blocks finish, so approve and continue until settled
+        for _ in range(4):
+            if h.state(win) == "in_review":
+                h.approve(win)
+            if h.work(steps=20) == 0 and h.state(win) != "in_review":
+                break
         for _ in range(3):
             control.tick(ctx)
         out["final_state"] = h.state(win)

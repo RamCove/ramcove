@@ -54,7 +54,16 @@ export default async function StatusPage() {
             label="Chain reads"
             value={s.chain ? "observed" : "stale"}
             tone={s.chain ? "ok" : "warn"}
-            hint={s.chain ? `#${s.chain.finalized_number} · ${<TimeAgo at={s.chain.observed_at} />}` : "no observation"}
+            hint={
+              s.chain ? (
+                <>
+                  {`#${s.chain.finalized_number} · `}
+                  <TimeAgo at={s.chain.observed_at} />
+                </>
+              ) : (
+                "no observation"
+              )
+            }
           />
         </Card>
         <Card>

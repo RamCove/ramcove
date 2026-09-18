@@ -56,7 +56,7 @@ FIXTURES = [
         "title": "Fragmentation-aware block allocation",
         "method": "Allocates KV blocks to reduce fragmentation so more tokens fit in the same budget.",
         "patch": _patch("vllm/v1/core/block_pool.py", "fragmentation aware", "FRAG_AWARE = True"),
-        "params": StackParams("fragmentation-aware-allocator", usable_factor=1.35),
+        "params": StackParams("fragmentation-aware-allocator", usable_factor=1.8),
     },
     {
         "name": "evict-quarter",

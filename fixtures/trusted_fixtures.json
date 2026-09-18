@@ -100,7 +100,7 @@
       "name": "fragmentation-aware-allocator",
       "retention_bonus": 0.0,
       "screen_failure": null,
-      "usable_factor": 1.35
+      "usable_factor": 1.8
     },
     "simulated": true,
     "title": "Fragmentation-aware block allocation",
@@ -226,7 +226,7 @@
       "name": "fragmentation-aware-allocator",
       "retention_bonus": 0.0,
       "screen_failure": null,
-      "usable_factor": 1.35
+      "usable_factor": 1.8
     },
     "simulated": true,
     "title": "Fragmentation-aware block allocation",
@@ -458,7 +458,7 @@
       "name": "fragmentation-aware-allocator",
       "retention_bonus": 0.0,
       "screen_failure": null,
-      "usable_factor": 1.35
+      "usable_factor": 1.8
     },
     "simulated": true,
     "title": "Fragmentation-aware block allocation",
@@ -500,7 +500,7 @@
       "name": "fragmentation-aware-allocator",
       "retention_bonus": 0.0,
       "screen_failure": null,
-      "usable_factor": 1.35
+      "usable_factor": 1.8
     },
     "simulated": true,
     "title": "Fragmentation-aware block allocation",
@@ -649,7 +649,7 @@
       "name": "fragmentation-aware-allocator",
       "retention_bonus": 0.0,
       "screen_failure": null,
-      "usable_factor": 1.35
+      "usable_factor": 1.8
     },
     "simulated": true,
     "title": "Fragmentation-aware block allocation",
@@ -731,7 +731,7 @@
       "name": "fragmentation-aware-allocator",
       "retention_bonus": 0.0,
       "screen_failure": null,
-      "usable_factor": 1.35
+      "usable_factor": 1.8
     },
     "simulated": true,
     "title": "Fragmentation-aware block allocation",

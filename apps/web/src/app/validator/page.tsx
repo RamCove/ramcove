@@ -95,7 +95,16 @@ export default async function ValidatorPage() {
           <Stat
             label="Chain"
             value={ws.chain ? `#${ws.chain.finalized_number}` : "—"}
-            hint={ws.chain ? `${ws.chain.simulated ? "dev chain · " : ""}${<TimeAgo at={ws.chain.observed_at} />}` : "unknown"}
+            hint={
+              ws.chain ? (
+                <>
+                  {ws.chain.simulated ? "dev chain · " : ""}
+                  <TimeAgo at={ws.chain.observed_at} />
+                </>
+              ) : (
+                "unknown"
+              )
+            }
           />
         </Card>
       </div>
@@ -132,7 +141,7 @@ export default async function ValidatorPage() {
                   <KeyValue
                     rows={[
                       ["Provider", <Mono key="p">{w.provider}</Mono>],
-                      ["Calibrated", w.calibrated_at ? `${<TimeAgo at={w.calibrated_at} />} (champion v${w.calibrated_champion_version})` : "never"],
+                      ["Calibrated", w.calibrated_at ? <><TimeAgo at={w.calibrated_at} />{" (champion v${w.calibrated_champion_version})"}</> : "never"],
                       [
                         "Calibrated capacity",
                         w.readiness.calibration ? rps(w.readiness.calibration.capacity_milli_rps) : "—",
