@@ -103,18 +103,29 @@ export function TopNav({
                   <span className="opacity-60"> · </span>no real tokens move
                 </span>
               </>
+            ) : hosted ? (
+              // the hosted site says only what a visitor needs: this is a simulation, nothing real moves
+              <>
+                <span className="hidden md:inline">
+                  Simulated chain, beacon, payments and workers<span className="opacity-60"> · </span>no real tokens
+                  move
+                </span>
+                <span className="md:hidden">
+                  Simulated<span className="opacity-60"> · </span>no real tokens move
+                </span>
+              </>
             ) : (
               <>
-                <span>{hosted ? "Public demo" : "Local development build"}</span>
+                <span>Local development build</span>
                 <span className="opacity-60"> · </span>
-                <span>{hosted ? "live simulation" : `env ${env}`}</span>
+                <span>env {env}</span>
+                {simulated && (
+                  <span className="hidden md:inline">
+                    <span className="opacity-60"> · </span>simulated chain, beacon, payments and workers
+                    <span className="opacity-60"> · </span>no real tokens move
+                  </span>
+                )}
               </>
-            )}
-            {simulated && !preview.on && (
-              <span className="hidden md:inline">
-                <span className="opacity-60"> · </span>simulated chain, beacon, payments and workers
-                <span className="opacity-60"> · </span>no real tokens move
-              </span>
             )}
           </p>
           <Link
