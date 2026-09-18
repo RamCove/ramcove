@@ -4,6 +4,13 @@ const config: NextConfig = {
   reactStrictMode: true,
   agentRules: false,
   poweredByHeader: false,
+  // The menu was simplified: the queue lives on the dashboard and the rules under Docs.
+  async redirects() {
+    return [
+      { source: "/competition", destination: "/docs/rules", permanent: false },
+      { source: "/queue", destination: "/dashboard#queue", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

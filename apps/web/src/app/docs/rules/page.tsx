@@ -1,10 +1,11 @@
 import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, Stat, Table, Td, Term } from "@/components/ui";
+import { DocsTabs } from "@/components/docs-tabs";
 import { apiGetOrNull } from "@/lib/server-api";
 import { centiHours, gain, rps, shortHash, usd, when } from "@/lib/format";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Profile and champion" };
+export const metadata: Metadata = { title: "Rules" };
 
 type ProfileDetail = {
   profile: {
@@ -68,8 +69,9 @@ export default async function CompetitionPage() {
   const r = p.replacement;
   return (
     <div className="min-w-0 space-y-8">
+      <DocsTabs active="rules" />
       <PageHeader
-        eyebrow={`Profile · ${p.title}`}
+        eyebrow={`Rules · ${p.title}`}
         title="Competition rules"
         lede="A profile fixes everything that affects a raw capacity number. Scores from different profiles never share a leaderboard, and every value below is a provisional planning value, not a measurement."
       >
