@@ -180,18 +180,20 @@ export function Table({
   children,
   empty,
   caption,
-  minWidth = 640,
+  minWidth,
 }: {
   head: ReactNode[];
   children: ReactNode;
   empty?: boolean;
   caption?: string;
-  /** Below this width the table scrolls inside its card instead of squeezing columns. */
+  /** Below this width the table scrolls inside its card instead of squeezing columns. Defaults to
+   *  roughly 130px per column, so narrow tables fit narrow cards. */
   minWidth?: number;
 }) {
+  const min = minWidth ?? Math.max(260, head.length * 130);
   return (
     <div className="table-scroll -mx-6 max-w-[calc(100%+3rem)] px-6">
-      <table className="w-full border-collapse text-[14px]" style={{ minWidth }}>
+      <table className="w-full border-collapse text-[14px]" style={{ minWidth: min }}>
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
           <tr className="border-b border-line text-left">

@@ -148,10 +148,6 @@ body {
   }
 }
 
-.site-main > :not(.full-bleed) > * + * {
-  margin-top: 24px;
-}
-
 /* Display type: Fraunces with its optical-size axis, so it sharpens as it grows. */
 .font-display {
   font-family: var(--font-display);
