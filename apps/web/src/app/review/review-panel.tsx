@@ -2,7 +2,7 @@
 
 import { Button, ConfirmButton, ErrorText } from "@/components/client";
 import { Card, Empty, Notice, Pill } from "@/components/ui";
-import { ApiFailure, clientFetch } from "@/lib/api";
+import { ApiFailure, clientFetch, postJson } from "@/lib/api";
 import { gain, when } from "@/lib/format";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -49,9 +49,11 @@ export function ReviewPanel({
   async function decide(decision: "approve" | "reject", conflict = false) {
     setError(null);
     try {
-      await clientFetch(`/v1/review/${active}/decide`, {
-        method: "POST",
-        body: JSON.stringify({ decision, reasons, criteria: results, conflict }),
+      await postJson<"DecisionIn">(`/v1/review/${active}/decide`, {
+        decision,
+        reasons,
+        criteria: results,
+        conflict,
       });
       setResults({});
       setReasons("");
@@ -204,9 +206,9 @@ export function ReviewPanel({
                         confirmLabel="Uphold"
                         body="The submission returns to review with a fresh review record."
                         onConfirm={async () => {
-                          await clientFetch(`/v1/appeals/${a.id}/decide`, {
-                            method: "POST",
-                            body: JSON.stringify({ upheld: true, reason: "Appeal upheld after panel review." }),
+                          await postJson<"AppealDecisionIn">(`/v1/appeals/${a.id}/decide`, {
+                            upheld: true,
+                            reason: "Appeal upheld after panel review.",
                           });
                           router.refresh();
                         }}
@@ -219,9 +221,9 @@ export function ReviewPanel({
                         confirmLabel="Dismiss"
                         body="The original rejection stands and is published with the reason."
                         onConfirm={async () => {
-                          await clientFetch(`/v1/appeals/${a.id}/decide`, {
-                            method: "POST",
-                            body: JSON.stringify({ upheld: false, reason: "Appeal dismissed after panel review." }),
+                          await postJson<"AppealDecisionIn">(`/v1/appeals/${a.id}/decide`, {
+                            upheld: false,
+                            reason: "Appeal dismissed after panel review.",
                           });
                           router.refresh();
                         }}

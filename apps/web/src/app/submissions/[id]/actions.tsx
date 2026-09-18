@@ -2,7 +2,7 @@
 
 import { ConfirmButton, ErrorText } from "@/components/client";
 import { Card } from "@/components/ui";
-import { ApiFailure, clientFetch } from "@/lib/api";
+import { ApiFailure, postJson } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -45,9 +45,8 @@ export function SubmissionActions({ submissionId, state }: { submissionId: strin
             }
             onConfirm={async () => {
               try {
-                await clientFetch(`/v1/miner/submissions/${submissionId}/withdraw`, {
-                  method: "POST",
-                  body: JSON.stringify({ reason: "withdrawn from the web app" }),
+                await postJson<"WithdrawIn">(`/v1/miner/submissions/${submissionId}/withdraw`, {
+                  reason: "withdrawn from the web app",
                 });
                 router.refresh();
               } catch (e) {
@@ -79,10 +78,7 @@ export function SubmissionActions({ submissionId, state }: { submissionId: strin
               body="Your appeal is decided by someone who was not part of the disputed decision."
               onConfirm={async () => {
                 try {
-                  await clientFetch(`/v1/miner/submissions/${submissionId}/appeal`, {
-                    method: "POST",
-                    body: JSON.stringify({ grounds }),
-                  });
+                  await postJson<"AppealIn">(`/v1/miner/submissions/${submissionId}/appeal`, { grounds });
                   setGrounds("");
                   router.refresh();
                 } catch (e) {
