@@ -87,8 +87,8 @@ def meta(ctx: AppContext) -> dict:
         "chain_writes_enabled": ctx.settings.chain_writes_enabled,
         "demo_features": ctx.settings.demo_features,
         "notice": (
-            "Local development build. The chain, beacon, workers and payments are simulated and "
-            "labelled; no real tokens move and no real GPU is measured."
+            "The chain, beacon, workers and payments are simulated and labelled; no real tokens move "
+            "and no real GPU is measured."
         ),
     }
 
