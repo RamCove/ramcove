@@ -55,6 +55,7 @@ def main() -> None:
     challengers = [f for f in sorted(FIXTURES, key=lambda f: f["name"]) if f["role"] == "challenger"]
     gains: dict[str, list[float]] = {f["name"]: [] for f in challengers}
     passes: dict[str, list[bool]] = {f["name"]: [] for f in challengers}
+    unmeasured: dict[str, int] = {f["name"]: 0 for f in challengers}
 
     for i in range(args.seeds):
         # The real system calibrates the champion in one job and evaluates a challenger in another, so
@@ -72,7 +73,12 @@ def main() -> None:
             mem = _memory_evidence(
                 params, champion, base, gain, profile, seed, cal["tight_capacity_milli_rps"]
             )
-            gains[entry["name"]].append(mem["tight_budget_gain_ppm"] / 1e4)
+            # None means the tight-budget search confirmed nothing; counted separately rather than
+            # folded in as a number, which is what the -100% readings used to be.
+            if mem["tight_budget_gain_ppm"] is None:
+                unmeasured[entry["name"]] += 1
+            else:
+                gains[entry["name"]].append(mem["tight_budget_gain_ppm"] / 1e4)
             passes[entry["name"]].append(bool(mem["passed"]))
         print(f"  seed {i}: done", flush=True)
 
@@ -82,13 +88,26 @@ def main() -> None:
     for entry in challengers:
         name = entry["name"]
         g, verdicts = gains[name], passes[name]
+        if not verdicts:
+            continue
         if not g:
+            print(f"  {name:<34} {f'0/{len(verdicts)}':>16} {'never confirmed':>26}")
+            rows.append(
+                {
+                    "fixture": name,
+                    "declared_memory": 0,
+                    "seeds": len(verdicts),
+                    "unmeasured": unmeasured[name],
+                    "stable": True,
+                }
+            )
             continue
         rate = sum(verdicts) / len(verdicts)
         flag = "  <- flips" if 0 < rate < 1 else ""
+        note = f" ({unmeasured[name]} not measured)" if unmeasured[name] else ""
         print(
             f"  {name:<34} {f'{sum(verdicts)}/{len(verdicts)}':>16} "
-            f"{f'{min(g):.1f} .. {max(g):.1f}':>26}{flag}"
+            f"{f'{min(g):.1f} .. {max(g):.1f}':>26}{flag}{note}"
         )
         rows.append(
             {
@@ -98,6 +117,7 @@ def main() -> None:
                 "tight_gain_pct_min": round(min(g), 2),
                 "tight_gain_pct_max": round(max(g), 2),
                 "tight_gain_pct_median": round(statistics.median(g), 2),
+                "unmeasured": unmeasured[name],
                 "stable": rate in (0.0, 1.0),
             }
         )

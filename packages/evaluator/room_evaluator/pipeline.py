@@ -116,6 +116,23 @@ def calibrate(champion: StackParams, profile: ProfileVersion, seed: str, base_rp
     }
 
 
+def _tight_pair(params, champion, tight_base: float, profile: ProfileVersion, seed: str):
+    """Measure both arms at the tighter cache budget, retrying once from a lower starting rate.
+
+    The grid only reaches about 22% below its starting rate, so a starting point taken from another job's
+    noisy calibration can sit entirely above the real capacity and confirm nothing. One retry an entire
+    grid lower costs two searches and removes that failure mode; if it still confirms nothing, the caller
+    reports the evidence as not measured rather than as a negative result.
+    """
+    for attempt, start in enumerate((tight_base, tight_base * 0.75)):
+        label = seed + ":tight" + (f":retry{attempt}" if attempt else "")
+        tight, _ = _capacity(params, start, profile, label, TIGHT_BUDGET_GIB)
+        champ_tight, _ = _capacity(champion, start, profile, label, TIGHT_BUDGET_GIB)
+        if tight.capacity_rps and champ_tight.capacity_rps:
+            return tight, champ_tight
+    return tight, champ_tight
+
+
 def _memory_evidence(
     params: StackParams,
     champion: StackParams,
@@ -129,9 +146,13 @@ def _memory_evidence(
     # comparison is paired; the worker's older champion calibration is reported but not used for the ratio.
     # Search from the champion's tight-budget calibration so both arms start inside the grid.
     tight_base = (champ_tight_milli / 1000) if champ_tight_milli else base * 0.85
-    tight, _ = _capacity(params, tight_base, profile, seed + ":tight", TIGHT_BUDGET_GIB)
-    champ_tight, _ = _capacity(champion, tight_base, profile, seed + ":tight", TIGHT_BUDGET_GIB)
-    tight_gain = (tight.capacity_rps / champ_tight.capacity_rps - 1) if champ_tight.capacity_rps else -1.0
+    tight, champ_tight = _tight_pair(params, champion, tight_base, profile, seed)
+    # A search that confirms nothing is not a measurement, and it is not a -100% result either. The
+    # champion's tight calibration comes from a different job with its own noise, so a high reading there
+    # can put the whole grid above the real capacity and every level fails. Say "not measured" instead of
+    # inventing a catastrophic number, and fail closed on it.
+    tight_measured = bool(tight.capacity_rps and champ_tight.capacity_rps)
+    tight_gain = (tight.capacity_rps / champ_tight.capacity_rps - 1) if tight_measured else 0.0
     rate = max(base * 0.8, 0.1)
     c_logs, _ = run_once(params, seed + ":acct", rate, profile.latency)
     h_logs, _ = run_once(champion, seed + ":acct", rate, profile.latency)
@@ -152,10 +173,11 @@ def _memory_evidence(
     delta = profile.replacement.delta_ppm / 1e6
     step = profile.replacement.grid_step_ppm / 1e6
     tolerance = max(profile.replacement.triage_allowance_ppm / 1e6, 2 * step)
-    tight_ok = tight_gain >= delta
-    holds_within_tolerance = tight_gain >= gain - tolerance
+    tight_ok = tight_measured and tight_gain >= delta
+    holds_within_tolerance = tight_measured and tight_gain >= gain - tolerance
     return {
-        "tight_budget_gain_ppm": int(tight_gain * 1e6),
+        "tight_budget_gain_ppm": int(tight_gain * 1e6) if tight_measured else None,
+        "tight_measured": tight_measured,
         "tight_ok": tight_ok,
         "tolerance_ppm": int(tolerance * 1e6),
         "full_budget_gain_ppm": int(gain * 1e6),
@@ -292,12 +314,18 @@ def _why(gates, mem: dict, ctl_ok: bool, live, cap) -> str:
     parts = []
     for name in gates.failed():
         if name == "memory_evidence":
-            parts.append(
-                f"memory evidence: gain under a 25% smaller cache budget was "
-                f"{mem['tight_budget_gain_ppm'] / 1e4:.1f}% (needs more than "
-                f"{mem['margin_ppm'] / 1e4:.1f}%), resumable idle capacity "
-                f"{mem['external_resident_capacity_gain_ppm'] / 1e4:.1f}%"
-            )
+            if not mem.get("tight_measured", True):
+                parts.append(
+                    "memory evidence: capacity under a 25% smaller cache budget could not be confirmed "
+                    "for either stack, so the comparison was not measured"
+                )
+            else:
+                parts.append(
+                    f"memory evidence: gain under a 25% smaller cache budget was "
+                    f"{mem['tight_budget_gain_ppm'] / 1e4:.1f}% (needs more than "
+                    f"{mem['margin_ppm'] / 1e4:.1f}%), resumable idle capacity "
+                    f"{mem['external_resident_capacity_gain_ppm'] / 1e4:.1f}%"
+                )
         elif name == "per_run_gates":
             parts.append(f"capacity could not be confirmed ({cap.flag})")
         elif name == "short_request_control":
