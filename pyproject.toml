@@ -63,6 +63,8 @@ ignore = ["S101", "E501"]
 "packages/evaluator/**" = ["S311"]
 # fixed-argument-list subprocess call to nvidia-smi, no shell
 "services/worker/room_worker/isolation.py" = ["S603"]
+# FastAPI declares dependencies as argument defaults; Depends() in a default is the framework's idiom
+"services/api/room_api/routes/**" = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

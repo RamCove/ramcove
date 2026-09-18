@@ -16,12 +16,27 @@ import time
 import urllib.error
 import urllib.request
 
+
+def _open(url: str):
+    """Only http(s) to the local services; ruff's S310 warns about file: and custom schemes."""
+    if not url.startswith(("http://127.0.0.1:", "http://localhost:")):
+        raise ValueError(f"refusing a non-local URL: {url}")
+    return urllib.request.urlopen(url, timeout=30)  # noqa: S310 - scheme and host checked above
+
+
 API = "http://127.0.0.1:8787"
 WEB = "http://127.0.0.1:3787"
 
 API_READS = [
-    "/v1/status", "/v1/meta", "/v1/overview", "/v1/profile", "/v1/queue",
-    "/v1/audit", "/v1/appeals", "/v1/demo/fixtures", "/v1/demo/scenarios",
+    "/v1/status",
+    "/v1/meta",
+    "/v1/overview",
+    "/v1/profile",
+    "/v1/queue",
+    "/v1/audit",
+    "/v1/appeals",
+    "/v1/demo/fixtures",
+    "/v1/demo/scenarios",
 ]
 PAGES = ["/", "/competition", "/queue", "/submit", "/validator", "/docs", "/status"]
 
@@ -30,7 +45,7 @@ def timed(url: str, warm: int, runs: int) -> tuple[list[float], int]:
     status = 0
     for _ in range(warm):
         try:
-            with urllib.request.urlopen(url, timeout=30) as r:
+            with _open(url) as r:
                 status = r.status
                 r.read()
         except urllib.error.HTTPError as e:
@@ -41,7 +56,7 @@ def timed(url: str, warm: int, runs: int) -> tuple[list[float], int]:
     for _ in range(runs):
         t0 = time.perf_counter()
         try:
-            with urllib.request.urlopen(url, timeout=30) as r:
+            with _open(url) as r:
                 status = r.status
                 r.read()
         except urllib.error.HTTPError as e:
@@ -64,8 +79,15 @@ def report(title: str, base: str, paths: list[str], warm: int, runs: int) -> lis
         s = sorted(samples)
         p50 = statistics.median(s)
         p95 = s[min(len(s) - 1, int(0.95 * len(s)))]
-        rows.append({"path": path, "status": status, "p50_ms": round(p50, 1),
-                     "p95_ms": round(p95, 1), "max_ms": round(max(s), 1)})
+        rows.append(
+            {
+                "path": path,
+                "status": status,
+                "p50_ms": round(p50, 1),
+                "p95_ms": round(p95, 1),
+                "max_ms": round(max(s), 1),
+            }
+        )
         print(f"  {path:<26} {status:>6} {p50:>9.1f} {p95:>9.1f} {max(s):>9.1f}")
     return rows
 
@@ -81,9 +103,13 @@ def main() -> None:
     api = report("API reads", API, API_READS, args.warm, args.runs)
     pages = report("Server-rendered pages", WEB, PAGES, args.warm, max(6, args.runs // 4))
 
-    result = {"measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-              "runs_per_endpoint": args.runs, "api": api, "pages": pages,
-              "note": "Local development machine, simulated worker. Not a claim about production."}
+    result = {
+        "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "runs_per_endpoint": args.runs,
+        "api": api,
+        "pages": pages,
+        "note": "Local development machine, simulated worker. Not a claim about production.",
+    }
     with open(args.out, "w") as f:
         json.dump(result, f, indent=2)
     print(f"\nwrote {args.out}")

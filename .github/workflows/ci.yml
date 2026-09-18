@@ -41,7 +41,7 @@ jobs:
           enable-cache: true
       - run: uv sync --frozen
       - run: uv run ruff check .
-      - run: uv run ruff format --check packages services miner_cli tests
+      - run: uv run ruff format --check packages services miner_cli tests scripts
       - name: Create the test database
         run: PGPASSWORD=room-local-dev-only psql -h 127.0.0.1 -U room -d room -c "CREATE DATABASE room_test OWNER room"
       - name: Unit tests (no database)

@@ -72,14 +72,11 @@ def submit_fixture(
 
     def produce() -> dict:
         try:
-            fx = by_name(body.fixture)
+            by_name(body.fixture)  # validates the name; the worker loads the fixture itself
         except KeyError as e:
             raise ServiceError("unknown_fixture", "unknown fixture", 404) from e
         with tx(ctx.engine) as conn:
             profile = ctx.profile(conn)
-            from ..services.queue import current_champion
-
-            champ = current_champion(conn, profile.profile_id)
         kp = demo_keypair(ctx, sess["hotkey"])
         data = demo_artifacts.build(ctx, sess["hotkey"], body.fixture)
         sig = sign_artifact(kp, data, ctx.settings.network, profile.profile_id, profile.version)

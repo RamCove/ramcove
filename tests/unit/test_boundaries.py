@@ -13,13 +13,32 @@ PROTOCOL = ROOT / "packages/protocol/room_protocol"
 EVALUATOR = ROOT / "packages/evaluator/room_evaluator"
 
 FORBIDDEN_IN_PROTOCOL = {
-    "fastapi", "starlette", "uvicorn", "sqlalchemy", "psycopg", "alembic",
-    "substrateinterface", "scalecodec", "httpx", "requests", "room_api", "room_chain",
-    "room_evaluator", "room_worker", "room_miner",
+    "fastapi",
+    "starlette",
+    "uvicorn",
+    "sqlalchemy",
+    "psycopg",
+    "alembic",
+    "substrateinterface",
+    "scalecodec",
+    "httpx",
+    "requests",
+    "room_api",
+    "room_chain",
+    "room_evaluator",
+    "room_worker",
+    "room_miner",
 }
 FORBIDDEN_IN_EVALUATOR = {
-    "fastapi", "starlette", "uvicorn", "sqlalchemy", "psycopg", "alembic", "substrateinterface",
-    "room_api", "room_worker",
+    "fastapi",
+    "starlette",
+    "uvicorn",
+    "sqlalchemy",
+    "psycopg",
+    "alembic",
+    "substrateinterface",
+    "room_api",
+    "room_worker",
 }
 
 

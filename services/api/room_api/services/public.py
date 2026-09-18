@@ -207,7 +207,9 @@ def profile_detail(ctx: AppContext) -> dict:
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
         champ = current_champion(conn, profile.profile_id)
-        latest_plan = conn.execute(select(weight_plans).order_by(weight_plans.c.created_at.desc()).limit(1)).first()
+        latest_plan = conn.execute(
+            select(weight_plans).order_by(weight_plans.c.created_at.desc()).limit(1)
+        ).first()
         return {
             "profile": profile.model_dump(mode="json", by_alias=True),
             "rule_hash": profile.rule_hash(),
