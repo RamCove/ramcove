@@ -1,7 +1,8 @@
 import { AutoRefresh, TimeAgo } from "@/components/client";
 import { CoveContours } from "@/components/cove-contours";
 import { Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, Table, Td, Term } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { isPreview } from "@/lib/preview";
+import { apiGetOrNull, snapshotTakenAt } from "@/lib/server-api";
 import { centiHours, gain, rps, usd } from "@/lib/format";
 import clsx from "clsx";
 import Link from "next/link";
@@ -243,8 +244,17 @@ function ChampionPanel({ data }: { data: Overview }) {
       </dl>
       <div className="flex items-center justify-between gap-3 border-t border-line bg-surface-2/60 px-6 py-3">
         <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-          <span aria-hidden className="live-dot text-ok" />
-          Live from this build
+          {isPreview() ? (
+            <>
+              <span aria-hidden className="inline-block h-[7px] w-[7px] rounded-full bg-sim" />
+              Snapshot · {(snapshotTakenAt() ?? "").slice(0, 10) || "undated"}
+            </>
+          ) : (
+            <>
+              <span aria-hidden className="live-dot text-ok" />
+              Live from this build
+            </>
+          )}
         </span>
         <span className="font-mono text-[11px] text-faint">
           {data.chain ? <>dev chain · block {data.chain.finalized_number}</> : <>rules {data.profile.rule_hash.slice(0, 8)}</>}
@@ -432,11 +442,17 @@ function LiveBoard({ data }: { data: Overview }) {
   return (
     <Section
       index="04"
-      label="Live from this build"
+      label={isPreview() ? "Recorded from this build" : "Live from this build"}
       title={
-        <>
-          The competition, <span className="display-accent">right now.</span>
-        </>
+        isPreview() ? (
+          <>
+            The competition, <span className="display-accent">as recorded.</span>
+          </>
+        ) : (
+          <>
+            The competition, <span className="display-accent">right now.</span>
+          </>
+        )
       }
       band
       aside={<AutoRefresh />}

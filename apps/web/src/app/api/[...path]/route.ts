@@ -1,11 +1,18 @@
 /** Same-origin proxy to the RamCove API, so the session cookie stays first-party and CORS is not needed. */
 
 import { API_ORIGIN } from "@/lib/api";
+import { isPreview } from "@/lib/preview";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 async function forward(req: NextRequest, path: string[]) {
+  if (isPreview()) {
+    return Response.json(
+      { error: { code: "preview", message: "This public preview is read-only and has no API behind it." } },
+      { status: 503 },
+    );
+  }
   const url = new URL(`${API_ORIGIN}/${path.join("/")}`);
   req.nextUrl.searchParams.forEach((v, k) => url.searchParams.append(k, v));
   const headers = new Headers();

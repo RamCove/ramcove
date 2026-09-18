@@ -1,5 +1,6 @@
 import { Notice, PageHeader } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { isPreview } from "@/lib/preview";
+import { apiGetOrNull } from "@/lib/server-api";
 import type { Metadata } from "next";
 import { SubmitFlow } from "./submit-flow";
 
@@ -36,6 +37,7 @@ export default async function SubmitPage() {
         capacityReason={overview?.capacity.reason ?? "Capacity is unknown while the API is unreachable."}
         fixtures={fixtures?.fixtures ?? []}
         demo={meta?.demo_features ?? false}
+        preview={isPreview()}
       />
     </div>
   );

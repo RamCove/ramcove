@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, CopyRef, ErrorText, ThemeToggle, useSession } from "@/components/client";
+import { snapshotDate, usePreview } from "@/components/preview";
 import { ApiFailure, clientFetch } from "@/lib/api";
 import clsx from "clsx";
 import Link from "next/link";
@@ -60,6 +61,7 @@ export function Logomark({ size = 28, title = "RamCove" }: { size?: number; titl
 
 export function TopNav({ env, network, simulated }: { env: string; network: string; simulated: boolean }) {
   const path = usePathname();
+  const preview = usePreview();
   const { session, loaded, reload } = useSession();
   const [open, setOpen] = useState(false);
   const roles = new Set(session?.roles ?? []);
@@ -79,10 +81,24 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
         <div className="mx-auto flex max-w-[1200px] items-center gap-3 px-5 py-2 sm:px-8">
           <span aria-hidden className="live-dot shrink-0 text-accent" />
           <p className="min-w-0 truncate font-mono text-[11px] uppercase tracking-[0.12em] opacity-85" title={`network ${network}`}>
-            <span>Local development build</span>
-            <span className="opacity-60"> · env </span>
-            <span>{env}</span>
-            {simulated && (
+            {preview.on ? (
+              <>
+                <span>Public preview</span>
+                <span className="opacity-60"> · </span>
+                <span>snapshot of the local simulation, {snapshotDate(preview.takenAt)}</span>
+                <span className="hidden md:inline">
+                  <span className="opacity-60"> · </span>read-only
+                  <span className="opacity-60"> · </span>no real tokens move
+                </span>
+              </>
+            ) : (
+              <>
+                <span>Local development build</span>
+                <span className="opacity-60"> · env </span>
+                <span>{env}</span>
+              </>
+            )}
+            {simulated && !preview.on && (
               <span className="hidden md:inline">
                 <span className="opacity-60"> · </span>simulated chain, beacon, payments and workers
                 <span className="opacity-60"> · </span>no real tokens move
@@ -128,12 +144,23 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
           </nav>
           <div className="ml-auto flex items-center gap-1.5 lg:ml-2">
             <ThemeToggle />
+            {preview.on ? (
+              <span
+                className="inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border border-line bg-surface px-3 text-[13px] text-muted sm:px-3.5"
+                title="Sign-in and submissions are off in the public preview"
+              >
+                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-sim" />
+                <span className="hidden sm:inline">Read-only preview</span>
+                <span className="sm:hidden">Preview</span>
+              </span>
+            ) : (
             <SessionButton
               session={session}
               loaded={loaded}
               reload={reload}
               workspace={workspace.map((w) => ({ href: w.href, label: w.label, active: isActive(w.href) }))}
             />
+            )}
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
@@ -254,15 +281,16 @@ function AccountMenu({
         type="button"
         aria-expanded={open}
         aria-haspopup="true"
+        aria-label={`Account ${short}`}
         onClick={() => setOpen((v) => !v)}
         title={session.hotkey}
         className={clsx(
-          "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border bg-surface py-1 pl-1.5 pr-3 text-[13px] transition-colors hover:border-line-strong",
+          "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border bg-surface py-1 pl-1.5 pr-2.5 text-[13px] transition-colors hover:border-line-strong sm:pr-3",
           anyActive ? "border-accent/50" : "border-line",
         )}
       >
         <span aria-hidden className="h-6 w-6 rounded-full bg-accent-quiet ring-1 ring-accent/30" />
-        <span className="num font-mono text-text">{short}</span>
+        <span className="num hidden font-mono text-text sm:inline">{short}</span>
         {session.roles[0] && (
           <span className="hidden text-muted xl:inline">· {session.roles[0]}</span>
         )}

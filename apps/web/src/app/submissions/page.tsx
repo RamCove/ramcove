@@ -1,6 +1,8 @@
+import { PreviewGate } from "@/components/preview-gate";
+import { isPreview } from "@/lib/preview";
 import { TimeAgo } from "@/components/client";
 import { Card, Empty, Notice, PageHeader, Pill, StatePill, Table, Td } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { apiGetOrNull } from "@/lib/server-api";
 import { gain, when } from "@/lib/format";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -27,6 +29,13 @@ type Mine = {
 };
 
 export default async function MySubmissionsPage() {
+  if (isPreview()) {
+    return (
+      <div className="min-w-0 space-y-8">
+        <PreviewGate what="Your submissions list" />
+      </div>
+    );
+  }
   const cookie = (await cookies()).toString();
   const data = await apiGetOrNull<Mine>("/v1/miner/submissions", cookie);
   if (!data) {

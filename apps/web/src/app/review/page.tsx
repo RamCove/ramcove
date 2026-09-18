@@ -1,5 +1,7 @@
+import { PreviewGate } from "@/components/preview-gate";
+import { isPreview } from "@/lib/preview";
 import { Card, Empty, PageHeader } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { apiGetOrNull } from "@/lib/server-api";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { ReviewPanel } from "./review-panel";
@@ -36,6 +38,13 @@ type Appeals = {
 };
 
 export default async function ReviewPage() {
+  if (isPreview()) {
+    return (
+      <div className="min-w-0 space-y-8">
+        <PreviewGate what="Promotion review" />
+      </div>
+    );
+  }
   const cookie = (await cookies()).toString();
   const [queue, appeals] = await Promise.all([
     apiGetOrNull<Queue>("/v1/review/queue", cookie),

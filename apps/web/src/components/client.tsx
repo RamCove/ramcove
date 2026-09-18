@@ -1,5 +1,6 @@
 "use client";
 
+import { usePreview } from "@/components/preview";
 import { ApiFailure, clientFetch } from "@/lib/api";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
@@ -121,11 +122,14 @@ export function ConfirmButton({
 }
 
 export function useSession() {
+  // The public preview has no API behind it, so there is no session to ask for.
+  const { on: preview } = usePreview();
   const [session, setSession] = useState<Session>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(preview);
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(async () => setNonce((n) => n + 1), []);
   useEffect(() => {
+    if (preview) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -140,7 +144,7 @@ export function useSession() {
     return () => {
       cancelled = true;
     };
-  }, [nonce]);
+  }, [nonce, preview]);
   return { session, loaded, reload };
 }
 
@@ -163,14 +167,24 @@ export function ErrorText({ error }: { error: ApiFailure | Error | null }) {
 /** Polls a server route and refreshes the page data. Pauses when the tab is hidden. */
 export function AutoRefresh({ seconds = 5 }: { seconds?: number }) {
   const router = useRouter();
+  const { on: preview } = usePreview();
   const [on, setOn] = useState(true);
   useEffect(() => {
-    if (!on) return;
+    if (!on || preview) return;
     const id = setInterval(() => {
       if (document.visibilityState === "visible") router.refresh();
     }, seconds * 1000);
     return () => clearInterval(id);
-  }, [on, router, seconds]);
+  }, [on, preview, router, seconds]);
+  if (preview) {
+    // a snapshot never changes, so it must not look live
+    return (
+      <span className="inline-flex h-8 items-center gap-2 rounded-full border border-line bg-surface px-3 text-[12.5px] text-muted">
+        <span aria-hidden className="inline-block h-[7px] w-[7px] rounded-full bg-sim" />
+        Snapshot
+      </span>
+    );
+  }
   return (
     <button
       type="button"

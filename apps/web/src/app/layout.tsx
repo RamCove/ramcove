@@ -1,7 +1,9 @@
 import "./globals.css";
 import { SiteFooter } from "@/components/footer";
 import { TopNav } from "@/components/shell";
-import { apiGetOrNull } from "@/lib/api";
+import { PreviewProvider } from "@/components/preview";
+import { isPreview } from "@/lib/preview";
+import { apiGetOrNull, snapshotTakenAt } from "@/lib/server-api";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
@@ -17,6 +19,7 @@ type Meta = { env: string; network: string; simulated_chain: boolean };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const meta = await apiGetOrNull<Meta>("/v1/meta");
+  const preview = { on: isPreview(), takenAt: snapshotTakenAt() };
   return (
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
@@ -28,6 +31,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="flex min-h-dvh flex-col bg-bg text-text">
+        <PreviewProvider value={preview}>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-[var(--radius-sm)] focus:bg-surface focus:px-3 focus:py-2 focus:text-[14px] focus:shadow-[var(--shadow-lift)]"
@@ -55,6 +59,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           {children}
         </main>
         <SiteFooter />
+        </PreviewProvider>
       </body>
     </html>
   );

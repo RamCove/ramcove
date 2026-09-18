@@ -53,11 +53,14 @@ export function SubmitFlow({
   capacityReason,
   fixtures,
   demo,
+  preview = false,
 }: {
   capacityOpen: boolean;
   capacityReason: string;
   fixtures: Fixture[];
   demo: boolean;
+  /** Read-only public preview: show the requirements, keep every step that calls the API closed. */
+  preview?: boolean;
 }) {
   const { session, loaded } = useSession();
   const router = useRouter();
@@ -96,10 +99,12 @@ export function SubmitFlow({
             <button
               type="button"
               onClick={() => setStep(i)}
+              disabled={preview && i > 0}
               aria-current={i === step ? "step" : undefined}
               className={clsx(
                 "relative flex h-full w-full items-center gap-3 px-4 py-3.5 text-left text-[14px] transition-colors",
                 i === step ? "bg-bg text-text" : "text-muted hover:bg-surface-2 hover:text-text",
+                "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent",
               )}
             >
               <span
@@ -171,9 +176,16 @@ export function SubmitFlow({
             </ul>
           </Notice>
           <div className="mt-4">
+            {preview ? (
+              <Notice tone="sim" title="Submitting is off in the public preview">
+                This page is a read-only snapshot with no API behind it. Run RamCove locally to go through
+                the whole flow with a demo miner, including the simulated payment.
+              </Notice>
+            ) : (
             <Button variant="primary" onClick={() => setStep(1)}>
               Continue
             </Button>
+            )}
           </div>
         </Card>
       )}

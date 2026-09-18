@@ -1,6 +1,8 @@
+import { PreviewGate } from "@/components/preview-gate";
+import { isPreview } from "@/lib/preview";
 import { AutoRefresh, TimeAgo } from "@/components/client";
 import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, SimulatedTag, Stat, Table, Td } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { apiGetOrNull } from "@/lib/server-api";
 import { gain, rps, when } from "@/lib/format";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -52,6 +54,13 @@ type Workspace = {
 };
 
 export default async function ValidatorPage() {
+  if (isPreview()) {
+    return (
+      <div className="min-w-0 space-y-8">
+        <PreviewGate what="The validator workspace" />
+      </div>
+    );
+  }
   const cookie = (await cookies()).toString();
   const ws = await apiGetOrNull<Workspace>("/v1/validator/workspace", cookie);
   if (!ws) {

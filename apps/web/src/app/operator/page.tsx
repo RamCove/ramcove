@@ -1,6 +1,8 @@
+import { PreviewGate } from "@/components/preview-gate";
+import { isPreview } from "@/lib/preview";
 import { AutoRefresh, TimeAgo } from "@/components/client";
 import { Card, Empty, Mono, Notice, PageHeader, Pill, Stat, Table, Td } from "@/components/ui";
-import { apiGetOrNull } from "@/lib/api";
+import { apiGetOrNull } from "@/lib/server-api";
 import { centiHours, tao, when } from "@/lib/format";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -34,6 +36,13 @@ type Console = {
 };
 
 export default async function OperatorPage() {
+  if (isPreview()) {
+    return (
+      <div className="min-w-0 space-y-8">
+        <PreviewGate what="The operator console" />
+      </div>
+    );
+  }
   const cookie = (await cookies()).toString();
   const [data, audit] = await Promise.all([
     apiGetOrNull<Console>("/v1/operator/console", cookie),
