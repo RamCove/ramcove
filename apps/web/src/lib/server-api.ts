@@ -18,10 +18,11 @@ export async function apiGet<T>(path: string, cookie?: string): Promise<T> {
     if (path in SNAPSHOT.responses) return SNAPSHOT.responses[path] as T;
     throw new ApiFailure(503, { code: "preview", message: "Not part of the public preview" });
   }
-  const res = await fetch(`${API_ORIGIN}${path}`, {
-    cache: "no-store",
-    headers: cookie ? { cookie } : undefined,
-  });
+  const headers: Record<string, string> = {};
+  if (cookie) headers.cookie = cookie;
+  // Only the RamCove web servers hold this key; the backend's public proxy refuses requests without it.
+  if (process.env.RAMCOVE_PROXY_KEY) headers["x-ramcove-proxy-key"] = process.env.RAMCOVE_PROXY_KEY;
+  const res = await fetch(`${API_ORIGIN}${path}`, { cache: "no-store", headers });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new ApiFailure(res.status, body.error ?? { code: "unreachable", message: "API unavailable" });

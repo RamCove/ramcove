@@ -42,6 +42,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           env={meta?.env ?? "unreachable"}
           network={meta?.network ?? "unknown"}
           simulated={meta?.simulated_chain ?? true}
+          hosted={process.env.VERCEL === "1"}
         />
         <main id="main" className="site-main flex-1">
           {meta === null && (

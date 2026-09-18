@@ -60,7 +60,18 @@ export function Logomark({ size = 28, title = "RamCove" }: { size?: number; titl
   );
 }
 
-export function TopNav({ env, network, simulated }: { env: string; network: string; simulated: boolean }) {
+export function TopNav({
+  env,
+  network,
+  simulated,
+  hosted = false,
+}: {
+  env: string;
+  network: string;
+  simulated: boolean;
+  /** Served from the public host (Vercel) rather than the operator's own machine. */
+  hosted?: boolean;
+}) {
   const path = usePathname();
   const preview = usePreview();
   const { session, loaded, reload } = useSession();
@@ -94,9 +105,9 @@ export function TopNav({ env, network, simulated }: { env: string; network: stri
               </>
             ) : (
               <>
-                <span>Local development build</span>
-                <span className="opacity-60"> · env </span>
-                <span>{env}</span>
+                <span>{hosted ? "Public demo" : "Local development build"}</span>
+                <span className="opacity-60"> · </span>
+                <span>{hosted ? "live simulation" : `env ${env}`}</span>
               </>
             )}
             {simulated && !preview.on && (
@@ -356,6 +367,7 @@ export function SignInDialog({
   onDone: () => Promise<void>;
 }) {
   const [identities, setIdentities] = useState<{ key: string; name: string; roles: string[] }[]>([]);
+  const [guest, setGuest] = useState(false);
   const [hotkey, setHotkey] = useState("");
   const [challenge, setChallenge] = useState<{ nonce: string; message: string } | null>(null);
   const [signature, setSignature] = useState("");
@@ -363,8 +375,11 @@ export function SignInDialog({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    clientFetch<{ identities: typeof identities }>("/v1/demo/identities")
-      .then((r) => setIdentities(r.identities))
+    clientFetch<{ identities: typeof identities; guest?: boolean }>("/v1/demo/identities")
+      .then((r) => {
+        setIdentities(r.identities);
+        setGuest(Boolean(r.guest));
+      })
       .catch(() => setIdentities([]));
   }, []);
 
@@ -396,6 +411,31 @@ export function SignInDialog({
           RamCove never asks for a seed phrase or a private key file. You sign a one-time message that says it
           only signs you in and authorizes no payment.
         </p>
+
+        {guest && (
+          <div className="mt-5 rounded-[var(--radius-sm)] border border-line bg-bg px-4 py-4">
+            <p className="text-[14px] font-semibold text-text">Try it as a guest miner</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted">
+              You get your own new miner identity with simulated funds, for this browser only. Nothing real is
+              paid and no wallet is needed.
+            </p>
+            <div className="mt-3">
+              <Button
+                variant="primary"
+                busy={busy}
+                onClick={async () => {
+                  const ok = await run(() => clientFetch("/v1/auth/guest", { method: "POST" }));
+                  if (ok) {
+                    dialogRef.current?.close();
+                    await onDone();
+                  }
+                }}
+              >
+                Continue as a guest miner
+              </Button>
+            </div>
+          </div>
+        )}
 
         {identities.length > 0 && (
           <div className="mt-5 rounded-[var(--radius-sm)] bg-sim-quiet px-4 py-4">

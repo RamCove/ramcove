@@ -22,6 +22,11 @@ async function forward(req: NextRequest, path: string[]) {
   }
   // The API also checks the origin; forward the app's own origin, never an attacker-supplied one.
   headers.set("origin", process.env.RAMCOVE_PUBLIC_ORIGIN ?? "http://localhost:3787");
+  if (process.env.RAMCOVE_PROXY_KEY) headers.set("x-ramcove-proxy-key", process.env.RAMCOVE_PROXY_KEY);
+  // The visitor's address, as seen by the hosting edge, so the API can rate-limit guest sign-ups per
+  // visitor. Taken from the platform's header, never from a client-supplied custom one.
+  const client = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || req.headers.get("x-real-ip");
+  if (client) headers.set("x-ramcove-client-ip", client);
   const init: RequestInit = { method: req.method, headers, redirect: "manual" };
   if (req.method !== "GET" && req.method !== "HEAD") init.body = await req.arrayBuffer();
   const res = await fetch(url, init);
