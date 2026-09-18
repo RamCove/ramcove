@@ -21,16 +21,16 @@ interface.
 | `miner_cli` | `ramcove-miner`: reproducible packing, free checks, quote, payment, recovery |
 | `apps/web` | Next.js application: overview, competition, queue, submission flow, validator, review, operator, docs |
 
-## Public preview
+## Public demo
 
-The web app can run without the Python API as a labelled, read-only preview, which is how it is hosted on
-Vercel. Public pages render from `apps/web/src/preview/snapshot.json`, a recording of the local demo's
-public API responses; sign-in, submitting and every write are switched off, so the demo identities (whose
-keys are published) never reach the internet. Preview mode is on automatically on Vercel unless
-`RAMCOVE_API_ORIGIN` points at a real API, and `RAMCOVE_PREVIEW=1` forces it anywhere.
+The hosted site, https://ramcove.vercel.app, is the web app on Vercel talking to a live backend on the
+operator's host: the same competition as the local console, updated live. Visitors can sign in as their
+own guest miner and run the whole miner flow with simulated funds; operator, review, validator and worker
+actions stay on the operator's console. How it is wired, secured and operated is in
+[`docs/runbooks/public-demo.md`](docs/runbooks/public-demo.md).
 
-Refresh the snapshot from a running local demo with `cd apps/web && npm run snapshot`. It reads public
-routes only and refuses to write anything that looks like a credential.
+If the hosted site has no backend configured it falls back to a labelled, read-only snapshot
+(`apps/web/src/preview/snapshot.json`, refreshed with `cd apps/web && npm run snapshot`).
 
 The repository address (`RooM-Labs/room`) and the `room/build-v1` branch keep their original names;
 everything inside the code uses RamCove.
