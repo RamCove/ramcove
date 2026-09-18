@@ -57,7 +57,8 @@ function consoleErrors(page: Page): string[] {
 test("a visitor understands the competition without signing in", async ({ page }) => {
   const errors = consoleErrors(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("more useful AI requests");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Same GPU");
+  await expect(page.getByText(/serve more useful AI requests/).first()).toBeVisible();
   await expect(page.getByText("Local development build")).toBeVisible();
   await expect(page.getByRole("link", { name: "Start a submission" })).toBeVisible();
   await page.getByRole("link", { name: "Explore the competition" }).click();
@@ -175,8 +176,11 @@ test("keyboard users can reach the main actions and both themes are readable", a
     return style.boxShadow !== "none" || style.outlineStyle !== "none";
   });
   expect(focusVisible).toBe(true);
+  // light is the default; the toggle must switch to the other theme and back
+  const before = await page.locator("html").getAttribute("data-theme");
+  const after = before === "dark" ? "light" : "dark";
   await page.getByRole("button", { name: /theme/i }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", after);
   const contrast = await page.evaluate(() => {
     const body = getComputedStyle(document.body);
     return { bg: body.backgroundColor, color: body.color };
