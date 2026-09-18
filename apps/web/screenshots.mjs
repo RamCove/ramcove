@@ -80,18 +80,24 @@ for (const spec of PAGES) {
   await context.close();
 }
 
-// light theme check on the overview
+// dark theme check on the overview (light is the default)
 {
   const context = await browser.newContext({ viewport: VIEWPORTS.desktop });
-  const page = await context.newPage();
-  await page.goto(`${base}/`);
-  await page.evaluate(() => {
-    localStorage.setItem("room-theme", "light");
-    document.documentElement.dataset.theme = "light";
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem("room-theme", "dark");
+    } catch {}
   });
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: `${out}/overview-light.png`, fullPage: true });
-  report.push({ page: "overview", viewport: "desktop-light", status: 200, overflow: false, deadButtons: 0, errors: [] });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 300)));
+  const response = await page.goto(`${base}/`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(400);
+  const theme = await page.evaluate(() => document.documentElement.dataset.theme);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+  await page.screenshot({ path: `${out}/overview-dark.png`, fullPage: true });
+  if (theme !== "dark") errors.push(`expected the dark theme, got ${theme}`);
+  report.push({ page: "overview", viewport: "desktop-dark", status: response?.status(), overflow, deadButtons: 0, errors });
   await context.close();
 }
 
