@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from .channel import PUBLIC_DENY, is_public
 from .config import load_settings
 from .routes import demo, miner, operator, public_routes, review_routes, worker_routes
 from .services.context import AppContext, ArtifactStore, ServiceError
@@ -63,9 +64,20 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
-        if request.method == "POST" and not request.url.path.startswith("/v1/worker/"):
+        path = request.url.path
+        if is_public(request) and path.startswith(PUBLIC_DENY):
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "local_only",
+                        "message": "This action is only available on the operator's own console, not the public site.",
+                    }
+                },
+                status_code=403,
+            )
+        if request.method == "POST" and not path.startswith("/v1/worker/"):
             origin = request.headers.get("origin")
-            if origin and origin != ctx.settings.public_origin:
+            if origin and origin not in ctx.settings.allowed_origins:
                 return JSONResponse(
                     {"error": {"code": "bad_origin", "message": "cross-site request refused"}},
                     status_code=403,

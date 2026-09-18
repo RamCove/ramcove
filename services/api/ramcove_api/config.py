@@ -30,6 +30,14 @@ class Settings:
     demo_features: bool
     chain_writes_enabled: bool
     netuid: int
+    # Origins allowed to send state-changing requests. The web app's proxy sets the origin from its own
+    # configuration, so this lists the RamCove web deployments, never arbitrary sites.
+    allowed_origins: tuple[str, ...] = ()
+    # Public demo: guest miners created per hour, across everyone.
+    guest_limit_per_hour: int = 120
+    # Public demo only: approve a technically passing submission after this many seconds, as a labelled
+    # stand-in for the human reviewer. 0 keeps every review with a person.
+    demo_auto_review_s: int = 0
 
     @property
     def simulated_chain(self) -> bool:
@@ -58,4 +66,13 @@ def load_settings() -> Settings:
         demo_features=env in {"demo", "test"},
         chain_writes_enabled=False,
         netuid=int(os.environ.get("RAMCOVE_NETUID", "0")),
+        allowed_origins=tuple(
+            o.strip()
+            for o in os.environ.get(
+                "RAMCOVE_ALLOWED_ORIGINS", os.environ.get("RAMCOVE_PUBLIC_ORIGIN", "http://localhost:3787")
+            ).split(",")
+            if o.strip()
+        ),
+        guest_limit_per_hour=int(os.environ.get("RAMCOVE_GUEST_LIMIT_PER_HOUR", "120")),
+        demo_auto_review_s=int(os.environ.get("RAMCOVE_DEMO_AUTO_REVIEW_S", "0")),
     )

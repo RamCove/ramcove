@@ -15,6 +15,7 @@ from ..store.schema import (
     chain_observations,
     price_observations,
     profile_versions,
+    reviews,
     submissions,
     workers,
 )
@@ -121,6 +122,7 @@ def tick(ctx: AppContext, produce_block: bool = True) -> dict:
             out.setdefault("settlement", []).extend(settle(conn, ctx, pid))
     with tx(ctx.engine) as conn:
         out["refunds_confirmed"] = confirm_sent_refunds(conn, ctx)
+    out["auto_reviewed"] = auto_review(ctx)
     return out
 
 
@@ -130,3 +132,42 @@ def _profiles(ctx: AppContext) -> list[str]:
             r.profile_id
             for r in conn.execute(select(profile_versions.c.profile_id).where(profile_versions.c.active))
         ]
+
+
+DEMO_REVIEW_REASON = (
+    "Approved automatically by the public demo's stand-in reviewer after the published delay. "
+    "On a real network a person reviews every promotion against the published criteria."
+)
+
+
+def auto_review(ctx: AppContext) -> int:
+    """Public demo only: approve reviews that have waited longer than the configured delay.
+
+    Off unless RAMCOVE_DEMO_AUTO_REVIEW_S is set, and never outside demo mode. Without it the public demo
+    would stall at review forever, because no person is signed in as a reviewer there. Every approval it
+    makes says so in its recorded reasons.
+    """
+    delay = ctx.settings.demo_auto_review_s
+    if not (ctx.settings.demo_features and delay > 0):
+        return 0
+    from .queue import review_criteria
+    from .review import decide_review
+    from .seed import identity
+
+    cutoff = now() - timedelta(seconds=delay)
+    with tx(ctx.engine) as conn:
+        due = conn.execute(
+            select(reviews.c.id).where(reviews.c.decision.is_(None), reviews.c.opened_at < cutoff)
+        ).all()
+    reviewer = identity("reviewer-1")[1].ss58_address
+    for row in due:
+        decide_review(
+            ctx,
+            row.id,
+            reviewer,
+            "approve",
+            DEMO_REVIEW_REASON,
+            {c["id"]: True for c in review_criteria()},
+            False,
+        )
+    return len(due)
