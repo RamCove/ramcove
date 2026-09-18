@@ -195,14 +195,14 @@ export function SubmitFlow({
           <h3 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-faint">Command line</h3>
           <pre className="mt-2 overflow-x-auto rounded-[var(--radius-sm)] border border-line bg-surface-2 p-3 font-mono text-[12px] leading-relaxed text-muted">
 {`# build a signed artifact from your patch and manifest
-uv run room-miner pack --patch patch.diff --manifest manifest.json --out artifact.tar.gz
+uv run ramcove-miner pack --patch patch.diff --manifest manifest.json --out artifact.tar.gz
 
 # free checks, then reserve, quote and pay in one guided flow
-uv run room-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"`}
+uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"`}
           </pre>
           <div className="mt-2">
             <CopyRef
-              value="uv run room-miner submit --artifact artifact.tar.gz --key-uri '//YourDevKey'"
+              value="uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri '//YourDevKey'"
               label="Copy command"
             />
           </div>

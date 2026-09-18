@@ -26,7 +26,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* Apply the stored theme before paint so there is no unreadable flash. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{document.documentElement.dataset.theme=localStorage.getItem('room-theme')||'light'}catch(e){}`,
+            __html: `try{document.documentElement.dataset.theme=localStorage.getItem('ramcove-theme')||'light'}catch(e){}`,
           }}
         />
       </head>
@@ -50,7 +50,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <p className="text-[14px] font-semibold text-text">The RamCove API is not reachable</p>
                 <p className="mt-1 text-[14px] text-muted">
                   Start it with <code className="font-mono">make api</code> (or{" "}
-                  <code className="font-mono">uv run room-api</code>) and reload. Pages below show whatever data
+                  <code className="font-mono">uv run ramcove-api</code>) and reload. Pages below show whatever data
                   is available.
                 </p>
               </div>

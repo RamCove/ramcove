@@ -1,14 +1,14 @@
 /**
  * Record the public API responses the site needs, for the read-only public preview.
  *
- *   ROOM_API_ORIGIN=http://127.0.0.1:8787 node scripts/snapshot.mjs
+ *   RAMCOVE_API_ORIGIN=http://127.0.0.1:8787 node scripts/snapshot.mjs
  *
  * Only public routes are read, with no session, so nothing private can be captured. The file is
  * refused if anything that looks like a secret appears in it.
  */
 import { writeFile } from "node:fs/promises";
 
-const API = process.env.ROOM_API_ORIGIN ?? "http://127.0.0.1:8787";
+const API = process.env.RAMCOVE_API_ORIGIN ?? "http://127.0.0.1:8787";
 const OUT = new URL("../src/preview/snapshot.json", import.meta.url);
 
 const FIXED = ["/v1/meta", "/v1/overview", "/v1/profile", "/v1/status", "/v1/demo/fixtures"];
@@ -48,7 +48,7 @@ const snapshot = {
 const text = JSON.stringify(snapshot, null, 1) + "\n";
 
 // Refuse anything that looks like a credential or a private key, even though only public routes are read.
-const forbidden = [/ghp_[A-Za-z0-9]{20,}/, /github_pat_/, /PRIVATE KEY/, /\/\/Room[A-Z]\w*/, /password/i, /postgres(ql)?:\/\//i, /set-cookie/i];
+const forbidden = [/ghp_[A-Za-z0-9]{20,}/, /github_pat_/, /PRIVATE KEY/, /\/\/(RamCove|Room)[A-Z]\w*/, /password/i, /postgres(ql)?:\/\//i, /set-cookie/i];
 for (const re of forbidden) {
   if (re.test(text)) {
     console.error(`refusing to write the snapshot: it matches ${re}`);

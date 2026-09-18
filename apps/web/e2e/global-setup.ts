@@ -2,7 +2,7 @@
  * Reset the labelled demo dataset before the browser suite so runs are repeatable.
  * This only works in demo mode; the endpoint refuses in any other mode.
  */
-const API = process.env.ROOM_API_ORIGIN ?? "http://127.0.0.1:8787";
+const API = process.env.RAMCOVE_API_ORIGIN ?? "http://127.0.0.1:8787";
 
 async function post(path: string, cookie: string | null, body?: unknown) {
   const res = await fetch(`${API}${path}`, {
@@ -28,7 +28,7 @@ export default async function globalSetup() {
   }
   // bring the simulated workers online so capacity exists during the run
   for (const id of ["w-op-1", "w-op-2"]) {
-    process.env[`ROOM_E2E_WORKER_${id}`] = "expected-online";
+    process.env[`RAMCOVE_E2E_WORKER_${id}`] = "expected-online";
   }
   console.log("e2e: demo dataset reset");
 }

@@ -4,7 +4,7 @@
 @import "@fontsource-variable/instrument-sans/index.css";
 @import "@fontsource-variable/jetbrains-mono/index.css";
 
-/* ROOM design tokens.
+/* RamCove design tokens.
    Light is warm paper with near-black ink; dark is warm ink with paper-coloured text. One accent
    (vermilion) for the brand, buttons and large display type. Small accent text uses --accent-ink,
    which clears WCAG AA on every surface; --accent alone is only AA at display sizes. Status colours

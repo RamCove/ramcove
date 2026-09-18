@@ -222,7 +222,7 @@ export function ThemeToggle() {
       onClick={() => {
         document.documentElement.dataset.theme = next;
         try {
-          localStorage.setItem("room-theme", next);
+          localStorage.setItem("ramcove-theme", next);
         } catch {
           /* private mode: the choice simply does not persist */
         }

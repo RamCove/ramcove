@@ -41,7 +41,7 @@ export default function DocsPage() {
               , inside the allowed paths.
             </li>
             <li>
-              Pack and sign: <Mono>uv run room-miner pack</Mono> then <Mono>uv run room-miner submit</Mono>.
+              Pack and sign: <Mono>uv run ramcove-miner pack</Mono> then <Mono>uv run ramcove-miner submit</Mono>.
             </li>
             <li>Free checks run first. They never cost anything and never execute your code.</li>
             <li>If capacity exists you get a quote. Otherwise you join the free waiting list.</li>

@@ -2,7 +2,7 @@
 
 import type { components } from "./api-types";
 
-export const API_ORIGIN = process.env.ROOM_API_ORIGIN ?? "http://127.0.0.1:8787";
+export const API_ORIGIN = process.env.RAMCOVE_API_ORIGIN ?? "http://127.0.0.1:8787";
 
 export type ApiError = { code: string; message: string; reference?: string };
 

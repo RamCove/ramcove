@@ -40,7 +40,7 @@ export function Wordmark({ className, size = 21 }: { className?: string; size?: 
 
 /**
  * The RamCove mark. A crescent of land curves around a bay, and one memory cell sits sheltered in its
- * mouth: memory the GPU already has, made into room for more work. Reads as a cove, as a C, and as a
+ * mouth: memory the GPU already has, turned into space for more work. Reads as a cove, as a C, and as a
  * block of RAM, and stays legible down to 16 px.
  */
 export function Logomark({ size = 28, title = "RamCove" }: { size?: number; title?: string }) {

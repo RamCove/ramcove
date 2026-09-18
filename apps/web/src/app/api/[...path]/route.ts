@@ -21,7 +21,7 @@ async function forward(req: NextRequest, path: string[]) {
     if (value) headers.set(name, value);
   }
   // The API also checks the origin; forward the app's own origin, never an attacker-supplied one.
-  headers.set("origin", process.env.ROOM_PUBLIC_ORIGIN ?? "http://localhost:3787");
+  headers.set("origin", process.env.RAMCOVE_PUBLIC_ORIGIN ?? "http://localhost:3787");
   const init: RequestInit = { method: req.method, headers, redirect: "manual" };
   if (req.method !== "GET" && req.method !== "HEAD") init.body = await req.arrayBuffer();
   const res = await fetch(url, init);

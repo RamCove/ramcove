@@ -85,7 +85,7 @@ for (const spec of PAGES) {
   const context = await browser.newContext({ viewport: VIEWPORTS.desktop });
   await context.addInitScript(() => {
     try {
-      localStorage.setItem("room-theme", "dark");
+      localStorage.setItem("ramcove-theme", "dark");
     } catch {}
   });
   const page = await context.newPage();

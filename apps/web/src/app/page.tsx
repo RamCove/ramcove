@@ -319,7 +319,7 @@ function Idea() {
         </p>
         <div className="max-w-3xl">
           <h2 className="font-display text-balance text-[38px] leading-[1.08] text-text sm:text-[54px]">
-            Every GPU that is already paid for has <span className="display-accent">room to spare.</span>
+            Every GPU that is already paid for has <span className="display-accent">more to give.</span>
           </h2>
           <div className="mt-8 space-y-5 text-[17px] leading-[1.7] text-muted">
             <p>
@@ -725,7 +725,7 @@ function Closing() {
     <section className="relative overflow-hidden bg-band text-on-band">
       <div aria-hidden className="glow pointer-events-none absolute -bottom-60 left-1/2 h-[640px] w-[900px] -translate-x-1/2" />
       <div className={clsx(CONTAINER, "relative py-24 text-center sm:py-32")}>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-on-band/60">Make room</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-on-band/60">Get started</p>
         <h2 className="font-display text-balance mx-auto mt-6 max-w-3xl text-[44px] leading-[1.02] sm:text-[72px]">
           Help one GPU <span className="display-accent">serve more.</span>
         </h2>
