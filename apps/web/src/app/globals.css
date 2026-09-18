@@ -1,63 +1,87 @@
 @import "tailwindcss";
+@import "@fontsource-variable/fraunces/opsz.css";
+@import "@fontsource-variable/fraunces/opsz-italic.css";
+@import "@fontsource-variable/instrument-sans/index.css";
+@import "@fontsource-variable/jetbrains-mono/index.css";
 
-/* ROOM design tokens. One restrained accent (teal); separate accessible colours and text labels for
-   status. Dark is the default; light uses the same system. All colours are checked for AA contrast on
-   their own surface. */
+/* ROOM design tokens.
+   Light is warm paper with near-black ink; dark is warm ink with paper-coloured text. One accent
+   (vermilion) for the brand, buttons and large display type. Small accent text uses --accent-ink,
+   which clears WCAG AA on every surface; --accent alone is only AA at display sizes. Status colours
+   always travel with a text label, never alone. */
 :root {
-  color-scheme: dark;
-  --bg: #0d1113;
-  --surface: #141a1d;
-  --surface-2: #1b2327;
-  --surface-3: #232d32;
-  --line: #2b373d;
-  --line-strong: #3b4a51;
-  --text: #e8eef0;
-  --text-muted: #a3b2b8;
-  --text-faint: #7d8f96;
-  --accent: #35b3a8;
-  --accent-strong: #52cfc3;
-  --accent-quiet: #13312f;
-  --ok: #4ea96a;
-  --ok-quiet: #12291a;
-  --warn: #d0a03f;
-  --warn-quiet: #2e2413;
-  --danger: #dd7368;
-  --danger-quiet: #321a18;
-  --info: #6fa8dc;
-  --info-quiet: #152430;
-  --sim: #b48ad8;
-  --sim-quiet: #241c30;
-  --radius: 10px;
-  --radius-sm: 6px;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
-  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-strong);
+  color-scheme: light;
+  --bg: #f4f1ea;
+  --surface: #fbfaf6;
+  --surface-2: #eeeae0;
+  --surface-3: #e5e0d4;
+  --line: #ddd6c8;
+  --line-strong: #c9c0ae;
+  --text: #17150f;
+  --text-muted: #57514a;
+  --text-faint: #6e6659;
+  --accent: #c2410c;
+  --accent-strong: #9a3412;
+  --accent-ink: #9a3412;
+  --accent-quiet: #f7e2d6;
+  --on-accent: #ffffff;
+  --ink: #17150f;
+  --on-ink: #f4f1ea;
+  --band: #17150f;
+  --on-band: #f4f1ea;
+  --ok: #2f6b3f;
+  --ok-quiet: #e1eedf;
+  --warn: #8a5a00;
+  --warn-quiet: #f6ead0;
+  --danger: #b42318;
+  --danger-quiet: #f8e0dc;
+  --info: #1f4e8c;
+  --info-quiet: #e0e9f5;
+  --sim: #5b3fa0;
+  --sim-quiet: #ebe4f7;
+  --grid-line: rgb(23 21 15 / 0.055);
+  --glow: rgb(194 65 12 / 0.13);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 0 rgb(23 21 15 / 0.03), 0 12px 32px -20px rgb(23 21 15 / 0.22);
+  --shadow-lift: 0 1px 0 rgb(23 21 15 / 0.04), 0 24px 60px -28px rgb(23 21 15 / 0.35);
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 }
 
-:root[data-theme="light"] {
-  color-scheme: light;
-  --bg: #f6f8f8;
-  --surface: #ffffff;
-  --surface-2: #f0f4f4;
-  --surface-3: #e5ecec;
-  --line: #d8e0e0;
-  --line-strong: #b9c6c6;
-  --text: #16201f;
-  --text-muted: #4e5f5e;
-  --text-faint: #6d7e7d;
-  --accent: #10736c;
-  --accent-strong: #0b5a55;
-  --accent-quiet: #dcefed;
-  --ok: #276c40;
-  --ok-quiet: #dff0e4;
-  --warn: #8a6410;
-  --warn-quiet: #f7edd6;
-  --danger: #a93a2f;
-  --danger-quiet: #fae3e0;
-  --info: #1f5d8f;
-  --info-quiet: #e0edf8;
-  --sim: #6a3f9b;
-  --sim-quiet: #eee3f8;
-  --shadow: 0 1px 2px rgb(16 32 32 / 0.06), 0 8px 24px -16px rgb(16 32 32 / 0.25);
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f0e0c;
+  --surface: #171613;
+  --surface-2: #1f1d19;
+  --surface-3: #28251f;
+  --line: #2c2923;
+  --line-strong: #3e3a31;
+  --text: #efebe2;
+  --text-muted: #b3ac9e;
+  --text-faint: #948c7e;
+  --accent: #f07a45;
+  --accent-strong: #ff9a6b;
+  --accent-ink: #f59a70;
+  --accent-quiet: #3a1d10;
+  --on-accent: #1a0a03;
+  --ink: #efebe2;
+  --on-ink: #0f0e0c;
+  --band: #1d1b17;
+  --on-band: #efebe2;
+  --ok: #6cc08a;
+  --ok-quiet: #14261a;
+  --warn: #e0b04e;
+  --warn-quiet: #2d2310;
+  --danger: #f0857a;
+  --danger-quiet: #321a17;
+  --info: #7fb0e8;
+  --info-quiet: #15223a;
+  --sim: #b99bef;
+  --sim-quiet: #241c35;
+  --grid-line: rgb(239 235 226 / 0.05);
+  --glow: rgb(240 122 69 / 0.16);
+  --shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 16px 40px -24px rgb(0 0 0 / 0.8);
+  --shadow-lift: 0 1px 0 rgb(0 0 0 / 0.3), 0 28px 70px -30px rgb(0 0 0 / 0.9);
 }
 
 @theme inline {
@@ -72,7 +96,13 @@
   --color-faint: var(--text-faint);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
   --color-accent-quiet: var(--accent-quiet);
+  --color-on-accent: var(--on-accent);
+  --color-ink: var(--ink);
+  --color-on-ink: var(--on-ink);
+  --color-band: var(--band);
+  --color-on-band: var(--on-band);
   --color-ok: var(--ok);
   --color-ok-quiet: var(--ok-quiet);
   --color-warn: var(--warn);
@@ -84,8 +114,9 @@
   --color-sim: var(--sim);
   --color-sim-quiet: var(--sim-quiet);
   --radius-card: var(--radius);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 html {
@@ -95,14 +126,86 @@ html {
 
 body {
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* Every page except the landing page sits in the same reading container. The landing page draws its
+   own full-width bands, so it opts out with .full-bleed. */
+.site-main > :not(.full-bleed) {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 40px 20px 72px;
+}
+
+@media (min-width: 640px) {
+  .site-main > :not(.full-bleed) {
+    padding: 56px 32px 96px;
+  }
+}
+
+.site-main > :not(.full-bleed) > * + * {
+  margin-top: 24px;
+}
+
+/* Display type: Fraunces with its optical-size axis, so it sharpens as it grows. */
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 460;
+  letter-spacing: -0.022em;
+}
+
+.display-accent {
+  font-style: italic;
+  font-weight: 420;
+  color: var(--accent);
+}
+
+/* Small caps-style labels used as eyebrows, table heads and stat labels. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
 
 /* Metrics always use tabular numerals so columns line up. */
 .num {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
+}
+
+/* Quiet engineering-paper grid, faded towards the edges. */
+.grid-paper {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 35%, #000 40%, transparent 100%);
+}
+
+.glow {
+  background: radial-gradient(closest-side, var(--glow), transparent);
+}
+
+.link {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 150ms ease;
+}
+
+.link:hover {
+  text-decoration-color: var(--accent);
 }
 
 :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
@@ -135,6 +238,52 @@ body {
   100% { background-position: 0 50%; }
 }
 
+/* A live indicator: a dot with a slow ring. */
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid currentColor;
+  opacity: 0;
+  animation: ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  80%, 100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Entrance: content rises slightly on first paint. Purely decorative, so it is removed entirely for
+   people who ask for reduced motion. */
+.rise {
+  animation: rise 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.rise-1 { animation-delay: 60ms; }
+.rise-2 { animation-delay: 140ms; }
+.rise-3 { animation-delay: 220ms; }
+.rise-4 { animation-delay: 300ms; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+dialog::backdrop {
+  background: rgb(15 14 12 / 0.55);
+  backdrop-filter: blur(3px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -142,4 +291,6 @@ body {
     transition-duration: 0.001ms !important;
   }
   .skeleton { animation: none; }
+  .live-dot::after { display: none; }
+  .rise { animation: none; }
 }
