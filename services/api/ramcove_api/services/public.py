@@ -686,3 +686,147 @@ def verify_audit(ctx: AppContext) -> dict:
     with tx(ctx.engine) as conn:
         ok, n, bad = audit_mod.verify_chain(conn)
         return {"ok": ok, "events_checked": n, "first_bad_event_id": bad}
+
+
+# Status groups shown on the miners' dashboard. Every state belongs to exactly one group.
+DASHBOARD_GROUPS: dict[str, frozenset[str]] = {
+    "in_progress": frozenset(s.value for s in PAID_ACTIVE),
+    "waiting": frozenset({S.PREFLIGHT_PASSED.value, S.WAITLISTED.value, S.INVITED.value, S.QUOTED.value}),
+    "promoted": frozenset({S.PROMOTED.value}),
+    "rejected": frozenset(
+        {
+            S.NOT_PROMOTED.value,
+            S.REJECTED_PREFLIGHT.value,
+            S.REJECTED_SCREEN.value,
+            S.REVIEW_REJECTED.value,
+            S.EXPIRED_UNREGISTERED.value,
+        }
+    ),
+    "closed": frozenset({S.WITHDRAWN.value, S.EXPIRED_QUOTE.value, S.OPERATOR_FAILED.value}),
+}
+
+
+def dashboard_group(state: str) -> str:
+    for group, states in DASHBOARD_GROUPS.items():
+        if state in states:
+            return group
+    return "in_progress"
+
+
+def dashboard(ctx: AppContext, limit: int = 80) -> dict:
+    """Everything a miner needs at a glance: the champion, where every submission stands, why the
+    rejected ones ended, and how each miner is doing. Public fields only; hotkeys are masked."""
+    with tx(ctx.engine) as conn:
+        profile = ctx.profile(conn)
+        champ = current_champion(conn, profile.profile_id)
+        counts = {g: 0 for g in DASHBOARD_GROUPS}
+        for state, n in conn.execute(
+            select(submissions.c.state, func.count())
+            .where(submissions.c.profile_id == profile.profile_id)
+            .group_by(submissions.c.state)
+        ):
+            counts[dashboard_group(state)] += n
+        rows = conn.execute(
+            select(submissions)
+            .where(submissions.c.profile_id == profile.profile_id)
+            .order_by(submissions.c.updated_at.desc(), submissions.c.id)
+            .limit(limit)
+        ).all()
+        shas = {r.artifact_sha256 for r in rows if r.artifact_sha256}
+        arts = (
+            {a.sha256: a for a in conn.execute(select(artifacts).where(artifacts.c.sha256.in_(shas)))}
+            if shas
+            else {}
+        )
+        ids = [r.id for r in rows]
+        live_jobs = {}
+        if ids:
+            for j in conn.execute(
+                select(jobs)
+                .where(jobs.c.submission_id.in_(ids), jobs.c.status.in_(["queued", "leased"]))
+                .order_by(jobs.c.created_at)
+            ):
+                live_jobs.setdefault(j.submission_id, j)
+        items = []
+        for r in rows:
+            art = arts.get(r.artifact_sha256)
+            job = live_jobs.get(r.id)
+            items.append(
+                {
+                    "submission_id": r.id,
+                    "hotkey": mask_hotkey(r.hotkey),
+                    "lineage": r.lineage,
+                    "method": art.manifest.get("title") or art.manifest.get("method") if art else None,
+                    "mechanism": art.manifest.get("mechanism") if art else None,
+                    "trusted_fixture": art.trusted_fixture if art else None,
+                    "state": r.state,
+                    "state_label": STAGE_LABEL.get(r.state, r.state),
+                    "group": dashboard_group(r.state),
+                    "current_stage": None if job is None else {"stage": job.stage, "status": job.status},
+                    "triage_gain_ppm": r.triage_gain_ppm,
+                    "bound_gain_ppm": r.bound_gain_ppm,
+                    "outcome": None
+                    if not r.outcome_code
+                    else {"code": r.outcome_code, "summary": r.outcome_summary, "fee": r.fee_outcome},
+                    "created_at": r.created_at,
+                    "updated_at": r.updated_at,
+                }
+            )
+        reasons: dict[str, dict] = {}
+        for r in rows:
+            if dashboard_group(r.state) == "rejected" and r.outcome_code:
+                entry = reasons.setdefault(
+                    r.outcome_code, {"code": r.outcome_code, "count": 0, "example": None}
+                )
+                entry["count"] += 1
+                entry["example"] = entry["example"] or r.outcome_summary
+        miners: dict[str, dict] = {}
+        for r in conn.execute(
+            select(submissions.c.hotkey, submissions.c.state, submissions.c.bound_gain_ppm).where(
+                submissions.c.profile_id == profile.profile_id
+            )
+        ):
+            m = miners.setdefault(
+                r.hotkey,
+                {
+                    "hotkey": mask_hotkey(r.hotkey),
+                    "submissions": 0,
+                    "promoted": 0,
+                    "rejected": 0,
+                    "best_bound_gain_ppm": None,
+                },
+            )
+            m["submissions"] += 1
+            group = dashboard_group(r.state)
+            if group in ("promoted", "rejected"):
+                m[group] += 1
+            if r.bound_gain_ppm is not None:
+                best = m["best_bound_gain_ppm"]
+                m["best_bound_gain_ppm"] = r.bound_gain_ppm if best is None else max(best, r.bound_gain_ppm)
+        champ_hotkey = champ.author_hotkey if champ else None
+        leaderboard = sorted(
+            miners.items(),
+            key=lambda kv: (
+                kv[0] != champ_hotkey,
+                -kv[1]["promoted"],
+                -(kv[1]["best_bound_gain_ppm"] or -(10**9)),
+            ),
+        )
+        return {
+            "profile": {"id": profile.profile_id, "version": profile.version, "title": profile.title},
+            "champion": {
+                "version": champ.version,
+                "author": mask_hotkey(champ.author_hotkey),
+                "is_baseline": champ.author_hotkey is None,
+                "capacity_milli_rps": champ.capacity_milli_rps,
+                "bound_gain_ppm": champ.bound_gain_ppm,
+                "promoted_at": champ.promoted_at,
+            },
+            "counts": counts,
+            "total": sum(counts.values()),
+            "items": items,
+            "rejection_reasons": sorted(reasons.values(), key=lambda e: -e["count"]),
+            "miners": [{**m, "is_champion": hk == champ_hotkey} for hk, m in leaderboard][:20],
+            "simulated": True,
+            "generated_at": now(),
+        }

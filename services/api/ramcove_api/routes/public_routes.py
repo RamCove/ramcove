@@ -31,6 +31,11 @@ def meta(ctx: AppContext = Depends(get_ctx)) -> dict:
     return public.meta(ctx)
 
 
+@router.get("/dashboard")
+def dashboard(ctx: AppContext = Depends(get_ctx)) -> dict:
+    return public.dashboard(ctx)
+
+
 @router.get("/overview")
 def overview(ctx: AppContext = Depends(get_ctx)) -> dict:
     return public.overview(ctx)

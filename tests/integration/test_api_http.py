@@ -221,3 +221,16 @@ def test_lock_contention_is_a_retryable_busy_answer_not_an_internal_error(app_ct
     assert r.headers["retry-after"] == "2"
     assert r.json()["error"]["code"] == "busy"
     assert "reference" not in r.json()["error"]
+
+
+def test_dashboard_groups_every_submission_and_shows_only_public_fields(client):
+    r = client.get("/v1/dashboard")
+    assert r.status_code == 200
+    d = r.json()
+    assert set(d["counts"]) == {"in_progress", "waiting", "promoted", "rejected", "closed"}
+    assert d["total"] == sum(d["counts"].values())
+    assert d["champion"]["version"] >= 0
+    for item in d["items"]:
+        assert item["group"] in d["counts"]
+        assert item["hotkey"] is None or "\u2026" in item["hotkey"]  # masked
+        assert not {"payment", "quote", "receipt", "changed_paths"} & set(item)
