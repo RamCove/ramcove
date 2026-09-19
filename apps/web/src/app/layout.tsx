@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 export const metadata: Metadata = {
   title: { default: "RamCove — More AI. Same GPU.", template: "%s · RamCove" },
   description:
-    "RamCove is a proposed Bittensor subnet that rewards verified software improvements which let the same GPU serve more useful AI requests, across open models and GPU types.",
+    "RamCove is a Bittensor subnet that rewards verified software improvements which let the same GPU serve more useful AI requests, across open models and GPU types.",
 };
 
 export const dynamic = "force-dynamic";
