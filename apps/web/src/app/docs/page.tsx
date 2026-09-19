@@ -104,7 +104,7 @@ uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
           <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
             <ul className="list-disc space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
               <li>
-                A worker is one physical host with one whole H100 SXM, no MIG and no other workload during
+                A worker is one physical host with one whole GPU of the profile&apos;s type (an H100 SXM in the first profile), no MIG and no other workload during
                 measurement.
               </li>
               <li>
@@ -133,7 +133,7 @@ export RAMCOVE_WORKER_KEY_URI=<the worker's signing key>
 
 # the VM isolation provider for real measurement
 export RAMCOVE_WORKER_PROVIDER=vfio-vm
-export RAMCOVE_GPU_BDF=<PCI address of the H100>
+export RAMCOVE_GPU_BDF=<PCI address of the GPU>
 export RAMCOVE_VM_IMAGE_SHA256=<pinned VM image>
 export RAMCOVE_MEASUREMENT_AGENT_SOCKET=<agent socket>
 

@@ -337,6 +337,12 @@ function Idea() {
               />{" "}
               per second it sustains, and compare it with the champion under identical conditions.
             </p>
+            <p>
+              Each competition runs on a{" "}
+              <Term term="profile" plain="One open model, one engine version and one GPU type, frozen so results are comparable" />
+              : one open model, one engine version and one GPU type. RamCove starts with Qwen3.8-27B on the NVIDIA
+              H100 and adds more models and GPUs over time, each with its own champion.
+            </p>
           </div>
           <blockquote className="mt-10 border-l-2 border-accent pl-6">
             <p className="font-display text-balance text-[22px] italic leading-[1.4] text-text sm:text-[26px]">
@@ -678,7 +684,7 @@ function WhatIsReal() {
     "Read-only parsing of live Bittensor blocks",
   ];
   const notYet = [
-    "GPU measurement is a labelled simulation — no H100 yet",
+    "GPU measurement is a labelled simulation",
     "The chain, beacon and payments are a local dev chain",
     "No real isolation backend; workers accept trusted fixtures only",
     "Thresholds are provisional until a real noise study",

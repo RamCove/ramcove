@@ -38,8 +38,8 @@ export function SiteFooter() {
             More AI. <span className="display-accent">Same GPU.</span>
           </p>
           <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-muted">
-            A proposed Bittensor subnet that pays for verified software changes which let one fixed GPU serve
-            more useful AI requests.
+            A proposed Bittensor subnet that pays for verified software changes which let the same GPU serve
+            more useful AI requests, across open models and GPU types.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
@@ -72,7 +72,7 @@ export function SiteFooter() {
       </div>
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-6 sm:px-8">
         <p className="max-w-3xl text-[12.5px] leading-relaxed text-faint">
-          RamCove is a proposal. Nothing here is measured on an H100, no real tokens move, and mainnet writes are
+          RamCove is a proposal. Nothing here is measured on a real GPU, no real tokens move, and mainnet writes are
           disabled in this build.
         </p>
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-faint">Proposal stage</p>
