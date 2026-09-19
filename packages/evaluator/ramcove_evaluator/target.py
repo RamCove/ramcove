@@ -17,6 +17,8 @@ import httpx
 
 from .taskgen import POSITIONS, Item
 
+# The simulation's own memory scale: cache cost per resident token at 16-bit, in simulated KiB. It keeps the
+# fixtures' memory pressure where the protocol tests need it and is not the profile model's real value.
 TOKEN_KIB_16BIT = 256
 GIB = 1024 * 1024
 
