@@ -32,8 +32,8 @@ actions stay on the operator's console. How it is wired, secured and operated is
 If the hosted site has no backend configured it falls back to a labelled, read-only snapshot
 (`apps/web/src/preview/snapshot.json`, refreshed with `cd apps/web && npm run snapshot`).
 
-The repository address (`RooM-Labs/room`) and the `room/build-v1` branch keep their original names;
-everything inside the code uses RamCove.
+The code lives at https://github.com/RamCove/ramcove, and the whitepaper is served with the site at
+`/docs/whitepaper`.
 
 ## Run it locally
 

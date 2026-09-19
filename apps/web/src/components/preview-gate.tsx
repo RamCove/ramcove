@@ -15,7 +15,7 @@ export function PreviewGate({ what }: { what: string }) {
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <a
-          href="https://github.com/RooM-Labs/room#run-it-locally"
+          href="https://github.com/RamCove/ramcove#run-it-locally"
           target="_blank"
           rel="noreferrer"
           className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-accent px-5 text-[14px] font-medium text-on-accent transition-colors hover:bg-accent-strong"
