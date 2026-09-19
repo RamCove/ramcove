@@ -6,7 +6,7 @@ become the champion and receive that profile's miner allocation until someone be
 
 ## Before you write code
 
-Open the profile page (`/competition`). It fixes everything that affects the number: the model repository
+Open the rules page (`/docs/rules`). It fixes everything that affects the number: the model repository
 and revision, the engine commit, the GPU, the candidate virtual machine, the context limit, the workload
 and every gate. Your change must build against that exact engine commit and touch only the allowed paths.
 
@@ -29,7 +29,8 @@ uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"
 ```
 
 The command runs the free checks, reserves capacity if any exists, shows the quote, and pays only after you
-agree. In a browser, `/submit` walks the same six steps.
+agree. The website has no sign-in and takes no submissions: everything a miner does happens here, and the
+dashboard shows where each submission stands.
 
 You sign two different things, and RamCove never asks for a seed phrase or a key file:
 
@@ -48,7 +49,7 @@ whatever the result — including a rejection caused by your code.
 Never charged: operator or validator failures, an expired quote, or withdrawal before any GPU work starts
 (that returns a credit).
 
-If your payment went through but you lost the page, recover it by reference:
+If your payment went through but the tool lost track of it, recover it by reference:
 
 ```bash
 uv run ramcove-miner recover --block <N> --index <I> --key-uri "//YourDevKey"
