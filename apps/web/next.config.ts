@@ -15,6 +15,7 @@ const config: NextConfig = {
       { source: "/validator", destination: "/docs#validators", permanent: false },
       { source: "/review", destination: "/dashboard", permanent: false },
       { source: "/operator", destination: "/status", permanent: false },
+      { source: "/docs/whitepaper", destination: "/whitepaper/RamCove_Whitepaper_v0.2.pdf", permanent: false },
     ];
   },
   async headers() {
@@ -24,9 +25,8 @@ const config: NextConfig = {
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "no-referrer" },
-          // Same-site framing only: other sites cannot embed RamCove, but the Docs can show our own PDF.
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
         ],
       },
     ];
