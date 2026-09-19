@@ -6,6 +6,7 @@ import { apiGetOrNull, snapshotTakenAt } from "@/lib/server-api";
 import { centiHours, gain, rps, usd } from "@/lib/format";
 import clsx from "clsx";
 import Link from "next/link";
+import type React from "react";
 import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +94,7 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
   return (
     <section className="relative overflow-hidden border-b border-line">
       <CoveContours className="contour-fade pointer-events-none absolute inset-0 h-full w-full" />
-      <div aria-hidden className="glow pointer-events-none absolute -right-40 -top-40 h-[720px] w-[720px]" />
+      <div aria-hidden className="glow glow-drift pointer-events-none absolute -right-40 -top-40 h-[720px] w-[720px]" />
       <div className={clsx(CONTAINER, "relative pb-16 pt-14 sm:pt-20 lg:pb-20 lg:pt-24")}>
         <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
           <div className="min-w-0">
@@ -101,7 +102,7 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
             <h1 className="font-display text-balance rise rise-1 mt-6 text-[60px] leading-[0.95] text-text sm:text-[84px] lg:text-[96px]">
               More AI.
               <br />
-              <span className="display-accent">Same GPU.</span>
+              <span className="display-accent accent-shine">Same GPU.</span>
             </h1>
             <p className="rise rise-2 mt-8 max-w-xl text-[18px] leading-[1.6] text-muted sm:text-[19px]">
               RamCove pays for software changes that let one fixed GPU serve more useful AI requests. Every
@@ -227,8 +228,8 @@ function ChampionPanel({ data }: { data: Overview }) {
                 </div>
                 <div className="mt-1.5 h-[5px] rounded-full bg-surface-3">
                   <div
-                    className={clsx("h-full rounded-full", current ? "bg-accent" : "bg-line-strong")}
-                    style={{ width: `${pct}%` }}
+                    className={clsx("bar-grow h-full rounded-full", current ? "bg-accent" : "bg-line-strong")}
+                    style={{ width: `${pct}%`, animationDelay: `${300 + h.version * 180}ms` }}
                   />
                 </div>
               </li>
@@ -295,7 +296,7 @@ function Section({
   return (
     <section id={id} className={clsx("border-b border-line", band && "bg-surface")}>
       <div className={clsx(CONTAINER, "py-20 sm:py-28")}>
-        <div className="flex flex-wrap items-end justify-between gap-6">
+        <div className="reveal flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-3xl">
             <p className="eyebrow">
               <span className="text-accent-ink">{index}</span> · {label}
@@ -304,7 +305,7 @@ function Section({
           </div>
           {aside}
         </div>
-        {children && <div className="mt-14">{children}</div>}
+        {children && <div className="reveal mt-14">{children}</div>}
       </div>
     </section>
   );
@@ -317,7 +318,7 @@ function Idea() {
         <p className="eyebrow pt-3">
           <span className="text-accent-ink">01</span> · The idea
         </p>
-        <div className="max-w-3xl">
+        <div className="reveal max-w-3xl">
           <h2 className="font-display text-balance text-[38px] leading-[1.08] text-text sm:text-[54px]">
             Every GPU that is already paid for has <span className="display-accent">more to give.</span>
           </h2>
@@ -370,7 +371,11 @@ function HowItWorks({ margin, blocks }: { margin: string; blocks: number }) {
     >
       <ol className="grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2 lg:grid-cols-5">
         {steps.map(([n, title, body, tag]) => (
-          <li key={n} className="flex flex-col bg-bg p-6 transition-colors hover:bg-surface">
+          <li
+            key={n}
+            className="reveal flex flex-col bg-bg p-6 transition-colors hover:bg-surface"
+            style={{ "--i": Number(n) - 1 } as React.CSSProperties}
+          >
             <span className="font-mono text-[13px] text-accent-ink">{n}</span>
             <p className="mt-10 text-[18px] font-semibold tracking-[-0.01em] text-text">{title}</p>
             <p className="mt-2 flex-1 text-[14px] leading-relaxed text-muted">{body}</p>
@@ -419,7 +424,8 @@ function Principles({ margin, blocks }: { margin: string; blocks: number }) {
         {items.map((it, i) => (
           <article
             key={it.title}
-            className="group relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-8 transition-shadow hover:shadow-[var(--shadow-lift)]"
+            className="reveal group relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-8 transition-[box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]"
+            style={{ "--i": i } as React.CSSProperties}
           >
             <span className="font-mono text-[12px] text-faint">0{i + 1}</span>
             <h3 className="font-display text-balance mt-6 text-[28px] leading-[1.15] text-text">{it.title}</h3>
@@ -630,8 +636,9 @@ function Audiences() {
         {cards.map((c, i) => (
           <article
             key={c.who}
+            style={{ "--i": i } as React.CSSProperties}
             className={clsx(
-              "flex flex-col rounded-[var(--radius-card)] border p-8 sm:p-10",
+              "reveal flex flex-col rounded-[var(--radius-card)] border p-8 transition-transform duration-300 hover:-translate-y-1 sm:p-10",
               i === 0 ? "border-transparent bg-band text-on-band" : "border-line bg-surface text-text",
             )}
           >
@@ -724,7 +731,7 @@ function Closing() {
   return (
     <section className="relative overflow-hidden bg-band text-on-band">
       <div aria-hidden className="glow pointer-events-none absolute -bottom-60 left-1/2 h-[640px] w-[900px] -translate-x-1/2" />
-      <div className={clsx(CONTAINER, "relative py-24 text-center sm:py-32")}>
+      <div className={clsx(CONTAINER, "reveal relative py-24 text-center sm:py-32")}>
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-on-band/60">Get started</p>
         <h2 className="font-display text-balance mx-auto mt-6 max-w-3xl text-[44px] leading-[1.02] sm:text-[72px]">
           Help one GPU <span className="display-accent">serve more.</span>

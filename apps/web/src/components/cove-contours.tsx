@@ -44,8 +44,40 @@ export function CoveContours({ cx = -120, cy = 470, rings = 26, gap = 44, classN
     >
       <g stroke="var(--contour)" strokeWidth="1">
         {paths.map((d, i) => (
-          <path key={i} d={d} opacity={i % 5 === 4 ? 1 : 0.55} />
+          <path
+            key={i}
+            d={d}
+            opacity={i % 5 === 4 ? 1 : 0.55}
+            className="contour-ring"
+            // negative delays start every ring mid-breath, so the motion reads as a ripple outward
+            style={{ transformOrigin: `${cx}px ${cy}px`, animationDelay: `${-i * 0.35}s` }}
+          />
         ))}
+      </g>
+      <defs>
+        {/* currents show only in the empty margin to the left of the text, fading out before it */}
+        <linearGradient id="current-fade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="240" y2="0">
+          <stop offset="0" stopColor="#fff" />
+          <stop offset="0.55" stopColor="#fff" />
+          <stop offset="1" stopColor="#000" />
+        </linearGradient>
+        <mask id="current-mask">
+          <rect x="0" y="0" width="1440" height="900" fill="url(#current-fade)" />
+        </mask>
+      </defs>
+      <g
+        stroke="var(--accent)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        opacity="0.6"
+        mask="url(#current-mask)"
+      >
+        {paths
+          .map((d, i) => ({ d, i }))
+          .filter(({ i }) => i % 5 === 2)
+          .map(({ d, i }) => (
+            <path key={`current-${i}`} d={d} className="contour-current" style={{ animationDelay: `${-i * 1.7}s` }} />
+          ))}
       </g>
     </svg>
   );
