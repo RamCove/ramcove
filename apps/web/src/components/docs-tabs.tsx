@@ -4,6 +4,7 @@ import Link from "next/link";
 const TABS = [
   { href: "/docs", key: "guide", label: "How it works" },
   { href: "/docs/rules", key: "rules", label: "Rules" },
+  { href: "/docs/whitepaper", key: "whitepaper", label: "Whitepaper" },
 ] as const;
 
 /** The two parts of the documentation: the guide, and the live competition rules. */

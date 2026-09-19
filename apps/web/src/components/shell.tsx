@@ -1,8 +1,9 @@
 "use client";
 
 import { Button, CopyRef, ErrorText, ThemeToggle, useSession } from "@/components/client";
-import { snapshotDate, usePreview } from "@/components/preview";
+import { usePreview } from "@/components/preview";
 import { ApiFailure, clientFetch } from "@/lib/api";
+import { REPO_URL, WHITEPAPER_PAGE } from "@/lib/site";
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -57,18 +58,7 @@ export function Logomark({ size = 28, title = "RamCove" }: { size?: number; titl
   );
 }
 
-export function TopNav({
-  env,
-  network,
-  simulated,
-  hosted = false,
-}: {
-  env: string;
-  network: string;
-  simulated: boolean;
-  /** Served from the public host (Vercel) rather than the operator's own machine. */
-  hosted?: boolean;
-}) {
+export function TopNav() {
   const path = usePathname();
   const preview = usePreview();
   const { session, loaded, reload } = useSession();
@@ -86,53 +76,6 @@ export function TopNav({
   const workspace = visible.filter((item) => "needs" in item);
   return (
     <>
-      <div className="bg-band text-on-band">
-        <div className="mx-auto flex max-w-[1200px] items-center gap-3 px-5 py-2 sm:px-8">
-          <span aria-hidden className="live-dot shrink-0 text-accent" />
-          <p className="min-w-0 truncate font-mono text-[11px] uppercase tracking-[0.12em] opacity-85" title={`network ${network}`}>
-            {preview.on ? (
-              <>
-                <span>Public preview</span>
-                <span className="opacity-60"> · </span>
-                <span>snapshot of the local simulation, {snapshotDate(preview.takenAt)}</span>
-                <span className="hidden md:inline">
-                  <span className="opacity-60"> · </span>read-only
-                  <span className="opacity-60"> · </span>no real tokens move
-                </span>
-              </>
-            ) : hosted ? (
-              // the hosted site says only what a visitor needs: this is a simulation, nothing real moves
-              <>
-                <span className="hidden md:inline">
-                  Simulated chain, beacon, payments and workers<span className="opacity-60"> · </span>no real tokens
-                  move
-                </span>
-                <span className="md:hidden">
-                  Simulated<span className="opacity-60"> · </span>no real tokens move
-                </span>
-              </>
-            ) : (
-              <>
-                <span>Local development build</span>
-                <span className="opacity-60"> · </span>
-                <span>env {env}</span>
-                {simulated && (
-                  <span className="hidden md:inline">
-                    <span className="opacity-60"> · </span>simulated chain, beacon, payments and workers
-                    <span className="opacity-60"> · </span>no real tokens move
-                  </span>
-                )}
-              </>
-            )}
-          </p>
-          <Link
-            href="/status"
-            className="ml-auto hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] opacity-70 transition-opacity hover:opacity-100 sm:inline"
-          >
-            What is real →
-          </Link>
-        </div>
-      </div>
       <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur-md supports-[backdrop-filter]:bg-bg/70">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-5 sm:px-8">
           <Link href="/" className="shrink-0 rounded-[var(--radius-sm)]" aria-label="RamCove home">
@@ -160,6 +103,30 @@ export function TopNav({
                   </li>
                 );
               })}
+              <li aria-hidden className="mx-2 h-5 w-px bg-line-strong" />
+              <li>
+                <Link
+                  href={WHITEPAPER_PAGE}
+                  aria-label="Whitepaper"
+                  title="Whitepaper"
+                  aria-current={isActive(WHITEPAPER_PAGE) ? "page" : undefined}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                >
+                  <WhitepaperIcon />
+                </Link>
+              </li>
+              <li>
+                <a
+                  href={REPO_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="RamCove on GitHub"
+                  title="RamCove on GitHub"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                >
+                  <GitHubIcon />
+                </a>
+              </li>
             </ul>
           </nav>
           <div className="ml-auto flex items-center gap-1.5 lg:ml-2">
@@ -230,6 +197,23 @@ export function TopNav({
                   </Link>
                 </li>
               ))}
+              <li className="mt-3 grid grid-cols-2 gap-2 border-t border-line pt-4">
+                <Link
+                  href={WHITEPAPER_PAGE}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-line bg-surface py-2.5 text-[14px] text-text"
+                >
+                  <WhitepaperIcon /> Whitepaper
+                </Link>
+                <a
+                  href={REPO_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-line bg-surface py-2.5 text-[14px] text-text"
+                >
+                  <GitHubIcon /> GitHub
+                </a>
+              </li>
             </ul>
           </nav>
         )}
@@ -566,5 +550,22 @@ export function SignInDialog({
         </Button>
       </div>
     </dialog>
+  );
+}
+
+function WhitepaperIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5M9 13h6M9 17h6M9 9h2" />
+    </svg>
+  );
+}
+
+function GitHubIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.27 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z" />
+    </svg>
   );
 }
