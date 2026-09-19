@@ -17,6 +17,7 @@ const PAGES = [
   { name: "overview", path: "/", as: null, viewports: ["desktop", "tablet", "phone"] },
   { name: "dashboard", path: "/dashboard", as: null, viewports: ["desktop", "phone"] },
   { name: "docs-rules", path: "/docs/rules", as: null, viewports: ["desktop"] },
+  { name: "docs-whitepaper", path: "/docs/whitepaper", as: null, viewports: ["desktop", "phone"] },
   { name: "docs", path: "/docs", as: null, viewports: ["desktop"] },
   { name: "status", path: "/status", as: null, viewports: ["desktop"] },
   { name: "submit", path: "/submit", as: "miner-cyd", viewports: ["desktop", "phone"] },

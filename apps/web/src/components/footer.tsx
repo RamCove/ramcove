@@ -23,7 +23,8 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
     links: [
       { href: "/docs", label: "Documentation" },
       { href: "/status", label: "Service status" },
-      { href: "https://github.com/RooM-Labs/room", label: "Source on GitHub", external: true },
+      { href: "/docs/whitepaper", label: "Whitepaper" },
+      { href: "https://github.com/RamCove/ramcove", label: "Source on GitHub", external: true },
     ],
   },
 ];
@@ -75,7 +76,7 @@ export function SiteFooter() {
           RamCove is a proposal. Nothing here is measured on an H100, no real tokens move, and mainnet writes are
           disabled in this build.
         </p>
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-faint">Proposal stage · local build</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-faint">Proposal stage</p>
       </div>
     </footer>
   );

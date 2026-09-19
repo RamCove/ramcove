@@ -59,7 +59,10 @@ test("a visitor understands the competition without signing in", async ({ page }
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Same GPU");
   await expect(page.getByText(/serve more useful AI requests/).first()).toBeVisible();
-  await expect(page.getByText("Local development build")).toBeVisible();
+  // no banner any more, but the site still says plainly that nothing real moves
+  await expect(page.getByText(/no real tokens move/).first()).toBeVisible();
+  // the header icon on desktop, the menu row on phones, and the footer all point at the repository
+  expect(await page.locator('a[href="https://github.com/RamCove/ramcove"]').count()).toBeGreaterThan(0);
   // the call to action repeats down the page; the hero one comes first
   await expect(page.getByRole("link", { name: "Start a submission" }).first()).toBeVisible();
   const bar = page.getByRole("navigation", { name: "Main" });
@@ -206,6 +209,16 @@ test("keyboard users can reach the main actions and both themes are readable", a
     return { bg: body.backgroundColor, color: body.color };
   });
   expect(contrast.bg).not.toBe(contrast.color);
+});
+
+test("the whitepaper opens from Docs and the PDF is served", async ({ page }) => {
+  await page.goto("/docs");
+  await page.getByRole("navigation", { name: "Documentation" }).getByRole("link", { name: "Whitepaper" }).click();
+  await expect(page).toHaveURL(/\/docs\/whitepaper/);
+  await expect(page.getByRole("heading", { name: "The RamCove whitepaper" })).toBeVisible();
+  const pdf = await page.request.get("/whitepaper/RamCove_Whitepaper_v0.2.pdf");
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()["content-type"]).toContain("application/pdf");
 });
 
 test("an unknown page explains itself instead of failing", async ({ page }) => {

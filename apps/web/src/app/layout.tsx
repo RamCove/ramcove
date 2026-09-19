@@ -38,12 +38,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         >
           Skip to content
         </a>
-        <TopNav
-          env={meta?.env ?? "unreachable"}
-          network={meta?.network ?? "unknown"}
-          simulated={meta?.simulated_chain ?? true}
-          hosted={process.env.VERCEL === "1"}
-        />
+        <TopNav />
         <main id="main" className="site-main flex-1">
           {meta === null && (
             <div className="full-bleed mx-auto mt-6 max-w-[1200px] px-5 sm:px-8">
