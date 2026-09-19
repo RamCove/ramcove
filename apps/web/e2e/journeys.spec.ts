@@ -1,51 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, request, test, type Page } from "@playwright/test";
 
-async function signIn(page: Page, identity: string) {
-  await page.goto("/");
-  const res = await page.evaluate(async (id) => {
-    const r = await fetch("/api/v1/auth/demo", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ identity: id }),
-    });
-    return r.status;
-  }, identity);
-  expect(res).toBe(200);
-  await page.reload();
-}
-
-/** Withdraw any active submission so the miner journey starts from a known state. */
-async function clearActiveSubmissions(page: Page) {
-  const result = await page.evaluate(async () => {
-    const mine = await (await fetch("/api/v1/miner/submissions")).json();
-    const active = (mine.items ?? []).filter(
-      (s: { state: string }) =>
-        ![
-          "promoted",
-          "not_promoted",
-          "rejected_preflight",
-          "rejected_screen",
-          "review_rejected",
-          "expired_quote",
-          "expired_unregistered",
-          "operator_failed",
-          "withdrawn",
-        ].includes(s.state),
-    );
-    const outcomes: number[] = [];
-    for (const s of active) {
-      const r = await fetch(`/api/v1/miner/submissions/${s.submission_id}/withdraw`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ reason: "browser test reset" }),
-      });
-      outcomes.push(r.status);
-    }
-    return { listed: (mine.items ?? []).length, active: active.length, outcomes };
-  });
-  expect(result.outcomes.every((s) => s === 200), `cleanup failed: ${JSON.stringify(result)}`).toBe(true);
-  return result;
-}
+const API = process.env.RAMCOVE_API_ORIGIN ?? "http://127.0.0.1:8787";
+const PDF = "/whitepaper/RamCove_Whitepaper_v0.2.pdf";
 
 function consoleErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -54,17 +10,33 @@ function consoleErrors(page: Page): string[] {
   return errors;
 }
 
-test("a visitor understands the competition without signing in", async ({ page }) => {
+/** Miners submit from the command line, so tests create work through the local API the same way. */
+async function submitAsMiner(identity: string, fixture: string) {
+  const api = await request.newContext({ baseURL: API });
+  expect((await api.post("/v1/auth/demo", { data: { identity } })).status()).toBe(200);
+  const r = await api.post("/v1/demo/submit-fixture", { data: { fixture } });
+  const body = await r.json();
+  await api.dispose();
+  return { status: r.status(), body };
+}
+
+test("a visitor understands the competition, with nothing to sign in to", async ({ page }) => {
   const errors = consoleErrors(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Same GPU");
   await expect(page.getByText(/serve more useful AI requests/).first()).toBeVisible();
-  // no banner any more, but the site still says plainly that nothing real moves
+  // no banner, but the site still says plainly that nothing real moves
   await expect(page.getByText(/no real tokens move/).first()).toBeVisible();
-  // the header icon on desktop, the menu row on phones, and the footer all point at the repository
-  expect(await page.locator('a[href="https://github.com/RamCove/ramcove"]').count()).toBeGreaterThan(0);
-  // the call to action repeats down the page; the hero one comes first
-  await expect(page.getByRole("link", { name: "Start a submission" }).first()).toBeVisible();
+  // the site is read-only: miners use the command line and validators run their own software
+  await expect(page.getByRole("button", { name: /sign in/i })).toHaveCount(0);
+  const header = page.getByRole("banner");
+  await expect(header.getByRole("link", { name: "Submit" })).toHaveCount(0);
+  // the header opens the whitepaper and the repository in new tabs
+  await expect(header.getByRole("link", { name: "Whitepaper (PDF)" })).toHaveAttribute("href", PDF);
+  await expect(header.getByRole("link", { name: "RamCove on GitHub" })).toHaveAttribute(
+    "href",
+    "https://github.com/RamCove/ramcove",
+  );
   const bar = page.getByRole("navigation", { name: "Main" });
   if (await bar.isVisible()) {
     await bar.getByRole("link", { name: "Dashboard" }).click();
@@ -84,83 +56,60 @@ test("a visitor understands the competition without signing in", async ({ page }
   expect(errors).toEqual([]);
 });
 
-test("the dashboard shows the order of work and the free waiting list; old links still land", async ({ page }) => {
+test("the docs show miners and validators how to take part from the command line", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Start mining" }).first().click();
+  await expect(page).toHaveURL(/\/docs#miners/);
+  await expect(page.getByRole("heading", { name: "Submit from the command line" })).toBeVisible();
+  await expect(page.getByText(/ramcove-miner submit --artifact/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Run the validator software" })).toBeVisible();
+  await expect(page.getByText(/uv run ramcove-worker/)).toBeVisible();
+});
+
+test("the whitepaper opens full screen as a PDF", async ({ page }) => {
+  await page.goto("/docs");
+  const tab = page.getByRole("navigation", { name: "Documentation" }).getByRole("link", { name: "Whitepaper" });
+  await expect(tab).toHaveAttribute("href", PDF);
+  await expect(tab).toHaveAttribute("target", "_blank");
+  const pdf = await page.request.get(PDF);
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()["content-type"]).toContain("application/pdf");
+  // the old embedded page now goes straight to the PDF
+  const old = await page.request.get("/docs/whitepaper", { maxRedirects: 0 });
+  expect(old.status()).toBe(307);
+  expect(old.headers()["location"]).toBe(PDF);
+});
+
+test("the dashboard shows the order of work; retired pages land where their content lives", async ({ page }) => {
   await page.goto("/dashboard");
   await expect(page.getByText("Paid, in the order they are tested")).toBeVisible();
   await expect(page.getByText("Free, waiting for capacity")).toBeVisible();
   await expect(page.getByText("Order of work versus order of promotion")).toBeVisible();
-  // the pages the menu no longer lists redirect to where their content moved
-  await page.goto("/queue");
-  await expect(page).toHaveURL(/\/dashboard/);
+  const moved: [string, RegExp][] = [
+    ["/queue", /\/dashboard/],
+    ["/competition", /\/docs\/rules/],
+    ["/submit", /\/docs#miners/],
+    ["/submissions", /\/dashboard/],
+    ["/validator", /\/docs#validators/],
+    ["/review", /\/dashboard/],
+    ["/operator", /\/status/],
+  ];
+  for (const [from, to] of moved) {
+    await page.goto(from);
+    await expect(page).toHaveURL(to);
+  }
   await page.goto("/competition");
-  await expect(page).toHaveURL(/\/docs\/rules/);
   const tabs = page.getByRole("navigation", { name: "Documentation" });
   await expect(tabs.getByRole("link", { name: "Rules" })).toHaveAttribute("aria-current", "page");
 });
 
-test("a miner sees the fee before signing and can recover an existing payment", async ({ page }) => {
-  await signIn(page, "miner-cyd");
-  await clearActiveSubmissions(page);
-  await page.goto("/submit");
-  await expect(page.getByText("Which checks are free and which consume the fee")).toBeVisible();
-  await page.getByRole("button", { name: "Continue" }).click();
-  // Duplicate detection is real: pick a fixture this database has not seen yet.
-  const build = page.getByRole("button", { name: "Build, sign and run free checks" });
-  await expect(build).toBeEnabled({ timeout: 15_000 });
-  const fixtures = page.getByRole("radio");
-  const count = await fixtures.count();
-  let accepted = false;
-  for (let i = 0; i < count; i++) {
-    await fixtures.nth(i).check();
-    await build.click();
-    const result = page.getByRole("heading", { name: /^Free checks (passed|found problems)$/ });
-    // scoped to the page content: Next.js adds a hidden route announcer that also has role="alert"
-    const alert = page.getByRole("main").getByRole("alert");
-    await expect(result.or(alert).first()).toBeVisible({ timeout: 30_000 });
-    if (await result.isVisible()) {
-      if ((await result.textContent())?.includes("passed")) {
-        accepted = true;
-        break;
-      }
-    }
-    // a duplicate, an active lineage or another refusal: try the next fixture
-    await page.getByRole("button", { name: "2. Prepare" }).click();
+test("anyone can follow a submission on its public page", async ({ page }) => {
+  // make sure there is at least one; a fixture this database has already seen is refused as a duplicate
+  for (const fixture of ["fragmentation-aware-allocator", "kv8-conversation-retention", "evict-quarter"]) {
+    const r = await submitAsMiner("miner-ada", fixture);
+    if (r.status === 200 && r.body.ok) break;
   }
-  expect(accepted, "at least one fixture should pass the free checks").toBe(true);
-  await page.getByRole("button", { name: "Reserve evaluation capacity" }).click();
-  await expect(page.getByText("Quote and payment").first()).toBeVisible({ timeout: 30_000 });
-  // either a quote with the amount and rules, or an honest message explaining why there is none
-  const quotePanel = page.getByText("What you are signing");
-  const waitPanel = page.getByText(/waiting list|capacity|paused/i).first();
-  await expect(quotePanel.or(waitPanel).first()).toBeVisible({ timeout: 30_000 });
-  const hasQuote = await quotePanel.isVisible();
-  if (hasQuote) {
-    await expect(page.getByText(/Recipient \(evaluation wallet\)/)).toBeVisible();
-    await expect(page.getByText(/Network transaction fee/)).toBeVisible();
-    await expect(page.getByText(/Refund rules for this quote/)).toBeVisible();
-    await page.getByRole("button", { name: /Sign and pay/ }).click();
-    await expect(page.getByRole("heading", { name: "Authorize this simulated payment" })).toBeVisible();
-    await page.getByRole("button", { name: "Cancel" }).click();
-  } else {
-    await expect(waitPanel).toBeVisible();
-  }
-  await expect(page.getByRole("heading", { name: "Already paid? Recover by reference" })).toBeVisible();
-});
-
-test("a miner can follow a submission and read why it ended", async ({ page }) => {
-  await signIn(page, "miner-ada");
-  await clearActiveSubmissions(page);
-  // create one, so the test does not depend on what an earlier run left behind
-  const created = await page.evaluate(async () => {
-    const r = await fetch("/api/v1/demo/submit-fixture", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fixture: "fragmentation-aware-allocator" }),
-    });
-    return { status: r.status, body: await r.json() };
-  });
-  expect(created.status, JSON.stringify(created.body)).toBe(200);
-  await page.goto("/submissions");
+  await page.goto("/dashboard");
   const first = page.locator('a[href^="/submissions/sub_"]').first();
   await expect(first).toBeVisible();
   await first.click();
@@ -169,22 +118,8 @@ test("a miner can follow a submission and read why it ended", async ({ page }) =
   await expect(page.getByText("Progress")).toBeVisible();
   await expect(page.getByText(/Support ref RM-/)).toBeVisible();
   await expect(page.getByText("What the states mean")).toBeVisible();
-});
-
-test("roles are enforced in the interface and on the server", async ({ page }) => {
-  await signIn(page, "miner-bao");
-  await page.goto("/operator");
-  await expect(page.getByText("Sign in as the operator")).toBeVisible();
-  const status = await page.evaluate(async () => (await fetch("/api/v1/operator/console")).status);
-  expect(status).toBe(403);
-});
-
-test("the operator console shows guardrails and verifies the audit chain", async ({ page }) => {
-  await signIn(page, "operator");
-  await page.goto("/operator");
-  await expect(page.getByText("No route sets a champion by hand.")).toBeVisible();
-  await page.getByRole("button", { name: "Verify the audit chain" }).click();
-  await expect(page.getByText("audit chain intact")).toBeVisible({ timeout: 15_000 });
+  // the author's payment details are never on the public page
+  await expect(page.getByText("Your payment")).toHaveCount(0);
 });
 
 test("keyboard users can reach the main actions and both themes are readable", async ({ page }) => {
@@ -209,16 +144,6 @@ test("keyboard users can reach the main actions and both themes are readable", a
     return { bg: body.backgroundColor, color: body.color };
   });
   expect(contrast.bg).not.toBe(contrast.color);
-});
-
-test("the whitepaper opens from Docs and the PDF is served", async ({ page }) => {
-  await page.goto("/docs");
-  await page.getByRole("navigation", { name: "Documentation" }).getByRole("link", { name: "Whitepaper" }).click();
-  await expect(page).toHaveURL(/\/docs\/whitepaper/);
-  await expect(page.getByRole("heading", { name: "The RamCove whitepaper" })).toBeVisible();
-  const pdf = await page.request.get("/whitepaper/RamCove_Whitepaper_v0.2.pdf");
-  expect(pdf.status()).toBe(200);
-  expect(pdf.headers()["content-type"]).toContain("application/pdf");
 });
 
 test("an unknown page explains itself instead of failing", async ({ page }) => {

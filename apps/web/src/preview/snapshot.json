@@ -449,53 +449,6 @@
     "notice": "Local development build. The chain, beacon, workers and payments are simulated and labelled; no real tokens move and no real GPU is measured."
    }
   },
-  "/v1/demo/fixtures": {
-   "fixtures": [
-    {
-     "name": "kv8-conversation-retention",
-     "title": "8-bit KV entries with conversation-aware retention",
-     "role": "challenger",
-     "mechanism": "cache_storage",
-     "method": "Stores KV entries in 8 bits with online scales and keeps idle conversation prefixes resident longer."
-    },
-    {
-     "name": "fragmentation-aware-allocator",
-     "title": "Fragmentation-aware block allocation",
-     "role": "challenger",
-     "mechanism": "allocation",
-     "method": "Allocates KV blocks to reduce fragmentation so more tokens fit in the same budget."
-    },
-    {
-     "name": "evict-quarter",
-     "title": "Evict to a quarter of the cache",
-     "role": "challenger",
-     "mechanism": "retention",
-     "method": "Keeps only the most attended quarter of cached tokens."
-    },
-    {
-     "name": "decode-kernel-speedup",
-     "title": "Faster decode attention kernel",
-     "role": "challenger",
-     "mechanism": "mixed",
-     "method": "A faster decode attention kernel; no memory change."
-    },
-    {
-     "name": "build-breaks",
-     "title": "Patch that does not build",
-     "role": "challenger",
-     "mechanism": "allocation",
-     "method": "Refactors the allocator but leaves a syntax error."
-    },
-    {
-     "name": "quality-drift",
-     "title": "Aggressive 4-bit KV with small quality losses",
-     "role": "challenger",
-     "mechanism": "cache_storage",
-     "method": "4-bit KV entries; small per-generation accuracy losses that the fixed reference floor catches."
-    }
-   ],
-   "note": "Trusted repository fixtures. The simulated worker evaluates only these; any other artifact passes free preflight but cannot be quoted, because no real isolation backend is available."
-  },
   "/v1/queue?kind=admitted": {
    "kind": "admitted",
    "items": [],

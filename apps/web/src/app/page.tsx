@@ -4,6 +4,7 @@ import { Empty, KeyValue, Mono, Notice, Pill, SimulatedTag, Table, Td, Term } fr
 import { isPreview } from "@/lib/preview";
 import { apiGetOrNull, snapshotTakenAt } from "@/lib/server-api";
 import { centiHours, gain, rps, usd } from "@/lib/format";
+import { WHITEPAPER_PDF } from "@/lib/site";
 import clsx from "clsx";
 import Link from "next/link";
 import type React from "react";
@@ -111,10 +112,10 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
             </p>
             <div className="rise rise-3 mt-9 flex flex-wrap items-center gap-3">
               <Link
-                href="/submit"
+                href="/docs#miners"
                 className="inline-flex h-12 items-center gap-2 rounded-[var(--radius-sm)] bg-accent px-6 text-[15px] font-medium text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_10px_28px_-12px_var(--accent)] transition-colors hover:bg-accent-strong"
               >
-                Start a submission <span aria-hidden>→</span>
+                Start mining <span aria-hidden>→</span>
               </Link>
               <Link
                 href="/docs/rules"
@@ -125,7 +126,7 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
             </div>
             <p className="rise rise-4 mt-6 text-[14px] text-muted">
               Running a validator?{" "}
-              <Link href="/docs" className="link">
+              <Link href="/docs#validators" className="link">
                 Read the validator guide
               </Link>
             </p>
@@ -603,12 +604,12 @@ function Audiences() {
       who: "For miners",
       title: "Make the GPU do more. Get paid for it.",
       points: [
-        "Submit a patch to the pinned engine from the CLI or the browser",
-        "See the fee, the refund rules and the queue position before you sign",
-        "Follow every stage, and read exactly why a submission ended",
+        "Submit a patch to the pinned engine with the ramcove-miner command line",
+        "See the fee, the refund rules and the queue position before you pay",
+        "Follow every stage on the dashboard, and read exactly why a submission ended",
       ],
-      href: "/submit",
-      cta: "Start a submission",
+      href: "/docs#miners",
+      cta: "Read the miner guide",
     },
     {
       who: "For validators",
@@ -618,7 +619,7 @@ function Audiences() {
         "Paired blocks against a frozen champion keep comparisons honest",
         "Every report is signed and lands in the audit chain",
       ],
-      href: "/docs",
+      href: "/docs#validators",
       cta: "Read the validator guide",
     },
   ];
@@ -742,17 +743,19 @@ function Closing() {
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
           <Link
-            href="/submit"
+            href="/docs#miners"
             className="inline-flex h-12 items-center gap-2 rounded-[var(--radius-sm)] bg-accent px-6 text-[15px] font-medium text-on-accent transition-colors hover:bg-accent-strong"
           >
-            Run the free checks <span aria-hidden>→</span>
+            Start mining <span aria-hidden>→</span>
           </Link>
-          <Link
-            href="/docs"
-            className="inline-flex h-12 items-center rounded-[var(--radius-sm)] border border-on-band/25 px-6 text-[15px] font-medium text-on-band transition-colors hover:bg-on-band/10"
+          <a
+            href={WHITEPAPER_PDF}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-12 items-center gap-2 rounded-[var(--radius-sm)] border border-on-band/25 px-6 text-[15px] font-medium text-on-band transition-colors hover:bg-on-band/10"
           >
-            Read the docs
-          </Link>
+            Read the whitepaper <span aria-hidden>↗</span>
+          </a>
         </div>
       </div>
     </section>

@@ -1,12 +1,9 @@
 "use client";
 
 import { usePreview } from "@/components/preview";
-import { ApiFailure, clientFetch } from "@/lib/api";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-
-export type Session = { hotkey: string; demo: boolean; roles: string[] } | null;
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 
 export function Button({
   children,
@@ -54,113 +51,6 @@ export function Button({
       )}
       {children}
     </button>
-  );
-}
-
-/** Confirmation for consequential actions. Uses the native dialog element for focus and Escape handling. */
-export function ConfirmButton({
-  label,
-  title,
-  body,
-  confirmLabel,
-  onConfirm,
-  variant = "secondary",
-  disabled,
-  size,
-}: {
-  label: ReactNode;
-  title: string;
-  body: ReactNode;
-  confirmLabel: string;
-  onConfirm: () => Promise<void> | void;
-  variant?: "primary" | "secondary" | "quiet" | "danger";
-  disabled?: boolean;
-  size?: "sm" | "md";
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const [busy, setBusy] = useState(false);
-  const id = useId();
-  return (
-    <>
-      <Button variant={variant} disabled={disabled} size={size} onClick={() => ref.current?.showModal()}>
-        {label}
-      </Button>
-      <dialog
-        ref={ref}
-        aria-labelledby={`${id}-title`}
-        className="m-auto w-[min(30rem,92vw)] rounded-[var(--radius-card)] border border-line bg-surface p-0 text-text shadow-[var(--shadow-lift)]"
-      >
-        <div className="px-6 pb-2 pt-6">
-          <h2 id={`${id}-title`} className="font-display text-[24px] leading-tight">
-            {title}
-          </h2>
-          <div className="mt-3 text-[14px] leading-relaxed text-muted">{body}</div>
-        </div>
-        <div className="flex justify-end gap-2 px-6 pb-5 pt-4">
-          <Button variant="quiet" onClick={() => ref.current?.close()}>
-            Cancel
-          </Button>
-          <Button
-            variant={variant === "danger" ? "danger" : "primary"}
-            busy={busy}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await onConfirm();
-                ref.current?.close();
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {confirmLabel}
-          </Button>
-        </div>
-      </dialog>
-    </>
-  );
-}
-
-export function useSession() {
-  // The public preview has no API behind it, so there is no session to ask for.
-  const { on: preview } = usePreview();
-  const [session, setSession] = useState<Session>(null);
-  const [loaded, setLoaded] = useState(preview);
-  const [nonce, setNonce] = useState(0);
-  const reload = useCallback(async () => setNonce((n) => n + 1), []);
-  useEffect(() => {
-    if (preview) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const r = await clientFetch<{ session: Session }>("/v1/auth/me");
-        if (!cancelled) setSession(r.session);
-      } catch {
-        if (!cancelled) setSession(null);
-      } finally {
-        if (!cancelled) setLoaded(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [nonce, preview]);
-  return { session, loaded, reload };
-}
-
-export function ErrorText({ error }: { error: ApiFailure | Error | null }) {
-  if (!error) return null;
-  const ref = error instanceof ApiFailure ? error.error.reference : undefined;
-  return (
-    <p role="alert" className="mt-3 text-[14px] text-danger">
-      {error.message}
-      {ref && (
-        <>
-          {" "}
-          <span className="num font-mono text-[12px] text-muted">reference {ref}</span>
-        </>
-      )}
-    </p>
   );
 }
 

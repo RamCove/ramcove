@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import hashlib
-
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 
-from ..channel import is_public
 from ..services import auth as auth_svc
 from ..services import public
 from ..services.context import AppContext, ServiceError
@@ -107,24 +104,6 @@ def demo_sign_in(body: DemoSignInIn, response: Response, ctx: AppContext = Depen
     return {**info, "demo": True}
 
 
-@router.post("/auth/guest", tags=["demo"])
-def guest_sign_in(request: Request, response: Response, ctx: AppContext = Depends(get_ctx)) -> dict:
-    """Public demo: sign in as a brand-new guest miner with its own simulated wallet."""
-    ip = request.headers.get("x-ramcove-client-ip") or ""
-    client_key = hashlib.sha256(f"ramcove-guest|{ip}".encode()).hexdigest() if ip else None
-    token, info = auth_svc.guest_sign_in(ctx, client_key)
-    response.set_cookie(
-        SESSION_COOKIE,
-        token,
-        httponly=True,
-        samesite="strict",
-        secure=is_public(request),
-        max_age=12 * 3600,
-        path="/",
-    )
-    return {**info, "demo": True}
-
-
 @router.get("/auth/me")
 def me(sess: dict | None = Depends(session)) -> dict:
     return {"session": sess}
@@ -134,7 +113,5 @@ def me(sess: dict | None = Depends(session)) -> dict:
 def logout(
     response: Response, ctx: AppContext = Depends(get_ctx), sess: dict | None = Depends(session)
 ) -> dict:
-    from fastapi import Request  # noqa: F401
-
     response.delete_cookie(SESSION_COOKIE, path="/")
     return {"ok": True}

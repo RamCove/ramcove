@@ -2,6 +2,23 @@
 
 Newest first. Commands are the ones actually run; results are what actually happened.
 
+## 2026-09-19 — a read-only site; every role uses its own tool
+
+- The website has no sign-in any more. Miners submit with `ramcove-miner`, validators run `ramcove-worker`,
+  and the operator, reviewers and appeal panel act with the new `ramcove-operator`, each with their own key.
+- Retired pages (Submit, My work, Validator, Review, Operator) redirect to where their content lives; the
+  public submission page stays, without the author's payment details. The browser no longer talks to the
+  API at all, so the Next.js proxy route is gone.
+- The public door (nginx :8788) now accepts only `GET` and `HEAD`, and refuses sign-in, miner and demo
+  routes on top of the role workspaces. Guest sign-in is removed; migration 0003 drops its table and the
+  throwaway keys in it.
+- The whitepaper opens full screen as the PDF from the header, the Docs tabs and the footer.
+- Docs gained command-line guides for miners and validators, stating plainly that real GPU execution and
+  a real-network signer are not in this build.
+- Verified: `uv run pytest` 121 passed, 2 deselected (the opt-in live-network tests); browser suite 14 passed (7 journeys × desktop and phone)
+  against an isolated stack (API :8797 on database `ramcove_e2e`, dev web :3797), so the live demo data
+  was not touched; `node screenshots.mjs` 12 views, 0 with problems.
+
 ## 2026-09-18 — browser verification and demo scenarios
 
 - Browser suite (`apps/web/e2e/journeys.spec.ts`): 16 tests pass on desktop (1440×900) and phone (Pixel 7).

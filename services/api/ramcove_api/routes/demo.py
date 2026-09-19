@@ -6,12 +6,11 @@ production behaviour.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel, Field
 from ramcove_miner.artifact import sign_artifact
 from ramcove_miner.fixtures import FIXTURES, by_name
 
-from ..channel import is_public
 from ..services import demo_artifacts, intake, seed
 from ..services.auth import demo_keypair
 from ..services.context import AppContext, ServiceError
@@ -32,19 +31,10 @@ class FixtureSubmitIn(BaseModel):
 
 
 @router.get("/identities")
-def identities(request: Request, ctx: AppContext = Depends(get_ctx)) -> dict:
+def identities(ctx: AppContext = Depends(get_ctx)) -> dict:
     _require_demo(ctx)
-    if is_public(request):
-        # Named demo identities use published keys and include the operator, so the public site offers
-        # only a fresh guest miner per visitor.
-        return {
-            "identities": [],
-            "guest": True,
-            "note": "Continue as a guest miner: a new identity with simulated funds, just for you.",
-        }
     return {
         "identities": [{"key": d.key, "name": d.name, "roles": list(d.roles)} for d in seed.DEMO_IDENTITIES],
-        "guest": True,
         "note": "Demo identities sign server-side with published development keys. They have no value on any "
         "real network and exist only in demo mode.",
     }

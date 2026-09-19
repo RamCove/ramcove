@@ -24,7 +24,7 @@ export default function DocsPage() {
       <PageHeader
         eyebrow="Documentation"
         title="How RamCove works"
-        lede="What a submission must contain, how it is measured, and what each failure means. The full protocol specification and the runbooks live in the repository."
+        lede="How miners submit and how validators measure, both from the command line, and what each failure means. The full protocol specification and the runbooks live in the repository."
       />
 
       <Notice tone="sim" title="Everything here runs on a simulation">
@@ -33,47 +33,118 @@ export default function DocsPage() {
       </Notice>
 
       <div className="grid items-start gap-5 lg:grid-cols-2">
-        <Card title="For miners" subtitle="From a patch to a champion.">
-          <ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
-            <li>
-              Build your change against the pinned engine commit shown on the{" "}
-              <Link href="/docs/rules" className="text-accent hover:underline">
-                profile page
-              </Link>
-              , inside the allowed paths.
-            </li>
-            <li>
-              Pack and sign: <Mono>uv run ramcove-miner pack</Mono> then <Mono>uv run ramcove-miner submit</Mono>.
-            </li>
-            <li>Free checks run first. They never cost anything and never execute your code.</li>
-            <li>If capacity exists you get a quote. Otherwise you join the free waiting list.</li>
-            <li>Pay in TAO. Your place in line is the finalized payment block and index.</li>
-            <li>
-              Screening, full evaluation, then five paired blocks against the frozen champion, then review.
-            </li>
-          </ol>
+        <Card
+          id="miners"
+          eyebrow="For miners"
+          title="Submit from the command line"
+          subtitle="There is nothing to sign in to on this site. Your hotkey signs each step inside the ramcove-miner tool."
+          className="scroll-mt-24 lg:col-span-2"
+        >
+          <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+            <ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
+              <li>
+                Build your change against the pinned engine commit shown in the{" "}
+                <Link href="/docs/rules" className="text-accent hover:underline">
+                  rules
+                </Link>
+                , inside the allowed paths.
+              </li>
+              <li>
+                <Mono>pack</Mono> turns your patch and manifest into a reproducible artifact.
+              </li>
+              <li>
+                <Mono>preflight</Mono> runs the free checks. They never cost anything and never execute your code.
+              </li>
+              <li>
+                <Mono>submit</Mono> reserves capacity and shows the quote: amount, recipient, expiry and refund
+                rules. Nothing is paid until you confirm. Without capacity you join the free waiting list.
+              </li>
+              <li>Your place in line is the finalized block and index of your payment.</li>
+              <li>
+                Screening, full evaluation, then five paired blocks against the frozen champion, then review.
+                Follow it with <Mono>status</Mono> or on the{" "}
+                <Link href="/dashboard" className="text-accent hover:underline">
+                  dashboard
+                </Link>
+                .
+              </li>
+            </ol>
+            <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-line bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-muted">
+{`# build a reproducible artifact
+uv run ramcove-miner pack --patch patch.diff --manifest manifest.json
+
+# the free checks: no fee, your code is not run
+uv run ramcove-miner preflight --artifact artifact.tar.gz --key-uri //Dev
+
+# checks, reserve, quote; pays only after you confirm
+uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri //Dev
+
+# follow a submission
+uv run ramcove-miner status --submission sub_...
+
+# lost track of a payment? recover it, never charged twice
+uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
+            </pre>
+          </div>
+          <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
+            In this build <Mono>--key-uri</Mono> takes a development key and works only on the simulated network;
+            a wallet signer for a real network is not included. The tool talks to the API given by{" "}
+            <Mono>--api</Mono> (default <Mono>http://127.0.0.1:8787</Mono>). The hosted site does not take
+            submissions from the internet yet, so run the stack locally to try it.
+          </p>
         </Card>
 
-        <Card title="For validators" subtitle="Running workers that are actually safe to evaluate with.">
-          <ul className="list-disc space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
-            <li>
-              A worker is one physical host with one whole H100 SXM, no MIG and no other workload during
-              measurement.
-            </li>
-            <li>
-              Candidates run in a hardware-virtualized VM with the GPU passed through, no network, and a
-              trusted host-side measurement agent.
-            </li>
-            <li>
-              The worker signs every API request with its own key. It holds no database credentials, chain keys
-              or tokens.
-            </li>
-            <li>
-              &quot;Online&quot; and &quot;safe and ready&quot; are different states. A worker that cannot prove
-              its isolation is never given untrusted code.
-            </li>
-            <li>Confirmation blocks are spread across separately provisioned workers, and later across validators.</li>
-          </ul>
+        <Card
+          id="validators"
+          eyebrow="For validators"
+          title="Run the validator software"
+          subtitle="Validators do not sign in here either. They run evaluation workers that sign their own requests."
+          className="scroll-mt-24 lg:col-span-2"
+        >
+          <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+            <ul className="list-disc space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
+              <li>
+                A worker is one physical host with one whole H100 SXM, no MIG and no other workload during
+                measurement.
+              </li>
+              <li>
+                <Mono>ramcove-worker</Mono> takes work from the API, runs it inside its isolation provider and
+                reports signed results. It holds no database credentials, chain keys or tokens.
+              </li>
+              <li>
+                Candidates run in a hardware-virtualized VM with the GPU passed through, no network, and a trusted
+                host-side measurement agent.
+              </li>
+              <li>
+                &quot;Online&quot; and &quot;safe and ready&quot; are different states. A worker that cannot
+                prove its isolation is never given untrusted code. Each worker&apos;s state is on the{" "}
+                <Link href="/status" className="text-accent hover:underline">
+                  status page
+                </Link>
+                .
+              </li>
+              <li>Confirmation blocks are spread across separately provisioned workers, and later across validators.</li>
+            </ul>
+            <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-line bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-muted">
+{`# one worker per GPU host
+export RAMCOVE_API_ORIGIN=http://127.0.0.1:8787
+export RAMCOVE_WORKER_ID=w-1
+export RAMCOVE_WORKER_KEY_URI=<the worker's signing key>
+
+# the VM isolation provider for real measurement
+export RAMCOVE_WORKER_PROVIDER=vfio-vm
+export RAMCOVE_GPU_BDF=<PCI address of the H100>
+export RAMCOVE_VM_IMAGE_SHA256=<pinned VM image>
+export RAMCOVE_MEASUREMENT_AGENT_SOCKET=<agent socket>
+
+uv run ramcove-worker`}
+            </pre>
+          </div>
+          <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
+            In this build the VM provider runs its readiness checks and then fails closed: real GPU execution is
+            not implemented yet. The demo workers use the simulated provider, which only replays trusted
+            fixtures, and weights are proposed but never set on a chain.
+          </p>
         </Card>
 
         <Card title="Terms you will meet" subtitle="Plain meanings, in the order you meet them.">

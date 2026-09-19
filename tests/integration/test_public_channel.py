@@ -1,9 +1,8 @@
 """The public door: what visitors to the hosted site can and cannot do.
 
-Requests from the public reverse proxy carry x-ramcove-channel: public, set by the proxy. On that door
-the operator, reviewer, validator and worker actions, the database reset and scenarios, the named demo
-identities (whose keys are published) and file uploads are all refused. Visitors instead get a fresh
-guest miner each, with simulated funds, so they can run the whole miner flow without sharing an identity.
+Requests from the public reverse proxy carry x-ramcove-channel: public, set by the proxy. The hosted site
+only reads: miners submit with the command line and validators run their own workers. So on that door
+every write is refused, and so are sign-in, personal data, the demo controls and every role's workspace.
 """
 
 from __future__ import annotations
@@ -17,8 +16,8 @@ from ramcove_api.main import create_app
 from ramcove_api.services import control
 from ramcove_api.services.control import DEMO_REVIEW_REASON
 from ramcove_api.store.db import tx
-from ramcove_api.store.schema import guest_identities, reviews, submissions
-from sqlalchemy import func, select
+from ramcove_api.store.schema import reviews, submissions
+from sqlalchemy import select
 
 from .helpers import bring_workers_online, drain, make_ctx, pay_and_admit, state, submit_fixture
 
@@ -32,14 +31,9 @@ def ctx(tmp_path):
     return make_ctx(tmp_path)
 
 
-def public_client(ctx) -> TestClient:
-    # the hosted site is HTTPS end to end, and the public session cookie is Secure
-    return TestClient(create_app(ctx), base_url="https://testserver", headers=PUBLIC)
-
-
 @pytest.fixture
 def public(ctx):
-    return public_client(ctx)
+    return TestClient(create_app(ctx), base_url="https://testserver", headers=PUBLIC)
 
 
 @pytest.mark.parametrize(
@@ -47,20 +41,36 @@ def public(ctx):
     [
         ("post", "/v1/demo/reset"),
         ("post", "/v1/demo/scenario"),
+        ("post", "/v1/demo/submit-fixture"),
+        ("get", "/v1/demo/identities"),
         ("post", "/v1/auth/demo"),
+        ("post", "/v1/auth/challenge"),
+        ("post", "/v1/auth/verify"),
+        ("get", "/v1/auth/me"),
+        ("get", "/v1/miner/submissions"),
+        ("post", "/v1/miner/preflight"),
         ("get", "/v1/operator/console"),
         ("post", "/v1/worker/lease"),
         ("get", "/v1/review/queue"),
         ("get", "/v1/appeals"),
         ("get", "/v1/validator/workspace"),
-        ("post", "/v1/miner/preflight"),
         ("get", "/openapi.json"),
+        # a write is refused even on a path whose read is public
+        ("post", "/v1/dashboard"),
     ],
 )
-def test_local_only_actions_are_refused_on_the_public_door(public, method, path):
+def test_the_public_door_refuses_sign_in_writes_and_workspaces(public, method, path):
     r = getattr(public, method)(path)
     assert r.status_code == 403, (path, r.status_code, r.text[:200])
     assert r.json()["error"]["code"] == "local_only"
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/v1/meta", "/v1/overview", "/v1/dashboard", "/v1/profile", "/v1/status", "/v1/queue?kind=admitted"],
+)
+def test_the_pages_the_site_shows_are_readable_on_the_public_door(public, path):
+    assert public.get(path).status_code == 200, path
 
 
 def test_the_same_actions_still_work_locally(ctx):
@@ -69,35 +79,9 @@ def test_the_same_actions_still_work_locally(ctx):
     assert local.get("/v1/operator/console").status_code == 200
 
 
-def test_public_visitors_are_offered_only_a_guest_miner(public):
-    body = public.get("/v1/demo/identities").json()
-    assert body["identities"] == [] and body["guest"] is True
-
-
-def test_each_visitor_gets_their_own_guest_miner_with_a_secure_cookie(ctx, public):
-    first = public.post("/v1/auth/guest")
-    assert first.status_code == 200, first.text
-    assert first.json()["roles"] == ["miner"] and first.json()["guest"] is True
-    assert "secure" in first.headers["set-cookie"].lower()
-    other = public_client(ctx).post("/v1/auth/guest")
-    assert other.json()["hotkey"] != first.json()["hotkey"]
-    # the guest's key never leaves the server
-    assert "seed" not in first.text.lower()
-
-
-def test_a_guest_can_run_the_miner_flow(public):
-    assert public.post("/v1/auth/guest").status_code == 200
-    r = public.post("/v1/demo/submit-fixture", json={"fixture": "fragmentation-aware-allocator"})
-    assert r.status_code == 200, r.text
-    assert r.json()["ok"] is True
-
-
-def test_guest_creation_is_rate_limited(ctx):
-    ctx.settings = dataclasses.replace(ctx.settings, guest_limit_per_hour=2)
-    codes = [public_client(ctx).post("/v1/auth/guest").status_code for _ in range(3)]
-    assert codes == [200, 200, 429]
-    with tx(ctx.engine) as conn:
-        assert conn.execute(select(func.count()).select_from(guest_identities)).scalar_one() == 2
+def test_there_is_no_guest_sign_in_any_more(ctx):
+    local = TestClient(create_app(ctx))
+    assert local.post("/v1/auth/guest").status_code in {404, 405}
 
 
 def test_the_stand_in_reviewer_is_off_by_default_and_labels_what_it_approves(ctx):

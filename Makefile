@@ -52,9 +52,8 @@ stop: ## stop background development processes
 	-pkill -f "ramcove_api|ramcove-api|ramcove_controller|ramcove-controller|ramcove_worker|ramcove-worker" || true
 	-pkill -f "next dev -p 3787" || true
 
-openapi: ## export the OpenAPI document and regenerate web types
+openapi: ## export the OpenAPI document
 	uv run ramcove-admin openapi
-	cd apps/web && npm run gen:api
 
 test: ## unit tests only (no database required)
 	uv run pytest -q tests/unit

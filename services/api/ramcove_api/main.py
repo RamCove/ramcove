@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .channel import PUBLIC_DENY, is_public
+from .channel import PUBLIC_DENY, PUBLIC_METHODS, is_public
 from .config import load_settings
 from .routes import demo, miner, operator, public_routes, review_routes, worker_routes
 from .services.context import AppContext, ArtifactStore, ServiceError
@@ -65,12 +65,12 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
     @app.middleware("http")
     async def guard(request: Request, call_next):
         path = request.url.path
-        if is_public(request) and path.startswith(PUBLIC_DENY):
+        if is_public(request) and (request.method not in PUBLIC_METHODS or path.startswith(PUBLIC_DENY)):
             return JSONResponse(
                 {
                     "error": {
                         "code": "local_only",
-                        "message": "This action is only available on the operator's own console, not the public site.",
+                        "message": "The public site is read-only. Miners and validators use their own tools.",
                     }
                 },
                 status_code=403,
