@@ -7,14 +7,14 @@ import secrets
 from datetime import timedelta
 
 from ramcove_protocol.auth import Challenge, ChallengeError, verify_challenge
-from sqlalchemy import func, select, update
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from substrateinterface import Keypair
 
 from ..signing import verify_sr25519
 from ..store import audit
-from ..store.db import advisory_lock, now, tx
-from ..store.schema import auth_challenges, guest_identities, identities, role_grants, sessions
+from ..store.db import now, tx
+from ..store.schema import auth_challenges, identities, role_grants, sessions
 from .context import AppContext, ServiceError
 
 CHALLENGE_TTL = timedelta(minutes=10)
@@ -109,54 +109,8 @@ def demo_sign_in(ctx: AppContext, identity_key: str) -> tuple[str, dict]:
         return _open_session(conn, ctx, kp.ss58_address, demo=True)
 
 
-def guest_sign_in(ctx: AppContext, client_key: str | None) -> tuple[str, dict]:
-    """Public demo: give this visitor their own fresh miner identity on the development chain.
-
-    Each guest is a new sr25519 key the server holds and signs for, so visitors never share an identity
-    and cannot touch each other's submissions. It is registered on the dev chain and can pay only with
-    simulated funds. Creation is rate-limited across everyone and per client.
-    """
-    if not ctx.settings.demo_features:
-        raise ServiceError("disabled", "guest sign-in exists only in the demo", 403)
-    with tx(ctx.engine) as conn:
-        advisory_lock(conn, "guest-identities")
-        hour_ago = now() - timedelta(hours=1)
-        recent = conn.execute(
-            select(func.count()).select_from(guest_identities).where(guest_identities.c.created_at > hour_ago)
-        ).scalar_one()
-        if recent >= ctx.settings.guest_limit_per_hour:
-            raise ServiceError("busy", "Too many new guests this hour. Please try again later.", 429)
-        if client_key:
-            mine = conn.execute(
-                select(func.count())
-                .select_from(guest_identities)
-                .where(guest_identities.c.client_key == client_key, guest_identities.c.created_at > hour_ago)
-            ).scalar_one()
-            if mine >= 5:
-                raise ServiceError(
-                    "busy", "You have started several guest sessions this hour. Please try later.", 429
-                )
-        seed_hex = "0x" + secrets.token_hex(32)
-        kp = Keypair.create_from_seed(seed_hex)
-        conn.execute(
-            guest_identities.insert().values(hotkey=kp.ss58_address, seed_hex=seed_hex, client_key=client_key)
-        )
-        conn.execute(
-            insert(identities)
-            .values(hotkey=kp.ss58_address, display_name="Guest miner", demo=True)
-            .on_conflict_do_nothing()
-        )
-        conn.execute(
-            role_grants.insert().values(hotkey=kp.ss58_address, role="miner", granted_by="guest-sign-in")
-        )
-        ctx.chain(conn).store.register(ctx.settings.netuid, kp.ss58_address)
-        token, info = _open_session(conn, ctx, kp.ss58_address, demo=True)
-        return token, {**info, "guest": True}
-
-
 def demo_keypair(ctx: AppContext, hotkey: str) -> Keypair:
-    """Server-side signing on behalf of a demo identity or a guest (demo only, for browser flows without a
-    wallet)."""
+    """Server-side signing on behalf of a demo identity (demo only, for local flows without a wallet)."""
     if not ctx.settings.demo_features:
         raise ServiceError("disabled", "demo signing is disabled outside demo mode", 403)
     from .seed import DEMO_IDENTITIES
@@ -165,12 +119,6 @@ def demo_keypair(ctx: AppContext, hotkey: str) -> Keypair:
         kp = Keypair.create_from_uri(d.uri)
         if kp.ss58_address == hotkey:
             return kp
-    with tx(ctx.engine) as conn:
-        seed_hex = conn.execute(
-            select(guest_identities.c.seed_hex).where(guest_identities.c.hotkey == hotkey)
-        ).scalar()
-    if seed_hex:
-        return Keypair.create_from_seed(seed_hex)
     raise ServiceError("not_demo_identity", "this hotkey is not a demo identity", 403)
 
 

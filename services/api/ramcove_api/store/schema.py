@@ -76,18 +76,6 @@ identities = Table(
     ts("created_at", False, True),
 )
 
-# Public demo: each visitor gets a fresh miner identity the server signs for. The keys are worthless
-# outside the development chain and are never returned by any route.
-guest_identities = Table(
-    "guest_identities",
-    metadata,
-    Column("hotkey", String(48), primary_key=True),
-    Column("seed_hex", String(66), nullable=False),
-    Column("client_key", String(64)),
-    ts("created_at", False, True),
-    Index("ix_guest_identities_created", "created_at"),
-)
-
 role_grants = Table(
     "role_grants",
     metadata,
