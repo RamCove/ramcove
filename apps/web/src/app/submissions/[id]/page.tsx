@@ -1,11 +1,9 @@
 import { AutoRefresh, CopyRef, TimeAgo } from "@/components/client";
 import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, SimulatedTag, Stat, StatePill, Table, Td, Term } from "@/components/ui";
 import { apiGetOrNull } from "@/lib/server-api";
-import { admissionKey, centiHours, gain, rps, shortHash, tao, when } from "@/lib/format";
+import { admissionKey, centiHours, gain, rps, shortHash, when } from "@/lib/format";
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { SubmissionActions } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Submission" };
@@ -37,8 +35,6 @@ type View = {
   method: string | null;
   mechanism: string | null;
   trusted_fixture: string | null;
-  changed_paths: string[] | null;
-  artifact_sha256: string | null;
   blocking_submissions: string[];
   timeline: {
     stage: string;
@@ -76,10 +72,6 @@ type View = {
   }[];
   appeals: { id: string; status: string; kind: string; grounds: string; decision_reason: string | null; due_at: string }[];
   reports: { id: string; kind: string; hash: string; simulated: boolean; body: Record<string, unknown> | null; created_at: string }[];
-  quote?: { id: string; amount_rao: number; status: string; expires_block: number; recipient: string; payer: string };
-  receipt?: { id: string; body: Record<string, unknown>; signature: string; signer: string };
-  credits?: { id: string; amount_rao: number; reason: string; expires_at: string }[];
-  refunds?: { id: string; amount_rao: number; status: string; reason: string }[];
 };
 
 const STAGE_TITLE: Record<string, string> = {
@@ -92,10 +84,14 @@ const STAGE_TITLE: Record<string, string> = {
 
 export default async function SubmissionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const cookie = (await cookies()).toString();
-  const v = await apiGetOrNull<View>(`/v1/submissions/${id}`, cookie);
-  if (!v) return <Empty title="Submission not found">Check the link, or sign in if this submission is yours.</Empty>;
-  const owner = Boolean(v.artifact_sha256);
+  const v = await apiGetOrNull<View>(`/v1/submissions/${id}`);
+  if (!v) {
+    return (
+      <Empty title="Submission not found">
+        Check the link. Miners can also follow a submission with <Mono>ramcove-miner status</Mono>.
+      </Empty>
+    );
+  }
   const measured = v.comparisons.filter((c) => c.status === "measured");
   return (
     <div className="min-w-0 space-y-8">
@@ -311,51 +307,6 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
               />
             </div>
           </Card>
-
-          {owner && (
-            <Card title="Your payment" subtitle="Visible only to you and the operator.">
-              <KeyValue
-                rows={[
-                  ["Quote", v.quote ? `${tao(v.quote.amount_rao)} TAO · ${v.quote.status}` : "—"],
-                  ["Receipt", v.receipt ? <Mono key="r">{v.receipt.id}</Mono> : "not issued"],
-                  ["Signed by", v.receipt ? <Mono key="s">{shortHash(v.receipt.signer, 8)}</Mono> : "—"],
-                  ["Artifact", <Mono key="a">{shortHash(v.artifact_sha256, 12)}</Mono>],
-                ]}
-              />
-              {(v.credits ?? []).length > 0 && (
-                <div className="mt-3">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">Credits</h3>
-                  {v.credits!.map((c) => (
-                    <p key={c.id} className="text-[12px] text-muted">
-                      {tao(c.amount_rao)} TAO — {c.reason}
-                    </p>
-                  ))}
-                </div>
-              )}
-              {(v.refunds ?? []).length > 0 && (
-                <div className="mt-3">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">Refunds</h3>
-                  {v.refunds!.map((r) => (
-                    <p key={r.id} className="text-[12px] text-muted">
-                      {tao(r.amount_rao)} TAO — {r.status} · {r.reason}
-                    </p>
-                  ))}
-                </div>
-              )}
-              {v.changed_paths && (
-                <div className="mt-3">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">Changed paths</h3>
-                  <ul className="mt-1 font-mono text-[11px] text-muted">
-                    {v.changed_paths.map((p) => (
-                      <li key={p}>{p}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </Card>
-          )}
-
-          {owner && <SubmissionActions submissionId={v.submission_id} state={v.state} />}
 
           <Card title="What the states mean">
             <dl className="space-y-2 text-[12px] leading-relaxed text-muted">

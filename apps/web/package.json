@@ -8,7 +8,6 @@
     "start": "next start -H 127.0.0.1 -p 3787",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "gen:api": "openapi-typescript ../../var/openapi.json -o src/lib/api-types.ts",
     "test:e2e": "playwright test",
     "snapshot": "node scripts/snapshot.mjs"
   },
@@ -29,7 +28,6 @@
     "@types/react-dom": "19.3.0",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.5",
-    "openapi-typescript": "7.13.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3"
   }

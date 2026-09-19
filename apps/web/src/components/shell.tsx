@@ -1,21 +1,17 @@
 "use client";
 
-import { Button, CopyRef, ErrorText, ThemeToggle, useSession } from "@/components/client";
-import { usePreview } from "@/components/preview";
-import { ApiFailure, clientFetch } from "@/lib/api";
-import { REPO_URL, WHITEPAPER_PAGE } from "@/lib/site";
+import { ThemeToggle } from "@/components/client";
+import { REPO_URL, WHITEPAPER_PDF } from "@/lib/site";
 import clsx from "clsx";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
+// The site is public and read-only: miners submit with the ramcove-miner command line, and validators
+// run the controller and workers, so there is nothing to sign in to here.
 const NAV = [
   { href: "/", label: "Overview" },
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/submissions", label: "My work", needs: "session" },
-  { href: "/validator", label: "Validator", needs: "validator" },
-  { href: "/review", label: "Review", needs: "reviewer" },
-  { href: "/operator", label: "Operator", needs: "operator" },
   { href: "/docs", label: "Docs" },
   { href: "/status", label: "Status" },
 ] as const;
@@ -60,30 +56,20 @@ export function Logomark({ size = 28, title = "RamCove" }: { size?: number; titl
 
 export function TopNav() {
   const path = usePathname();
-  const preview = usePreview();
-  const { session, loaded, reload } = useSession();
   const [open, setOpen] = useState(false);
-  const roles = new Set(session?.roles ?? []);
-  const visible = NAV.filter(
-    (item) =>
-      !("needs" in item) ||
-      (item.needs === "session" ? Boolean(session) : roles.has(item.needs as string) || roles.has("operator")),
-  );
   const isActive = (href: string) => path === href || (href !== "/" && path.startsWith(href));
-  // The bar carries the public pages; personal and role workspaces live in the account menu, so the
-  // header never overflows however many roles a session holds.
-  const primary = visible.filter((item) => !("needs" in item));
-  const workspace = visible.filter((item) => "needs" in item);
+  const icon =
+    "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text";
   return (
-    <>
-      <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur-md supports-[backdrop-filter]:bg-bg/70">
-        <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-5 sm:px-8">
-          <Link href="/" className="shrink-0 rounded-[var(--radius-sm)]" aria-label="RamCove home">
-            <Wordmark />
-          </Link>
-          <nav aria-label="Main" className="ml-auto hidden lg:block">
+    <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur-md supports-[backdrop-filter]:bg-bg/70">
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-5 sm:px-8">
+        <Link href="/" className="shrink-0 rounded-[var(--radius-sm)]" aria-label="RamCove home">
+          <Wordmark />
+        </Link>
+        <div className="ml-auto flex items-center">
+          <nav aria-label="Main" className="hidden lg:block">
             <ul className="flex items-center gap-0.5">
-              {primary.map((item) => {
+              {NAV.map((item) => {
                 const active = isActive(item.href);
                 return (
                   <li key={item.href}>
@@ -103,58 +89,17 @@ export function TopNav() {
                   </li>
                 );
               })}
-              <li aria-hidden className="mx-2 h-5 w-px bg-line-strong" />
-              <li>
-                <Link
-                  href={WHITEPAPER_PAGE}
-                  aria-label="Whitepaper"
-                  title="Whitepaper"
-                  aria-current={isActive(WHITEPAPER_PAGE) ? "page" : undefined}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text"
-                >
-                  <WhitepaperIcon />
-                </Link>
-              </li>
-              <li>
-                <a
-                  href={REPO_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="RamCove on GitHub"
-                  title="RamCove on GitHub"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text"
-                >
-                  <GitHubIcon />
-                </a>
-              </li>
             </ul>
           </nav>
-          <div className="ml-auto flex items-center gap-1.5 lg:ml-2">
-            <Link
-              href="/submit"
-              aria-current={isActive("/submit") ? "page" : undefined}
-              className="hidden h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-accent px-4 text-[14px] font-medium text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_18px_-8px_var(--accent)] transition-colors hover:bg-accent-strong sm:inline-flex"
-            >
-              Submit
-            </Link>
+          <span aria-hidden className="mx-3 hidden h-5 w-px bg-line-strong lg:block" />
+          <div className="flex items-center gap-0.5">
+            <a href={WHITEPAPER_PDF} target="_blank" rel="noreferrer" aria-label="Whitepaper (PDF)" title="Whitepaper" className={icon}>
+              <WhitepaperIcon />
+            </a>
+            <a href={REPO_URL} target="_blank" rel="noreferrer" aria-label="RamCove on GitHub" title="RamCove on GitHub" className={icon}>
+              <GitHubIcon />
+            </a>
             <ThemeToggle />
-            {preview.on ? (
-              <span
-                className="inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border border-line bg-surface px-3 text-[13px] text-muted sm:px-3.5"
-                title="Sign-in and submissions are off in the public preview"
-              >
-                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-sim" />
-                <span className="hidden sm:inline">Read-only preview</span>
-                <span className="sm:hidden">Preview</span>
-              </span>
-            ) : (
-            <SessionButton
-              session={session}
-              loaded={loaded}
-              reload={reload}
-              workspace={workspace.map((w) => ({ href: w.href, label: w.label, active: isActive(w.href) }))}
-            />
-            )}
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
@@ -168,388 +113,30 @@ export function TopNav() {
             </button>
           </div>
         </div>
-        {open && (
-          <nav aria-label="Main (compact)" className="border-t border-line bg-bg px-5 pb-5 pt-3 lg:hidden">
-            <Link
-              href="/submit"
-              onClick={() => setOpen(false)}
-              className="mb-3 flex h-11 items-center justify-center rounded-[var(--radius-sm)] bg-accent text-[15px] font-medium text-on-accent sm:hidden"
-            >
-              Submit
-            </Link>
-            <ul className="grid gap-0.5">
-              {[...primary, ...workspace].map((item, i) => (
-                <li key={item.href}>
-                  {i === primary.length && workspace.length > 0 && (
-                    <p className="eyebrow mb-1 mt-4 border-t border-line px-3 pt-4">Your workspace</p>
-                  )}
-                  <Link
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                    className={clsx(
-                      "flex items-center justify-between rounded-[var(--radius-sm)] px-3 py-3 text-[16px]",
-                      isActive(item.href) ? "bg-surface-2 text-text" : "text-muted hover:bg-surface-2 hover:text-text",
-                    )}
-                  >
-                    {item.label}
-                    <span aria-hidden className="text-faint">→</span>
-                  </Link>
-                </li>
-              ))}
-              <li className="mt-3 grid grid-cols-2 gap-2 border-t border-line pt-4">
-                <Link
-                  href={WHITEPAPER_PAGE}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-line bg-surface py-2.5 text-[14px] text-text"
-                >
-                  <WhitepaperIcon /> Whitepaper
-                </Link>
-                <a
-                  href={REPO_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-line bg-surface py-2.5 text-[14px] text-text"
-                >
-                  <GitHubIcon /> GitHub
-                </a>
-              </li>
-            </ul>
-          </nav>
-        )}
-      </header>
-    </>
-  );
-}
-
-function SessionButton({
-  session,
-  loaded,
-  reload,
-  workspace,
-}: {
-  session: { hotkey: string; demo: boolean; roles: string[] } | null;
-  loaded: boolean;
-  reload: () => Promise<void>;
-  workspace: { href: string; label: string; active: boolean }[];
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const router = useRouter();
-  if (!loaded) return <span className="inline-block h-9 w-[84px] rounded-full bg-surface-2" aria-hidden />;
-  if (session) {
-    return (
-      <AccountMenu
-        session={session}
-        workspace={workspace}
-        onSignOut={async () => {
-          await clientFetch("/v1/auth/logout", { method: "POST" });
-          await reload();
-          router.refresh();
-        }}
-      />
-    );
-  }
-  return (
-    <>
-      <Button size="sm" variant="secondary" onClick={() => ref.current?.showModal()}>
-        Sign in
-      </Button>
-      <SignInDialog
-        dialogRef={ref}
-        onDone={async () => {
-          await reload();
-          router.refresh();
-        }}
-      />
-    </>
-  );
-}
-
-function AccountMenu({
-  session,
-  workspace,
-  onSignOut,
-}: {
-  session: { hotkey: string; demo: boolean; roles: string[] };
-  workspace: { href: string; label: string; active: boolean }[];
-  onSignOut: () => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  const short = `${session.hotkey.slice(0, 5)}…${session.hotkey.slice(-4)}`;
-  const anyActive = workspace.some((w) => w.active);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  return (
-    <div ref={box} className="relative">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="true"
-        aria-label={`Account ${short}`}
-        onClick={() => setOpen((v) => !v)}
-        title={session.hotkey}
-        className={clsx(
-          "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border bg-surface py-1 pl-1.5 pr-2.5 text-[13px] transition-colors hover:border-line-strong sm:pr-3",
-          anyActive ? "border-accent/50" : "border-line",
-        )}
-      >
-        <span aria-hidden className="h-6 w-6 rounded-full bg-accent-quiet ring-1 ring-accent/30" />
-        <span className="num hidden font-mono text-text sm:inline">{short}</span>
-        {session.roles[0] && (
-          <span className="hidden text-muted xl:inline">· {session.roles[0]}</span>
-        )}
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden className="text-faint">
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
+      </div>
       {open && (
-        <div
-          className="absolute right-0 top-[calc(100%+8px)] z-40 w-64 overflow-hidden rounded-[var(--radius-sm)] border border-line bg-surface"
-          style={{ boxShadow: "var(--shadow-lift)" }}
-        >
-          <div className="border-b border-line px-4 py-3">
-            <p className="eyebrow">Signed in{session.demo ? " · demo" : ""}</p>
-            <p className="num mt-1 truncate font-mono text-[12.5px] text-text">{session.hotkey}</p>
-            {session.roles.length > 0 && (
-              <p className="mt-1 text-[12.5px] text-muted">{session.roles.join(" · ")}</p>
-            )}
-          </div>
-          {workspace.length > 0 && (
-            <nav aria-label="Your workspace" className="py-1.5">
-              {workspace.map((w) => (
+        <nav aria-label="Main (compact)" className="border-t border-line bg-bg px-5 pb-5 pt-3 lg:hidden">
+          <ul className="grid gap-0.5">
+            {NAV.map((item) => (
+              <li key={item.href}>
                 <Link
-                  key={w.href}
-                  href={w.href}
+                  href={item.href}
                   onClick={() => setOpen(false)}
-                  aria-current={w.active ? "page" : undefined}
+                  aria-current={isActive(item.href) ? "page" : undefined}
                   className={clsx(
-                    "flex items-center justify-between px-4 py-2 text-[14px] transition-colors hover:bg-surface-2",
-                    w.active ? "text-text" : "text-muted hover:text-text",
+                    "flex items-center justify-between rounded-[var(--radius-sm)] px-3 py-3 text-[16px]",
+                    isActive(item.href) ? "bg-surface-2 text-text" : "text-muted hover:bg-surface-2 hover:text-text",
                   )}
                 >
-                  {w.label}
-                  {w.active && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />}
+                  {item.label}
+                  <span aria-hidden className="text-faint">→</span>
                 </Link>
-              ))}
-            </nav>
-          )}
-          <div className="border-t border-line p-1.5">
-            <button
-              type="button"
-              onClick={async () => {
-                setOpen(false);
-                await onSignOut();
-              }}
-              className="w-full rounded-[8px] px-3 py-2 text-left text-[14px] text-muted transition-colors hover:bg-surface-2 hover:text-text"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
+              </li>
+            ))}
+          </ul>
+        </nav>
       )}
-    </div>
-  );
-}
-
-export function SignInDialog({
-  dialogRef,
-  onDone,
-}: {
-  dialogRef: React.RefObject<HTMLDialogElement | null>;
-  onDone: () => Promise<void>;
-}) {
-  const [identities, setIdentities] = useState<{ key: string; name: string; roles: string[] }[]>([]);
-  const [guest, setGuest] = useState(false);
-  const [hotkey, setHotkey] = useState("");
-  const [challenge, setChallenge] = useState<{ nonce: string; message: string } | null>(null);
-  const [signature, setSignature] = useState("");
-  const [error, setError] = useState<ApiFailure | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    clientFetch<{ identities: typeof identities; guest?: boolean }>("/v1/demo/identities")
-      .then((r) => {
-        setIdentities(r.identities);
-        setGuest(Boolean(r.guest));
-      })
-      .catch(() => setIdentities([]));
-  }, []);
-
-  async function run<T>(fn: () => Promise<T>) {
-    setBusy(true);
-    setError(null);
-    try {
-      return await fn();
-    } catch (e) {
-      setError(e as ApiFailure);
-      return null;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="signin-title"
-      className="m-auto w-[min(34rem,94vw)] rounded-[var(--radius-card)] border border-line bg-surface p-0 text-text shadow-[var(--shadow-lift)]"
-    >
-      <div className="px-6 pb-2 pt-6">
-        <p className="eyebrow">Sign in</p>
-        <h2 id="signin-title" className="font-display mt-2 text-[28px] leading-tight">
-          Sign in with your hotkey
-        </h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-muted">
-          RamCove never asks for a seed phrase or a private key file. You sign a one-time message that says it
-          only signs you in and authorizes no payment.
-        </p>
-
-        {guest && (
-          <div className="mt-5 rounded-[var(--radius-sm)] border border-line bg-bg px-4 py-4">
-            <p className="text-[14px] font-semibold text-text">Try it as a guest miner</p>
-            <p className="mt-1 text-[13px] leading-relaxed text-muted">
-              You get your own new miner identity with simulated funds, for this browser only. Nothing real is
-              paid and no wallet is needed.
-            </p>
-            <div className="mt-3">
-              <Button
-                variant="primary"
-                busy={busy}
-                onClick={async () => {
-                  const ok = await run(() => clientFetch("/v1/auth/guest", { method: "POST" }));
-                  if (ok) {
-                    dialogRef.current?.close();
-                    await onDone();
-                  }
-                }}
-              >
-                Continue as a guest miner
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {identities.length > 0 && (
-          <div className="mt-5 rounded-[var(--radius-sm)] bg-sim-quiet px-4 py-4">
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-sim">
-              Demo identities · local build only
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {identities.map((i) => (
-                <Button
-                  key={i.key}
-                  size="sm"
-                  busy={busy}
-                  onClick={async () => {
-                    const ok = await run(() =>
-                      clientFetch("/v1/auth/demo", { method: "POST", body: JSON.stringify({ identity: i.key }) }),
-                    );
-                    if (ok) {
-                      dialogRef.current?.close();
-                      await onDone();
-                    }
-                  }}
-                >
-                  {i.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-5">
-          <label htmlFor="hotkey" className="eyebrow">
-            Hotkey address (ss58)
-          </label>
-          <div className="mt-2 flex gap-2">
-            <input
-              id="hotkey"
-              value={hotkey}
-              onChange={(e) => setHotkey(e.target.value.trim())}
-              placeholder="5F…"
-              className="num h-10 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-line-strong bg-bg px-3 font-mono text-[13px] text-text placeholder:text-faint focus:border-accent"
-            />
-            <Button
-              busy={busy}
-              disabled={hotkey.length < 46}
-              onClick={async () => {
-                const r = await run(() =>
-                  clientFetch<{ nonce: string; message: string }>("/v1/auth/challenge", {
-                    method: "POST",
-                    body: JSON.stringify({ hotkey }),
-                  }),
-                );
-                if (r) setChallenge(r);
-              }}
-            >
-              Get message
-            </Button>
-          </div>
-        </div>
-
-        {challenge && (
-          <div className="mt-3">
-            <p className="text-[12px] font-medium text-muted">
-              Sign this message with your hotkey, then paste the signature.
-            </p>
-            <pre className="mt-2 max-h-40 overflow-auto rounded-[var(--radius-sm)] border border-line bg-bg p-3 font-mono text-[12px] leading-relaxed text-muted">
-              {challenge.message}
-            </pre>
-            <div className="mt-1 flex justify-end">
-              <CopyRef value={challenge.message} label="Copy message" />
-            </div>
-            <div className="mt-2 flex gap-2">
-              <input
-                aria-label="Signature"
-                value={signature}
-                onChange={(e) => setSignature(e.target.value.trim())}
-                placeholder="0x…"
-                className="num h-10 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-line-strong bg-bg px-3 font-mono text-[13px] text-text placeholder:text-faint focus:border-accent"
-              />
-              <Button
-                variant="primary"
-                busy={busy}
-                disabled={signature.length < 10}
-                onClick={async () => {
-                  const ok = await run(() =>
-                    clientFetch("/v1/auth/verify", {
-                      method: "POST",
-                      body: JSON.stringify({ nonce: challenge.nonce, signature }),
-                    }),
-                  );
-                  if (ok) {
-                    dialogRef.current?.close();
-                    await onDone();
-                  }
-                }}
-              >
-                Sign in
-              </Button>
-            </div>
-          </div>
-        )}
-        <ErrorText error={error} />
-      </div>
-      <div className="flex justify-end px-6 pb-5 pt-3">
-        <Button variant="quiet" onClick={() => dialogRef.current?.close()}>
-          Close
-        </Button>
-      </div>
-    </dialog>
+    </header>
   );
 }
 

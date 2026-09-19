@@ -2,9 +2,8 @@
  * Public preview mode.
  *
  * The full product needs the Python API, PostgreSQL and the workers. A static host such as Vercel runs
- * only this web app, so there it serves a labelled, read-only snapshot of the local demo instead:
- * public pages render from recorded API responses, and sign-in, submitting and every write are off.
- * That also keeps the demo identities, whose keys are published, off the public internet.
+ * only this web app, so without an API origin it serves a labelled snapshot of the local demo instead:
+ * the pages render from recorded API responses, marked as a snapshot rather than live.
  *
  * On by default on Vercel unless a real API origin is configured; RAMCOVE_PREVIEW=1 forces it anywhere.
  */

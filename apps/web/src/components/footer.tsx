@@ -1,4 +1,5 @@
 import { Wordmark } from "@/components/shell";
+import { REPO_URL, WHITEPAPER_PDF } from "@/lib/site";
 import Link from "next/link";
 
 const COLUMNS: { title: string; links: { href: string; label: string; external?: boolean }[] }[] = [
@@ -6,25 +7,23 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
     title: "Compete",
     links: [
       { href: "/dashboard", label: "Miner dashboard" },
+      { href: "/docs#miners", label: "Mining guide" },
       { href: "/docs/rules", label: "Competition rules" },
-      { href: "/submit", label: "Start a submission" },
     ],
   },
   {
-    title: "Operate",
+    title: "Validate",
     links: [
-      { href: "/validator", label: "Validator workspace" },
-      { href: "/review", label: "Promotion review" },
-      { href: "/operator", label: "Operator console" },
+      { href: "/docs#validators", label: "Validator guide" },
+      { href: "/status", label: "Service status" },
     ],
   },
   {
     title: "Learn",
     links: [
       { href: "/docs", label: "Documentation" },
-      { href: "/status", label: "Service status" },
-      { href: "/docs/whitepaper", label: "Whitepaper" },
-      { href: "https://github.com/RamCove/ramcove", label: "Source on GitHub", external: true },
+      { href: WHITEPAPER_PDF, label: "Whitepaper", external: true },
+      { href: REPO_URL, label: "Source on GitHub", external: true },
     ],
   },
 ];
