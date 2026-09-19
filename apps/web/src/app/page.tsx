@@ -99,7 +99,7 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
       <div className={clsx(CONTAINER, "relative pb-16 pt-14 sm:pt-20 lg:pb-20 lg:pt-24")}>
         <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
           <div className="min-w-0">
-            <p className="eyebrow rise">Proposed Bittensor subnet · Qwen3-32B on one H100</p>
+            <p className="eyebrow rise">Proposed Bittensor subnet · Qwen3.8-27B on one H100</p>
             <h1 className="font-display text-balance rise rise-1 mt-6 text-[60px] leading-[0.95] text-text sm:text-[84px] lg:text-[96px]">
               More AI.
               <br />
