@@ -14,37 +14,16 @@ await mkdir(out, { recursive: true });
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, tablet: { width: 768, height: 1024 }, phone: { width: 390, height: 844 } };
 
 const PAGES = [
-  { name: "overview", path: "/", as: null, viewports: ["desktop", "tablet", "phone"] },
-  { name: "dashboard", path: "/dashboard", as: null, viewports: ["desktop", "phone"] },
-  { name: "docs-rules", path: "/docs/rules", as: null, viewports: ["desktop"] },
-  { name: "docs-whitepaper", path: "/docs/whitepaper", as: null, viewports: ["desktop", "phone"] },
-  { name: "docs", path: "/docs", as: null, viewports: ["desktop"] },
-  { name: "status", path: "/status", as: null, viewports: ["desktop"] },
-  { name: "submit", path: "/submit", as: "miner-cyd", viewports: ["desktop", "phone"] },
-  { name: "submissions", path: "/submissions", as: "miner-ada", viewports: ["desktop"] },
-  { name: "submission-detail", path: "SUBMISSION", as: "miner-ada", viewports: ["desktop", "tablet"] },
-  { name: "validator", path: "/validator", as: "validator-op", viewports: ["desktop"] },
-  { name: "review", path: "/review", as: "reviewer-1", viewports: ["desktop"] },
-  { name: "operator", path: "/operator", as: "operator", viewports: ["desktop"] },
+  { name: "overview", path: "/", viewports: ["desktop", "tablet", "phone"] },
+  { name: "dashboard", path: "/dashboard", viewports: ["desktop", "phone"] },
+  { name: "docs", path: "/docs", viewports: ["desktop", "phone"] },
+  { name: "docs-rules", path: "/docs/rules", viewports: ["desktop"] },
+  { name: "status", path: "/status", viewports: ["desktop"] },
+  { name: "submission-detail", path: "SUBMISSION", viewports: ["desktop", "tablet"] },
 ];
 
 const browser = await chromium.launch();
 const report = [];
-
-async function signIn(context, identity) {
-  const page = await context.newPage();
-  await page.goto(`${base}/`);
-  const res = await page.evaluate(async (id) => {
-    const r = await fetch("/api/v1/auth/demo", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ identity: id }),
-    });
-    return { status: r.status, body: await r.json() };
-  }, identity);
-  await page.close();
-  if (res.status !== 200) throw new Error(`sign-in failed for ${identity}: ${JSON.stringify(res.body)}`);
-}
 
 // find a promoted submission to screenshot in detail
 const probe = await browser.newContext();
@@ -58,14 +37,13 @@ await probe.close();
 
 for (const spec of PAGES) {
   const context = await browser.newContext({ viewport: VIEWPORTS.desktop });
-  if (spec.as) await signIn(context, spec.as);
   for (const vp of spec.viewports) {
     const page = await context.newPage();
     await page.setViewportSize(VIEWPORTS[vp]);
     const errors = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 300)));
     page.on("pageerror", (e) => errors.push(String(e).slice(0, 300)));
-    const path = spec.path === "SUBMISSION" ? (detailHref ?? "/submissions") : spec.path;
+    const path = spec.path === "SUBMISSION" ? (detailHref ?? "/dashboard") : spec.path;
     const response = await page.goto(`${base}${path}`, { waitUntil: "networkidle" });
     await page.waitForTimeout(400);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
