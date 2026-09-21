@@ -61,7 +61,6 @@ class ReplacementRule(Frozen):
     grid_step_ppm: int = 30_000
     grid_min_steps: int = Field(-8, description="Lowest grid rate = base * (1+step)^min")
     grid_max_steps: int = Field(16, description="Highest grid rate = base * (1+step)^max")
-    max_runs_per_reading: int = 6
     calibrated: bool = Field(False, description="False until a Stage 1 noise study has been published")
 
 

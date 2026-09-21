@@ -30,7 +30,7 @@
   "workloads": ["P-mem-v1", "P-live-v1", "P-ctl-v1"],
   "replacement": {
     "delta_ppm": 50000, "clear_win_ppm": 90000,
-    "grid_step_ppm": 30000, "grid_min_steps": -8, "grid_max_steps": 16, "max_runs_per_reading": 6,
+    "grid_step_ppm": 30000, "grid_min_steps": -8, "grid_max_steps": 16,
     "calibrated": false
   },
   "quality": {

@@ -43,6 +43,7 @@ STAGE_LEASE = {
     "calibration": "lease_full_s",
 }
 # a winner whose patch touches native code goes to a person before promotion
+DEFAULT_START_MILLI_RPS = 500  # the tuned baseline's first search, before any score exists
 NATIVE_SUFFIXES = (".cu", ".cuh", ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".pyx", ".so")
 
 
@@ -183,6 +184,10 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
         "simulated": ctx.settings.simulated_chain,
     }
     w = conn.execute(select(workers).where(workers.c.id == worker_id)).first()
+    if job.stage == "calibration":
+        # search from the champion's known capacity (its winning measurement, or another worker's score), so
+        # the grid brackets the real value instead of starting from an arbitrary rate
+        payload["start_milli_rps"] = champ.capacity_milli_rps or DEFAULT_START_MILLI_RPS
     if job.submission_id:
         sub = conn.execute(select(submissions).where(submissions.c.id == job.submission_id)).first()
         payload.update(submission_id=sub.id, artifact_sha256=sub.artifact_sha256)

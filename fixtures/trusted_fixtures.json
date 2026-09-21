@@ -102,7 +102,7 @@
       "retention_bonus": 0.0,
       "review_flag": null,
       "screen_failure": null,
-      "usable_factor": 1.8
+      "usable_factor": 2.6
     },
     "simulated": true,
     "title": "Native paged-KV packing kernel",
@@ -170,7 +170,7 @@
       "retention_bonus": 0.0,
       "review_flag": null,
       "screen_failure": null,
-      "usable_factor": 1.8
+      "usable_factor": 2.6
     },
     "simulated": true,
     "title": "Native paged-KV packing kernel",
@@ -280,7 +280,7 @@
       "retention_bonus": 0.0,
       "review_flag": null,
       "screen_failure": null,
-      "usable_factor": 1.8
+      "usable_factor": 2.6
     },
     "simulated": true,
     "title": "Native paged-KV packing kernel",
@@ -413,7 +413,7 @@
       "retention_bonus": 0.0,
       "review_flag": null,
       "screen_failure": null,
-      "usable_factor": 1.8
+      "usable_factor": 2.6
     },
     "simulated": true,
     "title": "Native paged-KV packing kernel",
@@ -499,7 +499,7 @@
       "retention_bonus": 0.0,
       "review_flag": null,
       "screen_failure": null,
-      "usable_factor": 1.8
+      "usable_factor": 2.6
     },
     "simulated": true,
     "title": "Native paged-KV packing kernel",
@@ -847,7 +847,7 @@
       "retention_bonus": 0.0,
       "review_flag": null,
       "screen_failure": null,
-      "usable_factor": 1.8
+      "usable_factor": 2.6
     },
     "simulated": true,
     "title": "Native paged-KV packing kernel",

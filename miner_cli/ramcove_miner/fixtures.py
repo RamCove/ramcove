@@ -72,7 +72,7 @@ FIXTURES = [
             "@@ -1,3 +1,4 @@\n // vLLM paged KV kernels\n+// RamCove demo fixture: native paged kv\n"
             "+#define RAMCOVE_PACKED_KV 1\n"
         ),
-        "params": StackParams("native-paged-kv-kernel", usable_factor=1.8),
+        "params": StackParams("native-paged-kv-kernel", usable_factor=2.6),
     },
     {
         "name": "evict-quarter",

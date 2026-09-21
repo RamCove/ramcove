@@ -29,7 +29,8 @@ def execute(
         champion = _params(provider.resolve_stack(champ_bytes))
         stage = payload["stage"]
         if stage == "calibration":
-            return pipeline.calibrate(champion, profile, f"calibration:{payload['job_id']}", base_rps=0.5)
+            start = (payload.get("start_milli_rps") or 500) / 1000
+            return pipeline.calibrate(champion, profile, f"calibration:{payload['job_id']}", base_rps=start)
         candidate = _params(provider.resolve_stack(fetch_artifact(payload["artifact_sha256"])))
         if stage == "screen":
             return pipeline.screen(candidate, champion, profile, payload["seed"])

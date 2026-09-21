@@ -11,8 +11,9 @@ three times. Boundary rules:
 - pass at the highest grid rate -> capacity = ceiling rate, flagged "at_grid_ceiling" (conservative).
 
 Reading (a challenger, Section 7.8): single runs on the grid built on the champion's fixed score. Start at
-k=0 and step up while each run passes, at most ``max_runs_per_reading`` runs; the highest passing index is
-the reading. A failure at k=0 ends it at once ("below_champion"): the challenger did not reach the score.
+k=0 and step up while each run passes, up to the top of the grid; the highest passing index is the reading.
+It is not cut short, because a winner's gain is later set against newer champions by arithmetic. A failure
+at k=0 ends it at once ("below_champion"): the challenger did not reach the score.
 """
 
 from __future__ import annotations
@@ -106,7 +107,7 @@ def reading_capacity(base: float, rule: ReplacementRule, run: RunFn) -> Capacity
     best: int | None = None
     best_label: str | None = None
     k = 0
-    while len(trace) < rule.max_runs_per_reading and k <= hi_k:
+    while k <= hi_k:
         label = f"reading-run{len(trace)}"
         ok = run(grid_rate(base, k, rule), label)
         trace.append((k, ok))
