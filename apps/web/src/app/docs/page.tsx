@@ -9,10 +9,11 @@ const FAILURES: [string, string, string][] = [
   ["rejected in the free checks", "Format, signature, path, licence or duplicate problem.", "Fix the reported item and run the checks again. No fee was taken."],
   ["screen build failure", "The patch did not build on two clean isolated builds.", "Build against the pinned engine commit locally first. The fee is consumed."],
   ["screen gross accuracy", "Smoke answers were far below the champion's.", "Check that your change does not break correctness before resubmitting."],
-  ["not a potential winner", "Gates failed, or the triage gain was below the margin.", "Read the failed gate on the submission page; each names what it measured."],
-  ["margin not cleared", "The confirmed lower bound did not exceed the margin.", "A near-tie keeps the incumbent. Improve the method rather than resubmitting the same code."],
-  ["memory evidence", "The gain did not hold under a smaller cache budget, or the memory probe showed no change.", "RamCove rewards memory-driven capacity; a pure speedup is out of scope."],
-  ["review rejected", "A published criterion failed.", "The decision cites the criterion. You may appeal within 7 days."],
+  ["quality failed", "Answers fell below the champion, the frozen reference or an absolute floor.", "Fix the accuracy loss first. Speed never makes up for wrong answers."],
+  ["margin not cleared", "The gain over the champion's fixed score did not exceed the margin. For a close first reading, the average of the two readings did not.", "A near-tie keeps the incumbent. Improve the method rather than resubmitting the same code."],
+  ["winner check failed", "The gain was there, but a context band, the memory evidence, the short-request control, the multi-turn check or the soak failed.", "The submission page names the check and what it measured. RamCove rewards memory-driven capacity; a pure speedup is out of scope."],
+  ["champion changed", "Another submission was crowned first, and over the new champion your measured gain is below the margin. Nothing was measured again.", "Build on the new champion and submit again."],
+  ["review rejected", "A person reviewed your flagged winner and a published criterion failed.", "The decision cites the criterion. You may appeal within 7 days."],
   ["operator failure", "Infrastructure, quorum or deadline failure on our side.", "Your fee returns as a refund or credit. Nothing is charged twice."],
   ["registration expired", "The winning hotkey was not registered within the grace period.", "Register the hotkey before the deadline shown on the submission."],
 ];
@@ -61,8 +62,8 @@ export default function DocsPage() {
               </li>
               <li>Your place in line is the finalized block and index of your payment.</li>
               <li>
-                Screening, full evaluation, then five paired blocks against the frozen champion, then review.
-                Follow it with <Mono>status</Mono> or on the{" "}
+                Screening, then one evaluation against the champion&apos;s fixed score. A winner is promoted
+                automatically unless a check flags it for a person. Follow it with <Mono>status</Mono> or on the{" "}
                 <Link href="/dashboard" className="text-accent hover:underline">
                   dashboard
                 </Link>
@@ -123,7 +124,10 @@ uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
                 </Link>
                 .
               </li>
-              <li>Confirmation blocks are spread across separately provisioned workers, and later across validators.</li>
+              <li>
+                Each worker records the champion&apos;s score once, when it is crowned. Once independent validators
+                take over, a second validator reproduces each winner once.
+              </li>
             </ul>
             <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-line bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-muted">
 {`# one worker per GPU host
@@ -170,16 +174,20 @@ uv run ramcove-worker`}
               <Td>The per-conversation working memory a model keeps on the GPU. It is what RamCove is about.</Td>
             </tr>
             <tr>
-              <Td>Paired block</Td>
-              <Td>One re-imaged worker session that measures the champion and the challenger on the same fresh tests.</Td>
+              <Td>Fixed score</Td>
+              <Td>The champion&apos;s capacity, recorded once per worker when it was crowned. Challengers are compared with it; it is never measured again.</Td>
             </tr>
             <tr>
-              <Td>Triage versus confirmation</Td>
-              <Td>Triage is one estimate that decides whether to spend more; only confirmation blocks can crown.</Td>
+              <Td>Reading</Td>
+              <Td>One capacity search: the highest rate on a fixed grid at which the challenger still meets every limit. A close first reading gets a second.</Td>
             </tr>
             <tr>
-              <Td>Rebase</Td>
-              <Td>Repeating the comparison against a new champion. Your place and your fee are kept.</Td>
+              <Td>Flagged</Td>
+              <Td>An automatic check, such as native code or third-party components, that sends a winner to a person before promotion.</Td>
+            </tr>
+            <tr>
+              <Td>Re-compare</Td>
+              <Td>If another submission is crowned while yours waits, your measured gain is set against the new champion by arithmetic. Your place and fee are kept.</Td>
             </tr>
             <tr>
               <Td>Admission key</Td>

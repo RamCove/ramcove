@@ -34,7 +34,7 @@ type Dashboard = {
     state_label: string;
     group: Group;
     current_stage: { stage: string; status: string } | null;
-    triage_gain_ppm: number | null;
+    first_gain_ppm: number | null;
     bound_gain_ppm: number | null;
     outcome: { code: string; summary: string; fee: string } | null;
     created_at: string;
@@ -73,8 +73,8 @@ const GROUPS: { key: Group; label: string; hint: string; tone: string; bar: stri
 
 const STAGE_NAMES: Record<string, string> = {
   screen: "screening",
-  full: "full evaluation",
-  confirm_block: "confirmation block",
+  full: "evaluation",
+  reproduce: "independent reproduction",
   calibration: "calibration",
 };
 
@@ -130,7 +130,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <dd className="num mt-1 font-mono text-[20px]">{rps(champion.capacity_milli_rps)}</dd>
             </div>
             <div>
-              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-on-band/55">Confirmed gain</dt>
+              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-on-band/55">Gain</dt>
               <dd className="num mt-1 font-mono text-[20px] text-accent">{gain(champion.bound_gain_ppm)}</dd>
             </div>
           </dl>
@@ -281,10 +281,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </Td>
                 <Td className="num whitespace-nowrap font-mono text-[13px]">
                   {s.bound_gain_ppm !== null ? (
-                    <span title="Confirmed lower bound">{gain(s.bound_gain_ppm)}</span>
-                  ) : s.triage_gain_ppm !== null ? (
-                    <span className="text-muted" title="Triage estimate, not promotion evidence">
-                      ~{gain(s.triage_gain_ppm)}
+                    <span title="Gain over the champion's fixed score">{gain(s.bound_gain_ppm)}</span>
+                  ) : s.first_gain_ppm !== null ? (
+                    <span className="text-muted" title="First reading; the decision is not made yet">
+                      ~{gain(s.first_gain_ppm)}
                     </span>
                   ) : (
                     <span className="text-faint">—</span>

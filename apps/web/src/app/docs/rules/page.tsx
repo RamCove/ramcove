@@ -18,12 +18,9 @@ type ProfileDetail = {
     workloads: string[];
     replacement: {
       delta_ppm: number;
-      blocks: number;
-      sigma_floor_ppm: number;
-      confidence: string;
+      clear_win_ppm: number;
       grid_step_ppm: number;
       calibrated: boolean;
-      triage_allowance_ppm: number;
     };
     quality: {
       reference_id: string;
@@ -33,7 +30,7 @@ type ProfileDetail = {
       length_ratio_vs_reference_bp: number;
     };
     latency: Record<string, number>;
-    envelope: Record<string, number>;
+    envelope: { screen: number; evaluation: number; winner_checks: number; recalibration_on_promotion: number };
     deadlines: Record<string, number>;
     fees: { service_cost_usd_cents_per_admission: number; recovery_bp: number; price_source: string };
     bootstrap: { mode: string; min_independent_validators_for_mainnet: number; quorum_validators_after_sunset: number };
@@ -104,7 +101,7 @@ export default async function CompetitionPage() {
               tone="accent"
               hint={data.champion.capacity_measured ? "measured" : "simulated calibration"}
             />
-            <Stat label="Confirmed gain" value={gain(data.champion.bound_gain_ppm)} hint="one-sided lower bound" />
+            <Stat label="Gain" value={gain(data.champion.bound_gain_ppm)} hint="over the previous champion" />
             <Stat label="Promoted" value={data.champion.promoted_at ? when(data.champion.promoted_at) : "—"} />
           </div>
           <div className="mt-4">
@@ -138,20 +135,24 @@ export default async function CompetitionPage() {
           subtitle="One rule, published in advance and frozen with the profile version."
         >
           <div className="rounded-[var(--radius-sm)] border border-line bg-surface-2 px-4 py-3 font-mono text-[12px] leading-relaxed text-muted">
-            G = capacity(challenger) / capacity(champion) − 1<br />
-            L = mean(ln ratio) − t(0.95, n−1) · max(sd, σ<sub>floor</sub>) / √n<br />
-            replace only if exp(L) − 1 &gt; δ and every gate, memory evidence, quorum and review pass
+            G = capacity(challenger) / fixed score(champion) − 1<br />
+            G ≤ δ: the champion stays · G ≥ {gain(r.clear_win_ppm, 0)}: the challenger wins
+            <br />
+            in between: one more reading; the average of the two must exceed δ<br />
+            and a winner must pass every quality gate and winner check
           </div>
           <div className="mt-4 grid grid-cols-2 gap-5 sm:grid-cols-4">
             <Stat label="Margin δ" value={gain(r.delta_ppm, 0)} />
-            <Stat label="Paired blocks" value={r.blocks} />
-            <Stat label="Noise floor" value={`${(r.sigma_floor_ppm / 10_000).toFixed(1)}%`} />
-            <Stat label="Confidence" value="95%" hint="one-sided lower bound" />
+            <Stat label="Clear win" value={gain(r.clear_win_ppm, 0)} hint="no second reading" />
+            <Stat label="Readings" value="1–2" hint="per evaluation" />
+            <Stat label="Rate grid" value={`${gain(r.grid_step_ppm, 0)}`} hint="step between rates" />
           </div>
           <p className="mt-4 text-[13px] leading-relaxed text-muted">
-            Ties and unclear evidence keep the incumbent. A challenger measured against an older champion
-            version cannot be promoted: it is rebased onto the current champion with fresh blocks and no new
-            fee. {r.calibrated ? "" : "The margin, block count and noise floor are uncalibrated until a noise study is published."}
+            Ties keep the incumbent. The champion&apos;s score is measured once per worker, when it is crowned, and
+            never again. If another submission is crowned while a measured winner waits, the winner is set
+            against the new champion by arithmetic, (1 + G) / (1 + G<sub>new</sub>) − 1: nothing is measured
+            again and no new fee is charged. A person reviews a winner only when an automatic check flags it.{" "}
+            {r.calibrated ? "" : "The margin, clear-win line and rate grid are uncalibrated until a noise study is published."}
           </p>
         </Card>
 
@@ -258,19 +259,35 @@ export default async function CompetitionPage() {
           </p>
         </Card>
 
-        <Card title="Reserved work per paid admission" subtitle="Worst case, released stage by stage as outcomes become known.">
-          <Table head={["Stage", "Reserved"]}>
-            {Object.entries(p.envelope).map(([k, v]) => (
-              <tr key={k}>
-                <Td>{k.replace(/_/g, " ")}</Td>
-                <Td className="num">{centiHours(v)}</Td>
-              </tr>
-            ))}
+        <Card
+          title="GPU time per paid submission"
+          subtitle="Booked: screening and one evaluation, released as results come in. Winners' extra checks and a new champion's score come from the reserve."
+        >
+          <Table head={["Work", "GPU time", "Who uses it"]}>
             <tr>
-              <Td className="font-semibold">total per admission</Td>
-              <Td className="num font-semibold">
-                {centiHours(Object.values(p.envelope).reduce((a, b) => a + b, 0))}
-              </Td>
+              <Td>screening</Td>
+              <Td className="num whitespace-nowrap">{centiHours(p.envelope.screen)}</Td>
+              <Td>booked for every paid submission</Td>
+            </tr>
+            <tr>
+              <Td>evaluation</Td>
+              <Td className="num whitespace-nowrap">{centiHours(p.envelope.evaluation)}</Td>
+              <Td>booked for every paid submission</Td>
+            </tr>
+            <tr>
+              <Td className="font-semibold">booked per submission</Td>
+              <Td className="num whitespace-nowrap font-semibold">{centiHours(p.envelope.screen + p.envelope.evaluation)}</Td>
+              <Td>counts toward the two-week queue</Td>
+            </tr>
+            <tr>
+              <Td>winner checks</Td>
+              <Td className="num whitespace-nowrap">{centiHours(p.envelope.winner_checks)}</Td>
+              <Td>winners only, from the reserve</Td>
+            </tr>
+            <tr>
+              <Td>new champion&apos;s score</Td>
+              <Td className="num whitespace-nowrap">{centiHours(p.envelope.recalibration_on_promotion)}</Td>
+              <Td>once per promotion, from the reserve</Td>
             </tr>
           </Table>
           <p className="mt-3 text-[12px] leading-relaxed text-muted">

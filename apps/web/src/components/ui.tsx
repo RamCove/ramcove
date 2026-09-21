@@ -146,7 +146,7 @@ export function StatePill({ state, label }: { state: string; label?: string }) {
         ? "danger"
         : ["operator_failed", "expired_quote", "withdrawn"].includes(state)
           ? "warn"
-          : ["in_review", "ready_for_promotion"].includes(state)
+          : ["in_review", "ready_for_promotion", "reproduce_queued"].includes(state)
             ? "info"
             : ["waitlisted", "invited", "quoted", "preflight_passed"].includes(state)
               ? "neutral"

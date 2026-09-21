@@ -49,7 +49,7 @@ type Overview = {
   incidents: { id: string; severity: string; title: string; summary: string }[];
 };
 
-type Profile = { profile: { replacement: { delta_ppm: number; blocks: number } } };
+type Profile = { profile: { replacement: { delta_ppm: number; clear_win_ppm: number } } };
 
 const CONTAINER = "mx-auto w-full max-w-[1200px] px-5 sm:px-8";
 
@@ -62,11 +62,11 @@ export default async function HomePage() {
     return <Empty title="No data yet">Start the API and the controller, then reload this page.</Empty>;
   }
   const margin = profile ? `${profile.profile.replacement.delta_ppm / 10_000}%` : "5%";
-  const blocks = profile?.profile.replacement.blocks ?? 5;
+  const clearWin = profile ? `${profile.profile.replacement.clear_win_ppm / 10_000}%` : "9%";
 
   return (
     <div className="full-bleed">
-      <Hero data={data} margin={margin} blocks={blocks} />
+      <Hero data={data} margin={margin} />
 
       {data.incidents.length > 0 && (
         <div className={clsx(CONTAINER, "space-y-3 pt-10")}>
@@ -79,8 +79,8 @@ export default async function HomePage() {
       )}
 
       <Idea />
-      <HowItWorks margin={margin} blocks={blocks} />
-      <Principles margin={margin} blocks={blocks} />
+      <HowItWorks margin={margin} />
+      <Principles margin={margin} clearWin={clearWin} />
       <LiveBoard data={data} />
       <Audiences />
       <WhatIsReal />
@@ -91,7 +91,7 @@ export default async function HomePage() {
 
 /* ───────────────────────────── Hero ───────────────────────────── */
 
-function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks: number }) {
+function Hero({ data, margin }: { data: Overview; margin: string }) {
   return (
     <section className="relative overflow-hidden border-b border-line">
       <CoveContours className="contour-fade pointer-events-none absolute inset-0 h-full w-full" />
@@ -106,8 +106,8 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
             </h1>
             <p className="rise rise-2 mt-8 max-w-xl text-[18px] leading-[1.6] text-muted sm:text-[19px]">
               RamCove pays for software changes that let one fixed GPU serve more useful AI requests. Every
-              challenger is measured against the reigning champion, checked by people, and paid only when the
-              gain is real.
+              challenger is measured against the reigning champion&apos;s fixed score and wins only when the gain
+              is real.
             </p>
             <div className="rise rise-3 mt-9 flex flex-wrap items-center gap-3">
               <Link
@@ -137,12 +137,12 @@ function Hero({ data, margin, blocks }: { data: Overview; margin: string; blocks
 
         <dl className="mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line lg:mt-20 lg:grid-cols-4">
           <HeroStat value={margin} label="margin a challenger must clear" />
-          <HeroStat value={String(blocks)} label="paired blocks decide each promotion" />
+          <HeroStat value="1" label="evaluation decides each submission" />
           <HeroStat
             value={centiHours(data.capacity.envelope_per_admission_centi)}
-            label="reserved per paid admission"
+            label="of GPU time booked per paid submission"
           />
-          <HeroStat value="1" label="champion holds the miner allocation" />
+          <HeroStat value="100%" label="of the miner allocation goes to the champion" />
         </dl>
       </div>
     </section>
@@ -199,7 +199,7 @@ function ChampionPanel({ data }: { data: Overview }) {
               champion.bound_gain_ppm ? "text-ok" : "text-faint",
             )}
           >
-            {champion.bound_gain_ppm ? `${gain(champion.bound_gain_ppm)} confirmed` : "baseline"}
+            {champion.bound_gain_ppm ? `${gain(champion.bound_gain_ppm)} measured` : "baseline"}
           </span>
         </div>
         <p className="mt-3 text-[14px] leading-relaxed text-muted">
@@ -356,13 +356,13 @@ function Idea() {
   );
 }
 
-function HowItWorks({ margin, blocks }: { margin: string; blocks: number }) {
+function HowItWorks({ margin }: { margin: string }) {
   const steps: [string, string, string, string][] = [
     ["01", "Free checks", "Format, signature, allowed paths, licences and duplicates are checked before anyone pays.", "Free"],
-    ["02", "Reserve and pay", "When evaluation capacity exists you get a time-limited quote and pay a fee in TAO. Otherwise you wait for free.", "Fee in TAO"],
-    ["03", "Measured", `Screening, a full evaluation, then ${blocks} paired blocks against the frozen champion on identical hardware.`, "Paired blocks"],
-    ["04", "Reviewed", "People check the code, licence and safety against published criteria before any crown changes hands.", "Human review"],
-    ["05", "Crowned", `If the lower bound clears the ${margin} margin, the challenger becomes champion and the weights follow.`, "Winner takes all"],
+    ["02", "Reserve and pay", "When the evaluation queue has room you get a time-limited quote and pay a fee in TAO. Otherwise you wait for free.", "Fee in TAO"],
+    ["03", "Measured", "Screening, then one evaluation against the champion's fixed score on identical hardware. The champion is not measured again.", "One evaluation"],
+    ["04", "Checked", "A winner passes memory, latency and stability checks. A person looks only when an automatic check flags something.", "Review if flagged"],
+    ["05", "Crowned", `If the gain clears the ${margin} margin, the challenger becomes champion and the weights follow.`, "Winner takes all"],
   ];
   return (
     <Section
@@ -393,7 +393,7 @@ function HowItWorks({ margin, blocks }: { margin: string; blocks: number }) {
   );
 }
 
-function Principles({ margin, blocks }: { margin: string; blocks: number }) {
+function Principles({ margin, clearWin }: { margin: string; clearWin: string }) {
   const items: { title: string; body: string; detail: string }[] = [
     {
       title: "Order comes from the chain",
@@ -402,8 +402,8 @@ function Principles({ margin, blocks }: { margin: string; blocks: number }) {
     },
     {
       title: "Paid only when the gain is real",
-      body: `A challenger must clear a ${margin} margin on the lower bound of a one-sided 95% interval across ${blocks} paired blocks — not on its best run.`,
-      detail: `exp(L) − 1 > ${margin}`,
+      body: `A challenger must beat the champion's fixed score by more than ${margin}. A result between ${margin} and ${clearWin} gets one more reading, and the average of the two must clear the margin.`,
+      detail: `gain > ${margin}`,
     },
     {
       title: "One champion, one allocation",
@@ -448,6 +448,7 @@ function Principles({ margin, blocks }: { margin: string; blocks: number }) {
 
 function LiveBoard({ data }: { data: Overview }) {
   const { capacity, queue, chain } = data;
+  const days = Math.round(capacity.horizon_hours / 24);
   const used = capacity.capacity_centi_gpu_hours
     ? Math.min(100, Math.round((capacity.committed_centi_gpu_hours / capacity.capacity_centi_gpu_hours) * 100))
     : 0;
@@ -486,7 +487,7 @@ function LiveBoard({ data }: { data: Overview }) {
             </div>
             <div className="px-6 pb-4 pt-3">
               <Table
-                head={["Version", "Author", "Capacity", "Confirmed gain", "Status"]}
+                head={["Version", "Author", "Capacity", "Gain", "Status"]}
                 empty={data.champion_history.length === 0}
                 minWidth={520}
               >
@@ -552,22 +553,21 @@ function LiveBoard({ data }: { data: Overview }) {
           className="min-w-0 rounded-[var(--radius-card)] border border-line bg-bg p-6"
           style={{ boxShadow: "var(--shadow)" }}
         >
-          <p className="eyebrow">Evaluation capacity</p>
-          <p className="mt-1.5 text-[16px] font-semibold text-text">Capped by a reservation, not an average</p>
+          <p className="eyebrow">Evaluation queue</p>
+          <p className="mt-1.5 text-[16px] font-semibold text-text">Never longer than {days} days of work</p>
           <div className="mt-6">
             <div className="flex items-baseline justify-between">
               <span className="num font-mono text-[28px] tracking-[-0.02em] text-text">
                 {centiHours(capacity.committed_centi_gpu_hours)}
               </span>
-              <span className="num font-mono text-[13px] text-muted">
-                of {centiHours(capacity.capacity_centi_gpu_hours)}
-              </span>
+              <span className="num font-mono text-[13px] text-muted">{used}% full</span>
             </div>
-            <div className="mt-3 h-2 rounded-full bg-surface-3" role="img" aria-label={`${used}% of capacity reserved`}>
+            <div className="mt-3 h-2 rounded-full bg-surface-3" role="img" aria-label={`the queue is ${used}% full`}>
               <div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(used, 2)}%` }} />
             </div>
             <p className="mt-2 text-[13px] text-muted">
-              reserved over the next {capacity.horizon_hours} hours · {used}% committed
+              of GPU work waiting · the workers can handle {centiHours(capacity.capacity_centi_gpu_hours)} in
+              the next {days} days
             </p>
           </div>
           <dl className="mt-6 grid grid-cols-3 gap-4 border-t border-line pt-5">
@@ -578,8 +578,8 @@ function LiveBoard({ data }: { data: Overview }) {
           <div className="mt-6">
             {capacity.accepting_paid_submissions ? (
               <Notice tone="ok" title="Accepting paid submissions">
-                Each admission reserves {centiHours(capacity.envelope_per_admission_centi)} of worst-case work
-                until its outcome is known.
+                Each paid submission books {centiHours(capacity.envelope_per_admission_centi)}, the work of one
+                evaluation, until its result is known. Submit any time; there are no rounds.
               </Notice>
             ) : (
               <Notice tone="warn" title="Paid admissions are paused">
@@ -621,7 +621,7 @@ function Audiences() {
       title: "Measure fairly. Sign what you saw.",
       points: [
         "Run evaluations on isolated workers that fail closed when unsafe",
-        "Paired blocks against a frozen champion keep comparisons honest",
+        "Every challenger is measured against the champion's fixed score on the same hardware",
         "Every report is signed and lands in the audit chain",
       ],
       href: "/docs#validators",

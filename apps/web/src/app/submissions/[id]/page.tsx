@@ -22,15 +22,12 @@ type View = {
   updated_at: string;
   admission_key: [number, number] | null;
   admitted_at: string | null;
-  deadline_at: string | null;
-  rebases_used: number;
-  max_rebases: number;
   compared_champion_version: number | null;
   current_champion_version: number;
-  triage_gain_ppm: number | null;
+  first_gain_ppm: number | null;
   bound_gain_ppm: number | null;
   margin_ppm: number;
-  blocks_required: number;
+  clear_win_ppm: number;
   outcome: { code: string | null; summary: string | null; fee: string | null };
   method: string | null;
   mechanism: string | null;
@@ -39,7 +36,6 @@ type View = {
   timeline: {
     stage: string;
     status: string;
-    block_no: number | null;
     worker: string | null;
     champion_version: number | null;
     attempts: number;
@@ -65,7 +61,7 @@ type View = {
     id: string;
     reviewer: string;
     decision: string | null;
-    criteria: { id: string; title: string; passed?: boolean }[];
+    criteria: { id: string; title: string; passed?: boolean; flagged?: boolean }[];
     reasons: string | null;
     due_at: string;
     decided_at: string | null;
@@ -76,8 +72,8 @@ type View = {
 
 const STAGE_TITLE: Record<string, string> = {
   screen: "Screening",
-  full: "Full evaluation",
-  confirm_block: "Confirmation block",
+  full: "Evaluation",
+  reproduce: "Independent reproduction",
   calibration: "Champion calibration",
   soak: "Soak test",
 };
@@ -133,7 +129,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
       )}
 
       {v.state === "ready_for_promotion" && v.blocking_submissions.length > 0 && (
-        <Notice tone="info" title="Approved, waiting for earlier admissions">
+        <Notice tone="info" title="Cleared, waiting for earlier admissions">
           {v.blocking_submissions.length} earlier paid submission(s) still hold priority. Promotion follows
           admission order, so finishing first does not move you ahead.
         </Notice>
@@ -167,7 +163,6 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[13px] font-medium text-text">
                           {STAGE_TITLE[t.stage] ?? t.stage}
-                          {t.block_no !== null && ` ${t.block_no + 1}`}
                         </span>
                         <Pill
                           tone={
@@ -202,10 +197,10 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
 
           {measured.length > 0 && (
             <Card
-              title="Confirmation blocks"
-              subtitle={`Paired measurements against the frozen champion. ${v.blocks_required} are required.`}
+              title="Capacity readings"
+              subtitle={`Against the champion's fixed score. One reading decides, unless it lands between ${gain(v.margin_ppm, 0)} and ${gain(v.clear_win_ppm, 0)}: then a second reading does.`}
             >
-              <Table head={["Block", "Challenger", "Champion", "Ratio", "Worker", "Seed round"]}>
+              <Table head={["Reading", "Challenger", "Champion (fixed)", "Gain", "Worker", "Seed round"]}>
                 {measured.map((c, i) => {
                   const ratio =
                     c.challenger_milli_rps && c.champion_milli_rps
@@ -226,9 +221,9 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                 })}
               </Table>
               <p className="mt-3 text-[12px] leading-relaxed text-muted">
-                Each block re-images a worker, generates fresh tests from a beacon round fixed in advance, and
-                measures both stacks on the same tests. The decision uses a conservative lower bound over the
-                blocks, not the best block.
+                Each reading generates fresh tests from a beacon round fixed in advance and finds the highest
+                request rate the challenger sustains within the latency and quality limits. The champion&apos;s
+                score was measured once, when it was crowned, and is not measured again.
               </p>
             </Card>
           )}
@@ -256,7 +251,10 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
           )}
 
           {v.reviews.length > 0 && (
-            <Card title="Review" subtitle="Published criteria; a rejection must cite a failed criterion.">
+            <Card
+              title="Review"
+              subtitle="Only a flagged winner is reviewed. Flagged items are marked; a rejection must cite a failed criterion."
+            >
               {v.reviews.map((r) => (
                 <div key={r.id} className="border-b border-line py-3 last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -271,6 +269,11 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                     {r.criteria.map((c) => (
                       <li key={c.id} className="text-[12px] text-muted">
                         {c.passed === undefined ? "•" : c.passed ? "✓" : "✗"} {c.title}
+                        {c.flagged && (
+                          <span className="ml-1.5">
+                            <Pill tone="warn">flagged</Pill>
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -284,9 +287,9 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
         <div className="space-y-5">
           <Card title="Result so far">
             <div className="grid grid-cols-2 gap-5">
-              <Stat label="Triage gain" value={gain(v.triage_gain_ppm)} hint="single estimate, not promotion evidence" />
+              <Stat label="First reading" value={gain(v.first_gain_ppm)} hint="a close result gets a second" />
               <Stat
-                label="Confirmed bound"
+                label="Gain"
                 value={gain(v.bound_gain_ppm)}
                 tone={v.bound_gain_ppm && v.bound_gain_ppm > v.margin_ppm ? "ok" : "default"}
                 hint={`must exceed ${gain(v.margin_ppm, 0)}`}
@@ -297,10 +300,8 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                 rows={[
                   ["Admission", admissionKey(v.admission_key)],
                   ["Admitted", v.admitted_at ? when(v.admitted_at) : "not admitted"],
-                  ["Service deadline", v.deadline_at ? when(v.deadline_at) : "—"],
                   ["Compared against", v.compared_champion_version !== null ? `champion v${v.compared_champion_version}` : "—"],
                   ["Current champion", `v${v.current_champion_version}`],
-                  ["Rebases used", `${v.rebases_used} of ${v.max_rebases}`],
                   ["Method", v.method ?? "—"],
                   ["Mechanism", v.mechanism?.replace(/_/g, " ") ?? "—"],
                 ]}
@@ -315,21 +316,24 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                 <dd>Isolated build and a short smoke check. It can only reject decisively; it never judges speed.</dd>
               </div>
               <div>
-                <dt className="font-medium text-text">Full evaluation</dt>
+                <dt className="font-medium text-text">Evaluation</dt>
                 <dd>
-                  Quality first, then a capacity search, memory evidence, the short-request control and a
-                  multi-turn check with real answers.
+                  Quality first, then capacity readings against the champion&apos;s fixed score. A winner also passes
+                  the memory, short-request, multi-turn and soak checks.
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-text">Confirmation</dt>
-                <dd>{v.blocks_required} fresh paired blocks against the frozen champion, on separately provisioned workers.</dd>
+                <dt className="font-medium text-text">Review</dt>
+                <dd>
+                  Only when an automatic check flags a winner, for example native code or third-party components.
+                  Otherwise promotion is automatic.
+                </dd>
               </div>
               <div>
-                <dt className="font-medium text-text">Rebase</dt>
+                <dt className="font-medium text-text">Champion changed</dt>
                 <dd>
-                  The champion changed during your evaluation, so the comparison is repeated against the new
-                  champion. You keep your place and pay no new fee.
+                  If another submission is crowned while yours waits, your measured gain is set against the new
+                  champion by arithmetic. Nothing is measured again and you pay no new fee.
                 </dd>
               </div>
             </dl>

@@ -1,6 +1,6 @@
 {
- "taken_at": "2026-09-19T15:45:52.469Z",
- "source": "public routes of the local demo simulation at 127.0.0.1:8787",
+ "taken_at": "2026-09-21T23:33:16.280Z",
+ "source": "public routes of the local demo simulation at 127.0.0.1:8797",
  "responses": {
   "/v1/meta": {
    "product": "RamCove",
@@ -17,7 +17,7 @@
     "id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
     "version": "1.0.0",
     "title": "H100 SXM 80 GB · Qwen3.8-27B-FP8 · vLLM v0.29.0",
-    "rule_hash": "eb93b1f164ec30d80a03a7fb49e4e26108fdb9f4a622b3334ff4e882591998de",
+    "rule_hash": "96e1b1378ebb17b17ac36958ac0c1f73a28475d5cf31cc72c68e570fc877c9c9",
     "measured": false,
     "bootstrap_mode": "local"
    },
@@ -26,9 +26,9 @@
     "author": "5DhXsn…iRSj",
     "is_baseline": false,
     "status": "current",
-    "capacity_milli_rps": 778,
-    "capacity_measured": false,
-    "bound_gain_ppm": 374870,
+    "capacity_milli_rps": 732,
+    "capacity_measured": true,
+    "bound_gain_ppm": 265567,
     "explain": "The champion's author receives this profile's whole miner allocation while it stays eligible."
    },
    "champion_history": [
@@ -36,37 +36,38 @@
      "version": 0,
      "author": null,
      "status": "superseded",
-     "capacity_milli_rps": 546,
-     "capacity_measured": false,
+     "capacity_milli_rps": 515,
+     "capacity_measured": true,
      "bound_gain_ppm": null,
-     "promoted_at": "2026-09-19T15:34:31.637454Z",
+     "promoted_at": "2026-09-21T23:31:31.476124Z",
      "simulated": true
     },
     {
      "version": 1,
      "author": "5DhXsn…iRSj",
      "status": "current",
-     "capacity_milli_rps": 778,
-     "capacity_measured": false,
-     "bound_gain_ppm": 374870,
-     "promoted_at": "2026-09-19T15:35:13.568452Z",
+     "capacity_milli_rps": 732,
+     "capacity_measured": true,
+     "bound_gain_ppm": 265567,
+     "promoted_at": "2026-09-21T23:31:50.892848Z",
      "simulated": true
     }
    ],
    "queue": {
     "counts_by_state": {
+     "in_review": 1,
      "promoted": 1,
      "not_promoted": 1
     },
-    "admitted_active": 0,
+    "admitted_active": 1,
     "waiting_list": 0
    },
    "capacity": {
     "workers_ready": 2,
     "workers_total": 2,
     "committed_centi_gpu_hours": 0,
-    "capacity_centi_gpu_hours": 52088,
-    "envelope_per_admission_centi": 6244,
+    "capacity_centi_gpu_hours": 53760,
+    "envelope_per_admission_centi": 334,
     "intake_paused": false,
     "accepting_paid_submissions": true,
     "reason": "capacity reserved",
@@ -75,17 +76,17 @@
    "fee": {
     "price_usd_micros": 227920000,
     "price_simulated": true,
-    "price_observed_at": "2026-09-19T15:44:33.805430Z",
-    "service_cost_usd_cents": 5246,
+    "price_observed_at": "2026-09-21T23:31:31.653580Z",
+    "service_cost_usd_cents": 1563,
     "recovery_bp": 5000
    },
    "chain": {
     "network": "ramcove-devchain",
-    "finalized_number": 403,
-    "finalized_hash": "0xdd30565b77088479e207aa403f252af7334a0985d49a379964c2bc97a5264d8c",
+    "finalized_number": 49,
+    "finalized_hash": "0x9cbc70217cb33e020ce3504b49c93fb3828e0378a12b98fe84a5cb256d8ad1e7",
     "genesis_hash": "0x0000000000000000000000000000000000000000000000000000000000000001",
     "simulated": true,
-    "observed_at": "2026-09-19T15:45:51.906794Z"
+    "observed_at": "2026-09-21T23:32:46.191192Z"
    },
    "incidents": [],
    "meta": {
@@ -109,42 +110,38 @@
     "version": 1,
     "author": "5DhXsn…iRSj",
     "is_baseline": false,
-    "capacity_milli_rps": 778,
-    "bound_gain_ppm": 374870,
-    "promoted_at": "2026-09-19T15:35:13.568452Z"
+    "capacity_milli_rps": 732,
+    "bound_gain_ppm": 265567,
+    "promoted_at": "2026-09-21T23:31:50.892848Z"
    },
    "counts": {
-    "in_progress": 0,
+    "in_progress": 1,
     "waiting": 0,
     "promoted": 1,
     "rejected": 1,
     "closed": 0
    },
-   "total": 2,
+   "total": 3,
    "items": [
     {
-     "submission_id": "sub_01m2x4wds5hchjytpya9",
-     "hotkey": "5DhXsn…iRSj",
-     "lineage": "frag-allocator",
-     "method": "Allocates KV blocks to reduce fragmentation so more tokens fit in the same budget.",
+     "submission_id": "sub_01m334z2be6e7m8saf9p",
+     "hotkey": "5FjfVQ…xEai",
+     "lineage": "native-paged-kv",
+     "method": "A CUDA kernel packs KV blocks tightly so more tokens fit in the same budget. Native code, so a winner goes to a person before promotion.",
      "mechanism": "allocation",
-     "trusted_fixture": "fragmentation-aware-allocator",
-     "state": "promoted",
-     "state_label": "Champion",
-     "group": "promoted",
+     "trusted_fixture": "native-paged-kv-kernel",
+     "state": "in_review",
+     "state_label": "Flagged for human review",
+     "group": "in_progress",
      "current_stage": null,
-     "triage_gain_ppm": 425760,
-     "bound_gain_ppm": 374870,
-     "outcome": {
-      "code": "promoted",
-      "summary": "Promoted to champion version 1.",
-      "fee": "consumed"
-     },
-     "created_at": "2026-09-19T15:34:43.214598Z",
-     "updated_at": "2026-09-19T15:35:13.641261Z"
+     "first_gain_ppm": 303338,
+     "bound_gain_ppm": 303338,
+     "outcome": null,
+     "created_at": "2026-09-21T23:31:36.413828Z",
+     "updated_at": "2026-09-21T23:32:14.257224Z"
     },
     {
-     "submission_id": "sub_01m2x4wetjqm2a94vfv2",
+     "submission_id": "sub_01m334z1ndwge1ccbx9f",
      "hotkey": "5DhZhA…FsoF",
      "lineage": "evict-quarter",
      "method": "Keeps only the most attended quarter of cached tokens.",
@@ -154,22 +151,43 @@
      "state_label": "Did not replace the champion",
      "group": "rejected",
      "current_stage": null,
-     "triage_gain_ppm": null,
+     "first_gain_ppm": null,
      "bound_gain_ppm": null,
      "outcome": {
-      "code": "not_potential_winner",
-      "summary": "Offline quality failed; capacity was not measured. overall: lower bound -7.82 pts vs champion is not above -2.00; position_early: lower bound -21.65 pts vs champion is not above -3.00; position_middle: lower bound -9.48 pts vs champion is not above -3.00; overall: lower bound -8.09 pts vs fixed quality reference is not above -3.00; position_early: lower bound -21.39 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -9",
+      "code": "quality_failed",
+      "summary": "Offline quality failed; capacity was not measured. overall: lower bound -8.46 pts vs champion is not above -2.00; position_early: lower bound -21.93 pts vs champion is not above -3.00; position_middle: lower bound -10.40 pts vs champion is not above -3.00; overall: lower bound -8.75 pts vs fixed quality reference is not above -3.00; position_early: lower bound -22.41 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -",
       "fee": "consumed"
      },
-     "created_at": "2026-09-19T15:34:44.278099Z",
-     "updated_at": "2026-09-19T15:34:45.788162Z"
+     "created_at": "2026-09-21T23:31:35.698919Z",
+     "updated_at": "2026-09-21T23:32:03.761771Z"
+    },
+    {
+     "submission_id": "sub_01m334z0kx2sjh6kztvy",
+     "hotkey": "5DhXsn…iRSj",
+     "lineage": "frag-allocator",
+     "method": "Allocates KV blocks to reduce fragmentation so more tokens fit in the same budget.",
+     "mechanism": "allocation",
+     "trusted_fixture": "fragmentation-aware-allocator",
+     "state": "promoted",
+     "state_label": "Champion",
+     "group": "promoted",
+     "current_stage": null,
+     "first_gain_ppm": 265567,
+     "bound_gain_ppm": 265567,
+     "outcome": {
+      "code": "promoted",
+      "summary": "Promoted to champion version 1.",
+      "fee": "consumed"
+     },
+     "created_at": "2026-09-21T23:31:34.609031Z",
+     "updated_at": "2026-09-21T23:31:50.916728Z"
     }
    ],
    "rejection_reasons": [
     {
-     "code": "not_potential_winner",
+     "code": "quality_failed",
      "count": 1,
-     "example": "Offline quality failed; capacity was not measured. overall: lower bound -7.82 pts vs champion is not above -2.00; position_early: lower bound -21.65 pts vs champion is not above -3.00; position_middle: lower bound -9.48 pts vs champion is not above -3.00; overall: lower bound -8.09 pts vs fixed quality reference is not above -3.00; position_early: lower bound -21.39 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -9"
+     "example": "Offline quality failed; capacity was not measured. overall: lower bound -8.46 pts vs champion is not above -2.00; position_early: lower bound -21.93 pts vs champion is not above -3.00; position_middle: lower bound -10.40 pts vs champion is not above -3.00; overall: lower bound -8.75 pts vs fixed quality reference is not above -3.00; position_early: lower bound -22.41 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -"
     }
    ],
    "miners": [
@@ -178,8 +196,16 @@
      "submissions": 1,
      "promoted": 1,
      "rejected": 0,
-     "best_bound_gain_ppm": 374870,
+     "best_bound_gain_ppm": 265567,
      "is_champion": true
+    },
+    {
+     "hotkey": "5FjfVQ…xEai",
+     "submissions": 1,
+     "promoted": 0,
+     "rejected": 0,
+     "best_bound_gain_ppm": 303338,
+     "is_champion": false
     },
     {
      "hotkey": "5DhZhA…FsoF",
@@ -191,7 +217,7 @@
     }
    ],
    "simulated": true,
-   "generated_at": "2026-09-19T15:45:52.095075Z"
+   "generated_at": "2026-09-21T23:33:15.748618Z"
   },
   "/v1/profile": {
    "profile": {
@@ -239,14 +265,10 @@
     ],
     "replacement": {
      "delta_ppm": 50000,
-     "blocks": 5,
-     "sigma_floor_ppm": 20000,
-     "confidence": "one_sided_95",
+     "clear_win_ppm": 90000,
      "grid_step_ppm": 30000,
      "grid_min_steps": -8,
      "grid_max_steps": 16,
-     "max_runs_per_arm_per_block": 6,
-     "triage_allowance_ppm": 20000,
      "calibrated": false
     },
     "quality": {
@@ -277,11 +299,9 @@
     },
     "envelope": {
      "screen": 35,
-     "full": 892,
-     "confirmation_worst": 1925,
-     "rebase_allowance": 1925,
-     "soak": 600,
-     "recalibration_on_promotion": 867
+     "evaluation": 299,
+     "winner_checks": 830,
+     "recalibration_on_promotion": 576
     },
     "deadlines": {
      "quote_ttl_blocks": 100,
@@ -289,20 +309,18 @@
      "screen_start_target_s": 86400,
      "lease_screen_s": 7200,
      "lease_full_s": 86400,
-     "lease_block_s": 28800,
+     "lease_reproduce_s": 28800,
      "max_lease_retries": 1,
-     "max_rebases": 2,
      "quorum_wait_s": 604800,
      "max_quorum_reschedules": 1,
      "review_s": 1209600,
      "review_extension_s": 1209600,
      "registration_grace_s": 1209600,
-     "end_to_end_s": 5184000,
      "upload_hold_s": 259200,
      "credit_expiry_s": 15552000
     },
     "fees": {
-     "service_cost_usd_cents_per_admission": 5246,
+     "service_cost_usd_cents_per_admission": 1563,
      "recovery_bp": 5000,
      "round_step_rao": 10000000,
      "price_max_age_s": 900,
@@ -326,7 +344,7 @@
     "measured": false,
     "no_winner_writer_verified": false
    },
-   "rule_hash": "eb93b1f164ec30d80a03a7fb49e4e26108fdb9f4a622b3334ff4e882591998de",
+   "rule_hash": "96e1b1378ebb17b17ac36958ac0c1f73a28475d5cf31cc72c68e570fc877c9c9",
    "champion": {
     "version": 1,
     "author": "5DhXsn…iRSj",
@@ -343,10 +361,10 @@
      ]
     },
     "status": "current",
-    "capacity_milli_rps": 778,
-    "capacity_measured": false,
-    "promoted_at": "2026-09-19T15:35:13.568452Z",
-    "bound_gain_ppm": 374870
+    "capacity_milli_rps": 732,
+    "capacity_measured": true,
+    "promoted_at": "2026-09-21T23:31:50.892848Z",
+    "bound_gain_ppm": 265567
    },
    "weight_plan": {
     "notes": [],
@@ -363,7 +381,7 @@
     ],
     "no_winner": false,
     "simulated": true,
-    "snapshot_block": 54,
+    "snapshot_block": 17,
     "writer_enabled": false,
     "champion_version": 1
    },
@@ -373,16 +391,16 @@
    "profile": "ramcove-p1-h100sxm-qwen38-27b-fp8",
    "workers": [
     {
-     "id": "w-op-2",
-     "online": true,
-     "safe_and_ready": true,
+     "id": "w-shadow-1",
+     "online": false,
+     "safe_and_ready": false,
      "provider": "simulated-trusted-fixtures",
      "untrusted_code_isolation": false
     },
     {
-     "id": "w-shadow-1",
-     "online": false,
-     "safe_and_ready": false,
+     "id": "w-op-2",
+     "online": true,
+     "safe_and_ready": true,
      "provider": "simulated-trusted-fixtures",
      "untrusted_code_isolation": false
     },
@@ -396,9 +414,9 @@
    ],
    "expired_leases_waiting_for_sweep": 0,
    "chain": {
-    "finalized_number": 403,
+    "finalized_number": 49,
     "simulated": true,
-    "observed_at": "2026-09-19T15:45:51.906794Z"
+    "observed_at": "2026-09-21T23:32:46.191192Z"
    },
    "incidents": [],
    "meta": {
@@ -414,7 +432,25 @@
   },
   "/v1/queue?kind=admitted": {
    "kind": "admitted",
-   "items": [],
+   "items": [
+    {
+     "submission_id": "sub_01m334z2be6e7m8saf9p",
+     "hotkey": "5FjfVQ…xEai",
+     "lineage": "native-paged-kv",
+     "state": "in_review",
+     "state_label": "Flagged for human review",
+     "admission_key": [
+      14,
+      0
+     ],
+     "admitted_at": "2026-09-21T23:31:36.754832Z",
+     "updated_at": "2026-09-21T23:32:14.257224Z",
+     "current_stage": null,
+     "first_gain_ppm": 303338,
+     "bound_gain_ppm": 303338,
+     "outcome": null
+    }
+   ],
    "next_cursor": null,
    "note": "Paid admissions are ordered by their finalized payment. Workers may run different submissions at the same time; promotion still follows admission order, so a single rank across stages would be misleading."
   },
@@ -428,46 +464,44 @@
    "kind": "history",
    "items": [
     {
-     "submission_id": "sub_01m2x4wds5hchjytpya9",
-     "hotkey": "5DhXsn…iRSj",
-     "lineage": "frag-allocator",
-     "state": "promoted",
-     "state_label": "Champion",
-     "admission_key": [
-      12,
-      0
-     ],
-     "admitted_at": "2026-09-19T15:34:43.843539Z",
-     "updated_at": "2026-09-19T15:35:13.641261Z",
-     "current_stage": null,
-     "triage_gain_ppm": 425760,
-     "bound_gain_ppm": 374870,
-     "rebases_used": 0,
-     "outcome": {
-      "code": "promoted",
-      "summary": "Promoted to champion version 1.",
-      "fee": "consumed"
-     }
-    },
-    {
-     "submission_id": "sub_01m2x4wetjqm2a94vfv2",
+     "submission_id": "sub_01m334z1ndwge1ccbx9f",
      "hotkey": "5DhZhA…FsoF",
      "lineage": "evict-quarter",
      "state": "not_promoted",
      "state_label": "Did not replace the champion",
      "admission_key": [
-      16,
+      10,
       0
      ],
-     "admitted_at": "2026-09-19T15:34:44.725064Z",
-     "updated_at": "2026-09-19T15:34:45.788162Z",
+     "admitted_at": "2026-09-21T23:31:36.069826Z",
+     "updated_at": "2026-09-21T23:32:03.761771Z",
      "current_stage": null,
-     "triage_gain_ppm": null,
+     "first_gain_ppm": null,
      "bound_gain_ppm": null,
-     "rebases_used": 0,
      "outcome": {
-      "code": "not_potential_winner",
-      "summary": "Offline quality failed; capacity was not measured. overall: lower bound -7.82 pts vs champion is not above -2.00; position_early: lower bound -21.65 pts vs champion is not above -3.00; position_middle: lower bound -9.48 pts vs champion is not above -3.00; overall: lower bound -8.09 pts vs fixed quality reference is not above -3.00; position_early: lower bound -21.39 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -9",
+      "code": "quality_failed",
+      "summary": "Offline quality failed; capacity was not measured. overall: lower bound -8.46 pts vs champion is not above -2.00; position_early: lower bound -21.93 pts vs champion is not above -3.00; position_middle: lower bound -10.40 pts vs champion is not above -3.00; overall: lower bound -8.75 pts vs fixed quality reference is not above -3.00; position_early: lower bound -22.41 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -",
+      "fee": "consumed"
+     }
+    },
+    {
+     "submission_id": "sub_01m334z0kx2sjh6kztvy",
+     "hotkey": "5DhXsn…iRSj",
+     "lineage": "frag-allocator",
+     "state": "promoted",
+     "state_label": "Champion",
+     "admission_key": [
+      6,
+      0
+     ],
+     "admitted_at": "2026-09-21T23:31:35.329180Z",
+     "updated_at": "2026-09-21T23:31:50.916728Z",
+     "current_stage": null,
+     "first_gain_ppm": 265567,
+     "bound_gain_ppm": 265567,
+     "outcome": {
+      "code": "promoted",
+      "summary": "Promoted to champion version 1.",
       "fee": "consumed"
      }
     }
@@ -475,32 +509,424 @@
    "next_cursor": null,
    "note": "Paid admissions are ordered by their finalized payment. Workers may run different submissions at the same time; promotion still follows admission order, so a single rank across stages would be misleading."
   },
-  "/v1/submissions/sub_01m2x4wds5hchjytpya9": {
-   "submission_id": "sub_01m2x4wds5hchjytpya9",
+  "/v1/submissions/sub_01m334z2be6e7m8saf9p": {
+   "submission_id": "sub_01m334z2be6e7m8saf9p",
+   "state": "in_review",
+   "state_label": "Flagged for human review",
+   "hotkey": "5FjfVQ…xEai",
+   "lineage": "native-paged-kv",
+   "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
+   "profile_version": "1.0.0",
+   "rule_hash": "96e1b1378ebb17b17ac36958ac0c1f73a28475d5cf31cc72c68e570fc877c9c9",
+   "support_ref": "RM-62ZD-D38Q",
+   "created_at": "2026-09-21T23:31:36.413828Z",
+   "updated_at": "2026-09-21T23:32:14.257224Z",
+   "admission_key": [
+    14,
+    0
+   ],
+   "admitted_at": "2026-09-21T23:31:36.754832Z",
+   "compared_champion_version": 1,
+   "current_champion_version": 1,
+   "first_gain_ppm": 303338,
+   "bound_gain_ppm": 303338,
+   "margin_ppm": 50000,
+   "clear_win_ppm": 90000,
+   "outcome": {
+    "code": null,
+    "summary": null,
+    "fee": null
+   },
+   "method": "A CUDA kernel packs KV blocks tightly so more tokens fit in the same budget. Native code, so a winner goes to a person before promotion.",
+   "mechanism": "allocation",
+   "trusted_fixture": "native-paged-kv-kernel",
+   "changed_paths": null,
+   "artifact_sha256": null,
+   "blocking_submissions": [],
+   "timeline": [
+    {
+     "stage": "screen",
+     "status": "done",
+     "worker": "w-op-1",
+     "champion_version": 1,
+     "attempts": 1,
+     "created_at": "2026-09-21T23:31:36.714381Z",
+     "updated_at": "2026-09-21T23:32:04.456623Z",
+     "lease_expires_at": "2026-09-22T01:32:04.337390Z",
+     "gpu_centi_used": 35
+    },
+    {
+     "stage": "full",
+     "status": "done",
+     "worker": "w-op-2",
+     "champion_version": 1,
+     "attempts": 1,
+     "created_at": "2026-09-21T23:32:04.441607Z",
+     "updated_at": "2026-09-21T23:32:14.203240Z",
+     "lease_expires_at": "2026-09-22T23:32:04.541228Z",
+     "gpu_centi_used": 1798
+    }
+   ],
+   "comparisons": [
+    {
+     "id": "cmp_01m334zxv31w3y0prg3h",
+     "champion_version": 1,
+     "status": "measured",
+     "validator": "5FLj3U…2w2w",
+     "worker": "w-op-2",
+     "anchor_block": 19,
+     "beacon_round": 32410054,
+     "beacon_simulated": true,
+     "void_reason": null,
+     "challenger_milli_rps": 898,
+     "champion_milli_rps": 689
+    }
+   ],
+   "reviews": [
+    {
+     "id": "rev_01m33507a26b38ny1h9n",
+     "reviewer": "unassi…gned",
+     "decision": null,
+     "criteria": [
+      {
+       "id": "license",
+       "title": "License compatibility and complete attribution",
+       "flagged": false
+      },
+      {
+       "id": "reproducible_build",
+       "title": "Build reproduces from the frozen artifact",
+       "flagged": false
+      },
+      {
+       "id": "adaptivity",
+       "title": "No forbidden benchmark-recognition adaptivity",
+       "flagged": false
+      },
+      {
+       "id": "security",
+       "title": "Security scans and fuzzing clean",
+       "flagged": false
+      },
+      {
+       "id": "native_review",
+       "title": "Independent review of native code",
+       "flagged": true
+      },
+      {
+       "id": "soak",
+       "title": "6-hour soak at 90% of measured capacity without errors above the gate",
+       "flagged": false
+      },
+      {
+       "id": "mechanism",
+       "title": "Declared memory mechanism confirmed in the code",
+       "flagged": false
+      }
+     ],
+     "reasons": null,
+     "due_at": "2026-10-05T23:32:14.275058Z",
+     "decided_at": null
+    }
+   ],
+   "appeals": [],
+   "reports": [
+    {
+     "id": "rep_01m334zxqen4nnvpxxh1",
+     "kind": "screen",
+     "hash": "758f7fa0c72e94d37cb17c107bd2475b02fb954d8fa604cce36e291ef462f28f",
+     "simulated": true,
+     "body": null,
+     "created_at": "2026-09-21T23:32:04.441607Z"
+    },
+    {
+     "id": "rep_01m335078a95wq6v080a",
+     "kind": "full",
+     "hash": "35597682a0507105845e001a63ae1cd5252f68301dfbc46c295f3ea3a396f330",
+     "simulated": true,
+     "body": {
+      "soak": {
+       "passed": true,
+       "reasons": [],
+       "load_share_bp": 9000
+      },
+      "gates": {
+       "soak": true,
+       "band_attainment": true,
+       "memory_evidence": true,
+       "offline_quality": true,
+       "capacity_reading": true,
+       "resource_ceilings": true,
+       "short_request_control": true,
+       "live_conversation_check": true
+      },
+      "p_ctl": {
+       "rule": "one run: not more than 2 points below the champion's calibrated short-request result",
+       "passed": true,
+       "attainment_bp": 10000,
+       "rate_milli_rps": 1379,
+       "champion_attainment_bp": 10000
+      },
+      "p_live": {
+       "passed": true,
+       "offered": 1507,
+       "reasons": [],
+       "qualified": 1507,
+       "conversations_per_s_milli": 314
+      },
+      "winner": true,
+      "quality": {
+       "passed": true,
+       "reasons": [],
+       "accuracy_bp": {
+        "general": 8950,
+        "overall": 9035,
+        "position_late": 9033,
+        "position_early": 9081,
+        "position_middle": 9053
+       }
+      },
+      "summary": "Winner: 30.3% over the champion's score, and every winner check passed.",
+      "decision": {
+       "outcome": "win",
+       "reasons": [],
+       "gain_ppm": 303338,
+       "readings": 1
+      },
+      "gain_ppm": 303338,
+      "readings": [
+       {
+        "flag": "ok",
+        "runs": 11,
+        "trace": [
+         [
+          0,
+          true
+         ],
+         [
+          1,
+          true
+         ],
+         [
+          2,
+          true
+         ],
+         [
+          3,
+          true
+         ],
+         [
+          4,
+          true
+         ],
+         [
+          5,
+          true
+         ],
+         [
+          6,
+          true
+         ],
+         [
+          7,
+          true
+         ],
+         [
+          8,
+          true
+         ],
+         [
+          9,
+          true
+         ],
+         [
+          10,
+          false
+         ]
+        ],
+        "grid_index": 9,
+        "champion_milli_rps": 689,
+        "challenger_milli_rps": 898
+       }
+      ],
+      "failed_gates": [],
+      "memory_evidence": {
+       "limits": "Diagnostic evidence only; it does not prove that the gain was caused by memory. Validate the diagnostics against known memory and compute-only methods before trusting them.",
+       "passed": true,
+       "tight_ok": true,
+       "margin_ppm": 50000,
+       "accounting_ok": true,
+       "tight_measured": true,
+       "tight_budget_gain_ppm": 425760,
+       "tight_capacity_milli_rps": {
+        "challenger": 834,
+        "champion_fixed_score": 585
+       },
+       "external_resident_capacity_gain_ppm": 1600000,
+       "recomputed_prefill_tokens_per_qualified": 5852
+      },
+      "band_attainment_reasons": []
+     },
+     "created_at": "2026-09-21T23:32:14.195129Z"
+    }
+   ],
+   "simulated": true
+  },
+  "/v1/submissions/sub_01m334z1ndwge1ccbx9f": {
+   "submission_id": "sub_01m334z1ndwge1ccbx9f",
+   "state": "not_promoted",
+   "state_label": "Did not replace the champion",
+   "hotkey": "5DhZhA…FsoF",
+   "lineage": "evict-quarter",
+   "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
+   "profile_version": "1.0.0",
+   "rule_hash": "96e1b1378ebb17b17ac36958ac0c1f73a28475d5cf31cc72c68e570fc877c9c9",
+   "support_ref": "RM-1GFD-CH05",
+   "created_at": "2026-09-21T23:31:35.698919Z",
+   "updated_at": "2026-09-21T23:32:03.761771Z",
+   "admission_key": [
+    10,
+    0
+   ],
+   "admitted_at": "2026-09-21T23:31:36.069826Z",
+   "compared_champion_version": 1,
+   "current_champion_version": 1,
+   "first_gain_ppm": null,
+   "bound_gain_ppm": null,
+   "margin_ppm": 50000,
+   "clear_win_ppm": 90000,
+   "outcome": {
+    "code": "quality_failed",
+    "summary": "Offline quality failed; capacity was not measured. overall: lower bound -8.46 pts vs champion is not above -2.00; position_early: lower bound -21.93 pts vs champion is not above -3.00; position_middle: lower bound -10.40 pts vs champion is not above -3.00; overall: lower bound -8.75 pts vs fixed quality reference is not above -3.00; position_early: lower bound -22.41 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -",
+    "fee": "consumed"
+   },
+   "method": "Keeps only the most attended quarter of cached tokens.",
+   "mechanism": "retention",
+   "trusted_fixture": "evict-quarter",
+   "changed_paths": null,
+   "artifact_sha256": null,
+   "blocking_submissions": [],
+   "timeline": [
+    {
+     "stage": "screen",
+     "status": "done",
+     "worker": "w-op-1",
+     "champion_version": 1,
+     "attempts": 1,
+     "created_at": "2026-09-21T23:31:36.014746Z",
+     "updated_at": "2026-09-21T23:32:03.120598Z",
+     "lease_expires_at": "2026-09-22T01:32:02.931673Z",
+     "gpu_centi_used": 35
+    },
+    {
+     "stage": "full",
+     "status": "done",
+     "worker": "w-op-2",
+     "champion_version": 1,
+     "attempts": 1,
+     "created_at": "2026-09-21T23:32:03.093632Z",
+     "updated_at": "2026-09-21T23:32:03.723656Z",
+     "lease_expires_at": "2026-09-22T23:32:03.287047Z",
+     "gpu_centi_used": 175
+    }
+   ],
+   "comparisons": [
+    {
+     "id": "cmp_01m334zwkvc4mkyrws1c",
+     "champion_version": 1,
+     "status": "void",
+     "validator": "5FLj3U…2w2w",
+     "worker": "w-op-2",
+     "anchor_block": 18,
+     "beacon_round": 32410054,
+     "beacon_simulated": true,
+     "void_reason": "quality failed before any capacity reading",
+     "challenger_milli_rps": null,
+     "champion_milli_rps": null
+    }
+   ],
+   "reviews": [],
+   "appeals": [],
+   "reports": [
+    {
+     "id": "rep_01m334zwdv6sn0znzjxb",
+     "kind": "screen",
+     "hash": "b0ec338596513bf65ebf3739ff246c569a03456098b2ba816faaba08e5426faa",
+     "simulated": true,
+     "body": null,
+     "created_at": "2026-09-21T23:32:03.093632Z"
+    },
+    {
+     "id": "rep_01m334zx10wt665m7z4n",
+     "kind": "full",
+     "hash": "768ea17e35099073b53beff9624e0f1184c5948b3876a71f76914177e2af13ee",
+     "simulated": true,
+     "body": {
+      "gates": {
+       "soak": null,
+       "band_attainment": null,
+       "memory_evidence": null,
+       "offline_quality": false,
+       "capacity_reading": null,
+       "resource_ceilings": true,
+       "short_request_control": null,
+       "live_conversation_check": null
+      },
+      "winner": false,
+      "quality": {
+       "passed": false,
+       "reasons": [
+        "overall: lower bound -8.46 pts vs champion is not above -2.00",
+        "position_early: lower bound -21.93 pts vs champion is not above -3.00",
+        "position_middle: lower bound -10.40 pts vs champion is not above -3.00",
+        "overall: lower bound -8.75 pts vs fixed quality reference is not above -3.00",
+        "position_early: lower bound -22.41 pts vs fixed quality reference is not above -3.00",
+        "position_middle: lower bound -10.50 pts vs fixed quality reference is not above -3.00",
+        "overall: accuracy 83.17% is below the absolute floor 85.00%",
+        "position_early: accuracy 72.44% is below the absolute floor 80.00%"
+       ],
+       "accuracy_bp": {
+        "general": 9075,
+        "overall": 8317,
+        "position_late": 8986,
+        "position_early": 7244,
+        "position_middle": 8153
+       }
+      },
+      "summary": "Offline quality failed; capacity was not measured. overall: lower bound -8.46 pts vs champion is not above -2.00; position_early: lower bound -21.93 pts vs champion is not above -3.00; position_middle: lower bound -10.40 pts vs champion is not above -3.00; overall: lower bound -8.75 pts vs fixed quality reference is not above -3.00; position_early: lower bound -22.41 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -",
+      "readings": [],
+      "failed_gates": [
+       "offline_quality"
+      ]
+     },
+     "created_at": "2026-09-21T23:32:03.707409Z"
+    }
+   ],
+   "simulated": true
+  },
+  "/v1/submissions/sub_01m334z0kx2sjh6kztvy": {
+   "submission_id": "sub_01m334z0kx2sjh6kztvy",
    "state": "promoted",
    "state_label": "Champion",
    "hotkey": "5DhXsn…iRSj",
    "lineage": "frag-allocator",
    "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
    "profile_version": "1.0.0",
-   "rule_hash": "eb93b1f164ec30d80a03a7fb49e4e26108fdb9f4a622b3334ff4e882591998de",
-   "support_ref": "RM-WBSH-YEF8",
-   "created_at": "2026-09-19T15:34:43.214598Z",
-   "updated_at": "2026-09-19T15:35:13.641261Z",
+   "rule_hash": "96e1b1378ebb17b17ac36958ac0c1f73a28475d5cf31cc72c68e570fc877c9c9",
+   "support_ref": "RM-5T2H-YK45",
+   "created_at": "2026-09-21T23:31:34.609031Z",
+   "updated_at": "2026-09-21T23:31:50.916728Z",
    "admission_key": [
-    12,
+    6,
     0
    ],
-   "admitted_at": "2026-09-19T15:34:43.843539Z",
-   "deadline_at": "2026-11-18T15:34:43.843539Z",
-   "rebases_used": 0,
-   "max_rebases": 2,
+   "admitted_at": "2026-09-21T23:31:35.329180Z",
    "compared_champion_version": 0,
    "current_champion_version": 1,
-   "triage_gain_ppm": 425760,
-   "bound_gain_ppm": 374870,
+   "first_gain_ppm": 265567,
+   "bound_gain_ppm": 265567,
    "margin_ppm": 50000,
-   "blocks_required": 5,
+   "clear_win_ppm": 90000,
    "outcome": {
     "code": "promoted",
     "summary": "Promoted to champion version 1.",
@@ -516,229 +942,75 @@
     {
      "stage": "screen",
      "status": "done",
-     "block_no": null,
      "worker": "w-op-1",
      "champion_version": 0,
      "attempts": 1,
-     "created_at": "2026-09-19T15:34:43.745043Z",
-     "updated_at": "2026-09-19T15:34:45.075963Z",
-     "lease_expires_at": "2026-09-19T17:34:44.897391Z",
+     "created_at": "2026-09-21T23:31:35.201387Z",
+     "updated_at": "2026-09-21T23:31:44.030261Z",
+     "lease_expires_at": "2026-09-22T01:31:43.950763Z",
      "gpu_centi_used": 35
     },
     {
      "stage": "full",
      "status": "done",
-     "block_no": null,
-     "worker": "w-op-1",
-     "champion_version": 0,
-     "attempts": 1,
-     "created_at": "2026-09-19T15:34:45.057017Z",
-     "updated_at": "2026-09-19T15:34:53.220576Z",
-     "lease_expires_at": "2026-09-20T15:34:45.271135Z",
-     "gpu_centi_used": 892
-    },
-    {
-     "stage": "confirm_block",
-     "status": "done",
-     "block_no": 1,
-     "worker": "w-op-1",
-     "champion_version": 0,
-     "attempts": 1,
-     "created_at": "2026-09-19T15:34:53.206459Z",
-     "updated_at": "2026-09-19T15:34:54.308644Z",
-     "lease_expires_at": "2026-09-19T23:34:53.528076Z",
-     "gpu_centi_used": 243
-    },
-    {
-     "stage": "confirm_block",
-     "status": "done",
-     "block_no": 0,
-     "worker": "w-op-1",
-     "champion_version": 0,
-     "attempts": 1,
-     "created_at": "2026-09-19T15:34:53.206459Z",
-     "updated_at": "2026-09-19T15:34:55.049607Z",
-     "lease_expires_at": "2026-09-19T23:34:53.366919Z",
-     "gpu_centi_used": 243
-    },
-    {
-     "stage": "confirm_block",
-     "status": "done",
-     "block_no": 2,
      "worker": "w-op-2",
      "champion_version": 0,
      "attempts": 1,
-     "created_at": "2026-09-19T15:34:53.206459Z",
-     "updated_at": "2026-09-19T15:34:56.496007Z",
-     "lease_expires_at": "2026-09-19T23:34:54.333121Z",
-     "gpu_centi_used": 243
-    },
-    {
-     "stage": "confirm_block",
-     "status": "done",
-     "block_no": 3,
-     "worker": "w-op-1",
-     "champion_version": 0,
-     "attempts": 1,
-     "created_at": "2026-09-19T15:34:53.206459Z",
-     "updated_at": "2026-09-19T15:34:56.569753Z",
-     "lease_expires_at": "2026-09-19T23:34:55.153782Z",
-     "gpu_centi_used": 243
-    },
-    {
-     "stage": "confirm_block",
-     "status": "done",
-     "block_no": 4,
-     "worker": "w-op-2",
-     "champion_version": 0,
-     "attempts": 1,
-     "created_at": "2026-09-19T15:34:53.206459Z",
-     "updated_at": "2026-09-19T15:34:57.774994Z",
-     "lease_expires_at": "2026-09-19T23:34:55.573271Z",
-     "gpu_centi_used": 243
+     "created_at": "2026-09-21T23:31:44.020162Z",
+     "updated_at": "2026-09-21T23:31:50.741257Z",
+     "lease_expires_at": "2026-09-22T23:31:44.117741Z",
+     "gpu_centi_used": 1870
     }
    ],
    "comparisons": [
     {
-     "id": "cmp_01m2x4wqq1zn9wpzjxjp",
-     "champion_version": 0,
-     "status": "measured",
-     "validator": "5FLj3U…2w2w",
-     "worker": "w-op-1",
-     "anchor_block": 29,
-     "beacon_round": 32342910,
-     "beacon_simulated": true,
-     "void_reason": null,
-     "challenger_milli_rps": 825,
-     "champion_milli_rps": 562
-    },
-    {
-     "id": "cmp_01m2x4wqv04kvkj3hp5t",
-     "champion_version": 0,
-     "status": "measured",
-     "validator": "5FLj3U…2w2w",
-     "worker": "w-op-1",
-     "anchor_block": 29,
-     "beacon_round": 32342910,
-     "beacon_simulated": true,
-     "void_reason": null,
-     "challenger_milli_rps": 755,
-     "champion_milli_rps": 546
-    },
-    {
-     "id": "cmp_01m2x4wrm2nafff58mts",
+     "id": "cmp_01m334z9wtqqj6gztfgq",
      "champion_version": 0,
      "status": "measured",
      "validator": "5FLj3U…2w2w",
      "worker": "w-op-2",
-     "anchor_block": 29,
-     "beacon_round": 32342911,
+     "anchor_block": 16,
+     "beacon_round": 32410047,
      "beacon_simulated": true,
      "void_reason": null,
-     "challenger_milli_rps": 733,
-     "champion_milli_rps": 529
-    },
-    {
-     "id": "cmp_01m2x4wsecrcvc2zbb6m",
-     "champion_version": 0,
-     "status": "measured",
-     "validator": "5FLj3U…2w2w",
-     "worker": "w-op-1",
-     "anchor_block": 30,
-     "beacon_round": 32342911,
-     "beacon_simulated": true,
-     "void_reason": null,
-     "challenger_milli_rps": 801,
+     "challenger_milli_rps": 691,
      "champion_milli_rps": 546
-    },
-    {
-     "id": "cmp_01m2x4wsv5b05n0dn4g9",
-     "champion_version": 0,
-     "status": "measured",
-     "validator": "5FLj3U…2w2w",
-     "worker": "w-op-2",
-     "anchor_block": 30,
-     "beacon_round": 32342911,
-     "beacon_simulated": true,
-     "void_reason": null,
-     "challenger_milli_rps": 733,
-     "champion_milli_rps": 529
     }
    ],
-   "reviews": [
-    {
-     "id": "rev_01m2x4ww0krd80dydw9b",
-     "reviewer": "5HEvUJ…ka9X",
-     "decision": "approve",
-     "criteria": [
-      {
-       "id": "license",
-       "title": "License compatibility and complete attribution",
-       "passed": true
-      },
-      {
-       "id": "reproducible_build",
-       "title": "Build reproduces from the frozen artifact",
-       "passed": true
-      },
-      {
-       "id": "adaptivity",
-       "title": "No forbidden benchmark-recognition adaptivity",
-       "passed": true
-      },
-      {
-       "id": "security",
-       "title": "Security scans and fuzzing clean",
-       "passed": true
-      },
-      {
-       "id": "native_review",
-       "title": "Independent review of native code",
-       "passed": true
-      },
-      {
-       "id": "soak",
-       "title": "6-hour soak at 90% of confirmed capacity without errors above the gate",
-       "passed": true
-      },
-      {
-       "id": "mechanism",
-       "title": "Declared memory mechanism confirmed in the code",
-       "passed": true
-      }
-     ],
-     "reasons": "Demo review: published criteria all pass.",
-     "due_at": "2026-10-03T15:34:57.812031Z",
-     "decided_at": "2026-09-19T15:35:13.471656Z"
-    }
-   ],
+   "reviews": [],
    "appeals": [],
    "reports": [
     {
-     "id": "rep_01m2x4wfjzfm00dyzdgp",
+     "id": "rep_01m334z9s8kx4dvc8avg",
      "kind": "screen",
-     "hash": "c105b1c4cd8db969715c9311d85a0f67456f323b889a3ce66651fbcac35d62c2",
+     "hash": "2411c70ce6beccb425e2caaa946079f336757fdd204f4fc35bf78ae097d22693",
      "simulated": true,
      "body": null,
-     "created_at": "2026-09-19T15:34:45.057017Z"
+     "created_at": "2026-09-21T23:31:44.020162Z"
     },
     {
-     "id": "rep_01m2x4wqh944bad6ca4s",
+     "id": "rep_01m334zgbpd0xrrjrrg6",
      "kind": "full",
-     "hash": "4e7723d675059d9a6f7a9ad183779a650a054a07bf15022427101e107c36544b",
+     "hash": "94247f2d9fc03150fe028f2d3caff4a805262e090ea4378579fa273e4229272b",
      "simulated": true,
      "body": {
+      "soak": {
+       "passed": true,
+       "reasons": [],
+       "load_share_bp": 9000
+      },
       "gates": {
-       "pooled_gates": true,
-       "per_run_gates": true,
+       "soak": true,
+       "band_attainment": true,
        "memory_evidence": true,
        "offline_quality": true,
+       "capacity_reading": true,
        "resource_ceilings": true,
        "short_request_control": true,
        "live_conversation_check": true
       },
       "p_ctl": {
-       "rule": "paired regression control: not more than 2 points below the champion",
+       "rule": "one run: not more than 2 points below the champion's calibrated short-request result",
        "passed": true,
        "attainment_bp": 10000,
        "rate_milli_rps": 1092,
@@ -746,310 +1018,101 @@
       },
       "p_live": {
        "passed": true,
-       "offered": 1338,
+       "offered": 1155,
        "reasons": [],
-       "qualified": 1336,
-       "conversations_per_s_milli": 272
+       "qualified": 1155,
+       "conversations_per_s_milli": 242
       },
+      "winner": true,
       "quality": {
        "passed": true,
        "reasons": [],
        "accuracy_bp": {
-        "general": 8987,
-        "overall": 9072,
-        "position_late": 9061,
-        "position_early": 9222,
-        "position_middle": 8997
+        "general": 9137,
+        "overall": 9135,
+        "position_late": 9193,
+        "position_early": 9184,
+        "position_middle": 9025
        }
       },
-      "summary": "Potential winner: confirmation blocks will be scheduled.",
-      "capacity": {
-       "flag": "ok",
-       "runs": 12,
-       "trace": [
-        [
-         0,
-         true
-        ],
-        [
-         3,
-         true
-        ],
-        [
-         6,
-         true
-        ],
-        [
-         9,
-         true
-        ],
-        [
-         12,
-         true
-        ],
-        [
-         15,
-         false
-        ],
-        [
-         13,
-         true
-        ],
-        [
-         14,
-         true
-        ],
-        [
-         13,
-         false
-        ],
-        [
-         12,
-         true
-        ],
-        [
-         12,
-         true
-        ],
-        [
-         12,
-         true
-        ]
-       ],
-       "units": "requests per second, P-mem",
-       "milli_rps": 778
+      "summary": "Winner: 26.6% over the champion's score, and every winner check passed.",
+      "decision": {
+       "outcome": "win",
+       "reasons": [],
+       "gain_ppm": 265567,
+       "readings": 1
       },
+      "gain_ppm": 265567,
+      "readings": [
+       {
+        "flag": "ok",
+        "runs": 10,
+        "trace": [
+         [
+          0,
+          true
+         ],
+         [
+          1,
+          true
+         ],
+         [
+          2,
+          true
+         ],
+         [
+          3,
+          true
+         ],
+         [
+          4,
+          true
+         ],
+         [
+          5,
+          true
+         ],
+         [
+          6,
+          true
+         ],
+         [
+          7,
+          true
+         ],
+         [
+          8,
+          true
+         ],
+         [
+          9,
+          false
+         ]
+        ],
+        "grid_index": 8,
+        "champion_milli_rps": 546,
+        "challenger_milli_rps": 691
+       }
+      ],
       "failed_gates": [],
       "memory_evidence": {
        "limits": "Diagnostic evidence only; it does not prove that the gain was caused by memory. Validate the diagnostics against known memory and compute-only methods before trusting them.",
        "passed": true,
        "tight_ok": true,
        "margin_ppm": 50000,
-       "tight_flags": {
-        "champion": "ok",
-        "challenger": "ok"
-       },
        "accounting_ok": true,
-       "tolerance_ppm": 60000,
-       "recompute_note": "reported only: recomputation also falls for a faster stack, so it cannot by itself show a memory cause",
        "tight_measured": true,
-       "full_budget_gain_ppm": 425760,
        "tight_budget_gain_ppm": 604706,
-       "holds_within_tolerance": true,
        "tight_capacity_milli_rps": {
-        "champion": 382,
-        "challenger": 613,
-        "worker_calibration_champion": 418
+        "challenger": 622,
+        "champion_fixed_score": 388
        },
        "external_resident_capacity_gain_ppm": 800000,
-       "recomputed_prefill_tokens_per_qualified": {
-        "champion": 5895,
-        "challenger": 5794
-       }
+       "recomputed_prefill_tokens_per_qualified": 5991
       },
-      "triage_gain_ppm": 425760,
-      "potential_winner": true,
-      "pooled_gate_reasons": []
+      "band_attainment_reasons": []
      },
-     "created_at": "2026-09-19T15:34:53.206459Z"
-    },
-    {
-     "id": "rep_01m2x4wrkay5bcv632gx",
-     "kind": "confirm_block",
-     "hash": "72348df7facd6f1f5e9b5e73e918c126a72055d5b79c8b18fadac4a49355dc2c",
-     "simulated": true,
-     "body": {
-      "arm_order": [
-       "challenger",
-       "champion"
-      ],
-      "report_hash": "44d5d01e697b48b45d357e54664c8e5ff50e5d96636002a99d99f115cb74a516",
-      "champion_milli_rps": 546,
-      "challenger_milli_rps": 755
-     },
-     "created_at": "2026-09-19T15:34:54.303660Z"
-    },
-    {
-     "id": "rep_01m2x4wsar7jadxzqbh3",
-     "kind": "confirm_block",
-     "hash": "d7e5a74af63814a0570bb3ead0ff94d8eed2dc58f3614fa0e01586342c2b11bc",
-     "simulated": true,
-     "body": {
-      "arm_order": [
-       "challenger",
-       "champion"
-      ],
-      "report_hash": "74a93ad2845a3813829c8d695318518ec4f6b1a16a6c4a017efd2f52a20816c5",
-      "champion_milli_rps": 562,
-      "challenger_milli_rps": 825
-     },
-     "created_at": "2026-09-19T15:34:55.025856Z"
-    },
-    {
-     "id": "rep_01m2x4wtqv1jv3jevjkr",
-     "kind": "confirm_block",
-     "hash": "dd8a83298a2507eff3e55ed3ac04953418a8b178e02b5de7f24f745064ba0558",
-     "simulated": true,
-     "body": {
-      "arm_order": [
-       "champion",
-       "challenger"
-      ],
-      "report_hash": "59583ba120609784e6b9d3dc612fc77aa689cb82bf4b0699dd25c9b46e9f6c05",
-      "champion_milli_rps": 529,
-      "challenger_milli_rps": 733
-     },
-     "created_at": "2026-09-19T15:34:56.482828Z"
-    },
-    {
-     "id": "rep_01m2x4wttbpepkqkt03x",
-     "kind": "confirm_block",
-     "hash": "0a5875199583f6fc93936044f43b8dd2560af5c573522b7f0ad0f1f62e125737",
-     "simulated": true,
-     "body": {
-      "arm_order": [
-       "challenger",
-       "champion"
-      ],
-      "report_hash": "b75ef7a3990610ff4016c7b29f79af9facc81bcd14d9cbbcd2307d45af43f1f7",
-      "champion_milli_rps": 546,
-      "challenger_milli_rps": 801
-     },
-     "created_at": "2026-09-19T15:34:56.551360Z"
-    },
-    {
-     "id": "rep_01m2x4wvzpaf98ttf6h9",
-     "kind": "confirm_block",
-     "hash": "386f12ed255acdcf87a9c00c6542b7703f758fe663da821d00f23a05e7fa1280",
-     "simulated": true,
-     "body": {
-      "arm_order": [
-       "challenger",
-       "champion"
-      ],
-      "report_hash": "bd7ecf92607af46b27d37e2fde7646ce6b8f0b4f7557192d5770ee8f3536c884",
-      "champion_milli_rps": 529,
-      "challenger_milli_rps": 733
-     },
-     "created_at": "2026-09-19T15:34:57.767937Z"
-    }
-   ],
-   "simulated": true
-  },
-  "/v1/submissions/sub_01m2x4wetjqm2a94vfv2": {
-   "submission_id": "sub_01m2x4wetjqm2a94vfv2",
-   "state": "not_promoted",
-   "state_label": "Did not replace the champion",
-   "hotkey": "5DhZhA…FsoF",
-   "lineage": "evict-quarter",
-   "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
-   "profile_version": "1.0.0",
-   "rule_hash": "eb93b1f164ec30d80a03a7fb49e4e26108fdb9f4a622b3334ff4e882591998de",
-   "support_ref": "RM-A7QF-6X7H",
-   "created_at": "2026-09-19T15:34:44.278099Z",
-   "updated_at": "2026-09-19T15:34:45.788162Z",
-   "admission_key": [
-    16,
-    0
-   ],
-   "admitted_at": "2026-09-19T15:34:44.725064Z",
-   "deadline_at": "2026-11-18T15:34:44.725064Z",
-   "rebases_used": 0,
-   "max_rebases": 2,
-   "compared_champion_version": 0,
-   "current_champion_version": 1,
-   "triage_gain_ppm": null,
-   "bound_gain_ppm": null,
-   "margin_ppm": 50000,
-   "blocks_required": 5,
-   "outcome": {
-    "code": "not_potential_winner",
-    "summary": "Offline quality failed; capacity was not measured. overall: lower bound -7.82 pts vs champion is not above -2.00; position_early: lower bound -21.65 pts vs champion is not above -3.00; position_middle: lower bound -9.48 pts vs champion is not above -3.00; overall: lower bound -8.09 pts vs fixed quality reference is not above -3.00; position_early: lower bound -21.39 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -9",
-    "fee": "consumed"
-   },
-   "method": "Keeps only the most attended quarter of cached tokens.",
-   "mechanism": "retention",
-   "trusted_fixture": "evict-quarter",
-   "changed_paths": null,
-   "artifact_sha256": null,
-   "blocking_submissions": [],
-   "timeline": [
-    {
-     "stage": "screen",
-     "status": "done",
-     "block_no": null,
-     "worker": "w-op-1",
-     "champion_version": 0,
-     "attempts": 1,
-     "created_at": "2026-09-19T15:34:44.663614Z",
-     "updated_at": "2026-09-19T15:34:45.248284Z",
-     "lease_expires_at": "2026-09-19T17:34:45.116979Z",
-     "gpu_centi_used": 35
-    },
-    {
-     "stage": "full",
-     "status": "done",
-     "block_no": null,
-     "worker": "w-op-2",
-     "champion_version": 0,
-     "attempts": 1,
-     "created_at": "2026-09-19T15:34:45.232188Z",
-     "updated_at": "2026-09-19T15:34:45.741565Z",
-     "lease_expires_at": "2026-09-20T15:34:45.385092Z",
-     "gpu_centi_used": 150
-    }
-   ],
-   "comparisons": [],
-   "reviews": [],
-   "appeals": [],
-   "reports": [
-    {
-     "id": "rep_01m2x4wfrbde06qqjmz6",
-     "kind": "screen",
-     "hash": "eb64de9a89f9a10b702af356338521793549c105f3f4cfc99575ff943c2c8900",
-     "simulated": true,
-     "body": null,
-     "created_at": "2026-09-19T15:34:45.232188Z"
-    },
-    {
-     "id": "rep_01m2x4wg86c5byp05bw6",
-     "kind": "full",
-     "hash": "d341692c4e03a66268ee22d8c4c0242a01f2582904eadb4d112f37064fedc7a9",
-     "simulated": true,
-     "body": {
-      "gates": {
-       "pooled_gates": false,
-       "per_run_gates": false,
-       "memory_evidence": false,
-       "offline_quality": false,
-       "resource_ceilings": true,
-       "short_request_control": false,
-       "live_conversation_check": false
-      },
-      "quality": {
-       "passed": false,
-       "reasons": [
-        "overall: lower bound -7.82 pts vs champion is not above -2.00",
-        "position_early: lower bound -21.65 pts vs champion is not above -3.00",
-        "position_middle: lower bound -9.48 pts vs champion is not above -3.00",
-        "overall: lower bound -8.09 pts vs fixed quality reference is not above -3.00",
-        "position_early: lower bound -21.39 pts vs fixed quality reference is not above -3.00",
-        "position_middle: lower bound -9.79 pts vs fixed quality reference is not above -3.00",
-        "overall: accuracy 83.22% is below the absolute floor 85.00%",
-        "position_early: accuracy 70.38% is below the absolute floor 80.00%"
-       ],
-       "accuracy_bp": {
-        "general": 9212,
-        "overall": 8322,
-        "position_late": 9090,
-        "position_early": 7038,
-        "position_middle": 8172
-       }
-      },
-      "summary": "Offline quality failed; capacity was not measured. overall: lower bound -7.82 pts vs champion is not above -2.00; position_early: lower bound -21.65 pts vs champion is not above -3.00; position_middle: lower bound -9.48 pts vs champion is not above -3.00; overall: lower bound -8.09 pts vs fixed quality reference is not above -3.00; position_early: lower bound -21.39 pts vs fixed quality reference is not above -3.00; position_middle: lower bound -9",
-      "potential_winner": false
-     },
-     "created_at": "2026-09-19T15:34:45.716775Z"
+     "created_at": "2026-09-21T23:31:50.719658Z"
     }
    ],
    "simulated": true
