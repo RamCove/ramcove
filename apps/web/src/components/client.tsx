@@ -54,18 +54,18 @@ export function Button({
   );
 }
 
-/** Polls a server route and refreshes the page data. Pauses when the tab is hidden. */
+/** Refreshes the page data every few seconds while the tab is visible. Viewers cannot stop it: the badge only
+ *  says the numbers are live, so nobody mistakes it for a control over the network. */
 export function AutoRefresh({ seconds = 5 }: { seconds?: number }) {
   const router = useRouter();
   const { on: preview } = usePreview();
-  const [on, setOn] = useState(true);
   useEffect(() => {
-    if (!on || preview) return;
+    if (preview) return;
     const id = setInterval(() => {
       if (document.visibilityState === "visible") router.refresh();
     }, seconds * 1000);
     return () => clearInterval(id);
-  }, [on, preview, router, seconds]);
+  }, [preview, router, seconds]);
   if (preview) {
     // a snapshot never changes, so it must not look live
     return (
@@ -76,22 +76,14 @@ export function AutoRefresh({ seconds = 5 }: { seconds?: number }) {
     );
   }
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={() => setOn((v) => !v)}
-      className="inline-flex h-8 select-none items-center gap-2 rounded-full border border-line bg-surface px-3 text-[12.5px] text-muted transition-colors hover:text-text"
+    <span
+      title={`Updates every ${seconds} seconds`}
+      className="inline-flex h-8 select-none items-center gap-2 rounded-full border border-line bg-surface px-3 text-[12.5px] text-muted"
     >
-      <span
-        aria-hidden
-        className={clsx(on ? "live-dot text-ok" : "inline-block h-[7px] w-[7px] rounded-full bg-faint")}
-      />
-      {on ? "Live" : "Paused"}
-      <span className="sr-only"> updates</span>
-      <span aria-hidden className="text-faint">·</span>
-      <span className="text-faint">{on ? "pause" : "resume"}</span>
-    </button>
+      <span aria-hidden className="live-dot text-ok" />
+      Live
+      <span className="sr-only">: this page updates every {seconds} seconds</span>
+    </span>
   );
 }
 
