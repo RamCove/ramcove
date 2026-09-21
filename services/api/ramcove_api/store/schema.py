@@ -303,7 +303,7 @@ comparisons = Table(
     Column("anchor_block", BigInteger, nullable=False),
     Column("beacon_round", BigInteger, nullable=False),
     Column("beacon_simulated", Boolean, nullable=False),
-    Column("seed", String(64)),
+    Column("seed", String(96)),
     Column("status", String(12), nullable=False, server_default=text("'scheduled'")),
     Column("challenger_milli_rps", Integer),
     Column("champion_milli_rps", Integer),

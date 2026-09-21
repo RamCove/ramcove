@@ -4,7 +4,7 @@ import pytest
 from ramcove_api.services import control
 from ramcove_api.store import audit
 from ramcove_api.store.db import tx
-from ramcove_api.store.schema import champions, ledger, receipts, reviews, weight_plans
+from ramcove_api.store.schema import champions, comparisons, ledger, receipts, reviews, weight_plans
 from sqlalchemy import select
 
 from .helpers import (
@@ -69,6 +69,46 @@ def test_a_flagged_winner_waits_for_a_person(ctx):
     for _ in range(2):
         control.tick(ctx)
     assert state(ctx, win["submission_id"]).state == "promoted"
+
+
+def test_a_close_first_reading_gets_a_second_and_both_are_recorded(ctx, monkeypatch):
+    """A first reading between the margin and the clear-win line gets one more; both are stored."""
+    from dataclasses import replace
+
+    from ramcove_evaluator import pipeline
+
+    original = pipeline._reading
+
+    def close_reading(params, base, profile, seed, budget):
+        cap, runs = original(params, base, profile, seed, budget)
+        if ":reading" in seed and budget == pipeline.FULL_BUDGET_GIB:
+            return replace(cap, capacity_rps=base * 1.0609), runs  # two grid steps: +6.1%
+        return cap, runs
+
+    monkeypatch.setattr(pipeline, "_reading", close_reading)
+    bring_workers_online(ctx)
+    measured = []
+    for variant in range(3):  # offline quality is noisy in the simulation; a miner would resubmit
+        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
+        pay_and_admit(ctx, sub["submission_id"], "miner-ada")
+        drain(ctx)
+        with tx(ctx.engine) as conn:
+            measured = conn.execute(
+                select(comparisons)
+                .where(
+                    comparisons.c.submission_id == sub["submission_id"], comparisons.c.status == "measured"
+                )
+                .order_by(comparisons.c.created_at)
+            ).all()
+        if measured:
+            break
+    assert len(measured) == 2, measured
+    assert measured[1].seed == f"{measured[0].seed}:reading1"
+    w = state(ctx, sub["submission_id"])
+    assert 50_000 < w.first_gain_ppm < 90_000 and w.bound_gain_ppm > 50_000, (
+        w.first_gain_ppm,
+        w.bound_gain_ppm,
+    )
 
 
 def winning_submission(ctx, miner: str, fixture: str, expected: str) -> dict:

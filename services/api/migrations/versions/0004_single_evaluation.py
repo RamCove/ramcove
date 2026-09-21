@@ -54,9 +54,13 @@ def upgrade() -> None:
     op.drop_column("submissions", "deadline_at")
     op.drop_column("submissions", "rebases_used")
     op.alter_column("submissions", "triage_gain_ppm", new_column_name="first_gain_ppm")
+    # a second reading records its derived seed: the comparison seed plus ":reading1"
+    op.alter_column("comparisons", "seed", type_=sa.String(length=96), existing_type=sa.String(length=64))
 
 
 def downgrade() -> None:
+    op.execute("UPDATE comparisons SET seed = left(seed, 64)")
+    op.alter_column("comparisons", "seed", type_=sa.String(length=64), existing_type=sa.String(length=96))
     op.alter_column("submissions", "first_gain_ppm", new_column_name="triage_gain_ppm")
     op.add_column(
         "submissions",
