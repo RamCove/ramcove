@@ -143,12 +143,10 @@ submissions = Table(
     Column("admission_block", BigInteger),
     Column("admission_index", Integer),
     Column("admitted_at", DateTime(timezone=True)),
-    Column("deadline_at", DateTime(timezone=True)),
-    Column("rebases_used", Integer, nullable=False, server_default=text("0")),
     Column("quorum_reschedules", Integer, nullable=False, server_default=text("0")),
     Column("compared_champion_version", Integer),
     Column("compared_rule_hash", String(64)),
-    Column("triage_gain_ppm", Integer),
+    Column("first_gain_ppm", Integer),
     Column("bound_gain_ppm", Integer),
     Column("reserved_centi", Integer, nullable=False, server_default=text("0")),
     Column("ready_since", DateTime(timezone=True)),
@@ -161,7 +159,7 @@ submissions = Table(
     ts("created_at", False, True),
     ts("updated_at", False, True),
     UniqueConstraint("admission_block", "admission_index", name="admission_key"),
-    CheckConstraint("rebases_used >= 0 AND reserved_centi >= 0", name="nonneg"),
+    CheckConstraint("reserved_centi >= 0", name="nonneg"),
 )
 Index(
     "uq_one_active_per_hotkey",
@@ -266,7 +264,6 @@ jobs = Table(
     Column("submission_id", String(40), ForeignKey("submissions.id")),
     Column("profile_id", String(120), nullable=False),
     Column("stage", String(20), nullable=False),
-    Column("block_no", Integer),
     Column("status", String(12), nullable=False, server_default=text("'queued'")),
     Column("priority_block", BigInteger, nullable=False),
     Column("priority_index", Integer, nullable=False),
@@ -280,7 +277,7 @@ jobs = Table(
     Column("simulated", Boolean, nullable=False, server_default=text("true")),
     ts("created_at", False, True),
     ts("updated_at", False, True),
-    CheckConstraint("stage IN ('screen','full','confirm_block','calibration','soak')", name="stage"),
+    CheckConstraint("stage IN ('screen','full','reproduce','calibration','soak')", name="stage"),
     CheckConstraint("status IN ('queued','leased','done','failed','void','cancelled')", name="status"),
 )
 Index("ix_jobs_dispatch", jobs.c.status, jobs.c.stage, jobs.c.priority_block, jobs.c.priority_index)
@@ -288,7 +285,6 @@ Index(
     "uq_job_open_stage",
     jobs.c.submission_id,
     jobs.c.stage,
-    jobs.c.block_no,
     jobs.c.champion_version,
     unique=True,
     postgresql_where=text("status IN ('queued','leased')"),

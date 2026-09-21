@@ -24,11 +24,11 @@ from .queue import review_criteria
 
 SCENARIOS = {
     "fresh": "Seeded state only: champion version 0, nothing submitted.",
-    "champion": "A challenger is measured, reviewed and promoted to champion version 1.",
-    "busy": "Several submissions in flight: one promoted, one failing quality, one waiting.",
+    "champion": "A challenger is measured and promoted to champion version 1. Nothing was flagged, so no review.",
+    "busy": "Several submissions: one promoted, one failing quality, one flagged winner waiting for a reviewer.",
     "rejected_payment": "An underpaid quote is rejected and a refund liability is opened.",
     "worker_failure": "A lease expires twice, the submission ends as an operator failure with a credit.",
-    "stale_comparison": "Two potential winners: the first is promoted, the second is rebased.",
+    "stale_comparison": "Two winners: the first is promoted, the second is re-compared with the new champion by arithmetic.",
     "failed_quality": "A challenger that saves memory but loses accuracy is rejected.",
     "no_champion_registration": "A technically approved winner never registers, so the incumbent keeps the crown.",
 }
@@ -78,8 +78,8 @@ class Harness:
     def work(
         self, steps: int = 60, workers: tuple[str, ...] = ("w-op-1", "w-op-2"), patience_s: int = 12
     ) -> int:
-        # Confirmation blocks are scheduled against a future beacon round, so "no job to lease right now"
-        # often means "wait a few seconds", not "finished". Give up only after patience_s idle seconds.
+        # Evaluations are scheduled against a future beacon round, so "no job to lease right now" often
+        # means "wait a few seconds", not "finished". Give up only after patience_s idle seconds.
         done = 0
         idle = 0
         for _ in range(steps):
@@ -156,6 +156,10 @@ def run(ctx: AppContext, name: str) -> dict:
             h.mark(bad, name)
             h.pay(bad, "miner-bao")
             out["submissions"]["quality_failure"] = bad
+            flagged = h.submit("miner-cyd", "native-paged-kv-kernel")
+            h.mark(flagged, name)
+            h.pay(flagged, "miner-cyd")
+            out["submissions"]["flagged_for_review"] = flagged
         if name == "stale_comparison":
             second = h.submit("miner-bao", "kv8-conversation-retention")
             h.mark(second, name)
@@ -171,7 +175,7 @@ def run(ctx: AppContext, name: str) -> dict:
             out["note"] = (
                 f"{hk} is not registered, so the incumbent keeps the allocation until the grace ends."
             )
-        # review can open only after the confirmation blocks finish, so approve and continue until settled
+        # a winner goes to a reviewer only when an automatic check flagged it; approve it and continue
         for _ in range(4):
             if h.state(win) == "in_review":
                 h.approve(win)

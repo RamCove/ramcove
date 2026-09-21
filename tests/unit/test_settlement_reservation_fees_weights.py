@@ -12,7 +12,7 @@ RH = "rulehash"
 
 
 def entry(sid, block, state, version=0, registered=True, idx=0):
-    return QueueEntry(sid, "p1", AdmissionKey(block, idx), S(state), version, RH, registered, False)
+    return QueueEntry(sid, "p1", AdmissionKey(block, idx), S(state), version, RH, registered)
 
 
 def test_earlier_job_still_in_full_evaluation_blocks_later_promotion():
@@ -49,11 +49,11 @@ def test_terminal_earlier_job_releases_barrier(terminal):
     assert decide_promotion(b, [a, b], 0, RH, False).allowed
 
 
-def test_stale_evidence_requires_rebase():
+def test_evidence_against_an_older_champion_is_re_compared_not_re_measured():
     b = entry("B", 101, S.READY_FOR_PROMOTION, version=1)
-    assert decide_promotion(b, [b], 2, RH, False).action == "rebase"
-    b2 = QueueEntry("B", "p1", AdmissionKey(101, 0), S.READY_FOR_PROMOTION, 2, "other-rule", True, False)
-    assert decide_promotion(b2, [b2], 2, RH, False).action == "rebase"
+    assert decide_promotion(b, [b], 2, RH, False).action == "recompare"
+    b2 = QueueEntry("B", "p1", AdmissionKey(101, 0), S.READY_FOR_PROMOTION, 2, "other-rule", True)
+    assert decide_promotion(b2, [b2], 2, RH, False).action == "recompare"
 
 
 def test_registration_precedes_title_transfer():
@@ -73,28 +73,28 @@ def test_operator_failures_never_consume_fee():
     assert fee_outcome(S.OPERATOR_FAILED) == "refund_or_credit"
 
 
-def test_conservative_envelope_bounds_strong_submission_flood(profile):
-    env, d = profile.envelope, profile.deadlines
+def test_booked_work_never_exceeds_the_two_week_queue(profile):
+    env = profile.envelope
     plan = CapacityPlan(workers_ready=2, horizon_hours=336)
     committed = 0
     admitted = 0
-    for _ in range(100):  # a flood of strong submissions
+    for _ in range(1000):  # a flood of submissions
         check = can_issue_quote(committed, env, plan, intake_paused=False)
         if not check.allowed:
             break
-        committed += remaining_envelope(S.ADMITTED, env, 0, d.max_rebases)
+        committed += remaining_envelope(S.ADMITTED, env)
         admitted += 1
-    assert committed <= plan.capacity_centi()
-    # even if every admission uses its whole worst-case envelope, outstanding work fits the horizon
-    assert admitted * env.total() <= plan.capacity_centi()
-    assert admitted < 29  # the paper's mean-based cap was not a bound
+    # each admission books screening plus one evaluation; the reserve covers winners' extra checks
+    assert env.total() == 334
+    assert committed <= plan.capacity_centi() < committed + env.total()
+    assert admitted == plan.capacity_centi() // env.total() == 160
 
 
 def test_envelope_releases_as_outcomes_are_known(profile):
-    env, d = profile.envelope, profile.deadlines
-    seq = [S.ADMITTED, S.EVAL_QUEUED, S.CONFIRM_QUEUED, S.IN_REVIEW, S.READY_FOR_PROMOTION, S.PROMOTED]
-    values = [remaining_envelope(s, env, 0, d.max_rebases) for s in seq]
-    assert values == sorted(values, reverse=True) and values[-1] == 0
+    env = profile.envelope
+    seq = [S.ADMITTED, S.EVAL_QUEUED, S.IN_REVIEW, S.READY_FOR_PROMOTION, S.PROMOTED]
+    values = [remaining_envelope(s, env) for s in seq]
+    assert values == [334, 299, 0, 0, 0]
 
 
 def test_no_quotes_when_paused_or_no_safe_workers(profile):
@@ -106,9 +106,9 @@ def test_fee_formula_and_rounding(profile):
     now = datetime(2026, 9, 17, 15, 40, tzinfo=UTC)
     price = PriceObservation("coingecko:bittensor:usd", 227_920_000, now - timedelta(minutes=4), False)
     f = compute_fee(profile.fees, price, now)
-    assert f.fee_rao == 120_000_000  # 0.12 TAO, rounded up to 0.01
-    assert f.target_usd_cents == 2623
-    assert f.fee_usd_cents_at_price == 2735  # review R10: $27.35 at that price, not $26.23
+    assert f.fee_rao == 40_000_000  # 0.04 TAO, rounded up to 0.01
+    assert f.target_usd_cents == 781  # half of the $15.63 planning cost per admission
+    assert f.fee_usd_cents_at_price == 911  # review R10: $9.11 at that price, not $7.54
     assert f.fee_rao % profile.fees.round_step_rao == 0 and f.fee_rao < RAO_PER_TAO
 
 

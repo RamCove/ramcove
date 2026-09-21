@@ -86,10 +86,10 @@ def test_there_is_no_guest_sign_in_any_more(ctx):
 
 def test_the_stand_in_reviewer_is_off_by_default_and_labels_what_it_approves(ctx):
     bring_workers_online(ctx)
-    # triage is noisy (about one clear winner in eight is rejected), so resubmit as a miner would
+    # a native kernel is flagged for a person; the simulated evaluation is noisy, so resubmit as a miner would
     sub_id = None
     for attempt in range(3):
-        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=attempt)
+        sub = submit_fixture(ctx, "miner-ada", "native-paged-kv-kernel", variant=attempt)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
         if state(ctx, sub["submission_id"]).state == "in_review":

@@ -75,10 +75,10 @@ def test_roles_still_decide_what_each_key_may_do(run):
 
 def test_a_reviewer_decides_a_promotion_from_the_command_line(ctx, run):
     bring_workers_online(ctx)
-    # triage is noisy (about one clear winner in eight is rejected), so resubmit as a miner would
+    # a native kernel is flagged for a person; the simulated evaluation is noisy, so resubmit as a miner would
     sub_id = None
     for attempt in range(3):
-        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=attempt)
+        sub = submit_fixture(ctx, "miner-ada", "native-paged-kv-kernel", variant=attempt)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
         if state(ctx, sub["submission_id"]).state == "in_review":
@@ -86,7 +86,7 @@ def test_a_reviewer_decides_a_promotion_from_the_command_line(ctx, run):
             break
     assert sub_id, "no submission reached review in three attempts"
     code, out, _ = run("reviewer-1", "reviews")
-    assert code == 0 and sub_id in out
+    assert code == 0 and sub_id in out and "flagged: native_review" in out
     review_id = next(line.split()[0] for line in out.splitlines() if sub_id in line)
     # a rejection must cite a failed criterion
     code, _, err = run(

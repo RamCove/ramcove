@@ -29,9 +29,9 @@
   },
   "workloads": ["P-mem-v1", "P-live-v1", "P-ctl-v1"],
   "replacement": {
-    "delta_ppm": 50000, "blocks": 5, "sigma_floor_ppm": 20000, "confidence": "one_sided_95",
-    "grid_step_ppm": 30000, "grid_min_steps": -8, "grid_max_steps": 16, "max_runs_per_arm_per_block": 6,
-    "triage_allowance_ppm": 20000, "calibrated": false
+    "delta_ppm": 50000, "clear_win_ppm": 90000,
+    "grid_step_ppm": 30000, "grid_min_steps": -8, "grid_max_steps": 16, "max_runs_per_reading": 6,
+    "calibrated": false
   },
   "quality": {
     "reference_id": "ramcove-quality-ref-p1-v1 (tuned vLLM v0.29.0, 16-bit KV cache, frozen)",

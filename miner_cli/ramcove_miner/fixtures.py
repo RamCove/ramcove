@@ -59,6 +59,22 @@ FIXTURES = [
         "params": StackParams("fragmentation-aware-allocator", usable_factor=1.8),
     },
     {
+        "name": "native-paged-kv-kernel",
+        "role": "challenger",
+        "lineage": "native-paged-kv",
+        "mechanism": "allocation",
+        "title": "Native paged-KV packing kernel",
+        "method": "A CUDA kernel packs KV blocks tightly so more tokens fit in the same budget. Native code, "
+        "so a winner goes to a person before promotion.",
+        "patch": (
+            "diff --git a/vllm/v1/attention/ops/ramcove_paged_kv.cu b/vllm/v1/attention/ops/ramcove_paged_kv.cu\n"
+            "--- a/vllm/v1/attention/ops/ramcove_paged_kv.cu\n+++ b/vllm/v1/attention/ops/ramcove_paged_kv.cu\n"
+            "@@ -1,3 +1,4 @@\n // vLLM paged KV kernels\n+// RamCove demo fixture: native paged kv\n"
+            "+#define RAMCOVE_PACKED_KV 1\n"
+        ),
+        "params": StackParams("native-paged-kv-kernel", usable_factor=1.8),
+    },
+    {
         "name": "evict-quarter",
         "role": "challenger",
         "lineage": "evict-quarter",

@@ -1,8 +1,9 @@
-"""Conservative compute reservation (review R3).
+"""Compute booked for paid admissions.
 
-The hard admission cap uses a worst-case *envelope* per paid admission, released stage by stage as
-outcomes become known. Average pass rates are used only for forecasts shown as estimates.
-All quantities are centi-GPU-hours (integers).
+A paid admission books its screening and one evaluation (quality, up to two capacity readings and the GPU
+check); each part is released as soon as it finishes. Queue capacity counts these bookings against what the
+ready workers can deliver over the published horizon. A winner's extra checks and the new champion's
+calibration come out of the published reserve. All quantities are centi-GPU-hours (integers).
 """
 
 from __future__ import annotations
@@ -13,20 +14,13 @@ from .rules import StageEnvelope
 from .state import S
 
 
-def remaining_envelope(state: S, env: StageEnvelope, rebases_used: int, max_rebases: int) -> int:
-    rebase_left = max(0, max_rebases - rebases_used)
-    confirm = env.confirmation_worst + env.rebase_allowance * min(1, rebase_left)
-    tail = env.soak + env.recalibration_on_promotion
+def remaining_envelope(state: S, env: StageEnvelope) -> int:
     table = {
         S.QUOTED: env.total(),
         S.ADMITTED: env.total(),
         S.SCREENING: env.total(),
-        S.EVAL_QUEUED: env.full + confirm + tail,
-        S.EVALUATING: env.full + confirm + tail,
-        S.CONFIRM_QUEUED: confirm + tail,
-        S.CONFIRMING: confirm + tail,
-        S.IN_REVIEW: tail,
-        S.READY_FOR_PROMOTION: env.recalibration_on_promotion,
+        S.EVAL_QUEUED: env.evaluation,
+        S.EVALUATING: env.evaluation,
     }
     return table.get(state, 0)
 
@@ -35,13 +29,10 @@ def remaining_envelope(state: S, env: StageEnvelope, rebases_used: int, max_reba
 class CapacityPlan:
     workers_ready: int
     horizon_hours: int
-    availability_bp: int = 8500
-    calibration_centi_per_worker_week: int = 1258
+    availability_bp: int = 8000  # the rest is the reserve: winners' checks, new champion scores, downtime
 
     def capacity_centi(self) -> int:
-        weeks = self.horizon_hours / 168
-        raw = self.workers_ready * self.horizon_hours * 100 * self.availability_bp // 10_000
-        return max(0, int(raw - self.calibration_centi_per_worker_week * self.workers_ready * weeks))
+        return max(0, self.workers_ready * self.horizon_hours * 100 * self.availability_bp // 10_000)
 
 
 @dataclass(frozen=True)

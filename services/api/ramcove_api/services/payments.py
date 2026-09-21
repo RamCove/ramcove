@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import Any
 
 from ramcove_chain.payment import REMARK_PREFIX, Outcome, QuoteTerms, verify_payment
@@ -89,7 +88,6 @@ def process_extrinsic(conn: Connection, ctx: AppContext, ext: Extrinsic) -> dict
     ref = f"{ext.block_hash}:{ext.index}"
     sub = lock_submission(conn, q.submission_id)
     if verdict.outcome == Outcome.VERIFIED:
-        profile = ctx.profile_by_hash(conn, q.rule_hash)
         if sub.state != S.QUOTED:
             raise ServiceError("bad_state", f"submission {sub.id} is {sub.state}", 409)
         admitted_at = now()
@@ -133,7 +131,6 @@ def process_extrinsic(conn: Connection, ctx: AppContext, ext: Extrinsic) -> dict
             admission_block=ext.block_number,
             admission_index=ext.index,
             admitted_at=admitted_at,
-            deadline_at=admitted_at + timedelta(seconds=profile.deadlines.end_to_end_s),
         )
         ledger_entry(conn, ctx, "fee_received", q.amount_rao, ref, f"fee_received:{ref}", q.hotkey, sub.id)
         if verdict.excess_rao:

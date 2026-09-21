@@ -2,9 +2,9 @@
 
 Promise: *promotion order is admission order*. A later admission can never be promoted while any
 earlier paid admission in the same profile is still active and retains priority, whatever stage it
-is in (screening, full evaluation, confirmation, review or awaiting registration). Priority is lost
-only at a terminal state, and every active state is bounded by a published end-to-end deadline, so
-the barrier always releases.
+is in (screening, evaluation, reproduction, flagged review or awaiting registration). Priority is lost
+only at a terminal state; every stage runs on a lease that is retried once and then ends as an operator
+failure, so the barrier always releases.
 
 Dispatch order (who starts work), completion order (who finishes first) and promotion order are
 different things; only the last carries the fairness promise.
@@ -35,7 +35,6 @@ class QueueEntry:
     compared_champion_version: int | None
     compared_rule_hash: str | None
     hotkey_registered: bool
-    deadline_passed: bool
 
 
 @dataclass(frozen=True)
@@ -43,7 +42,7 @@ class PromotionDecision:
     allowed: bool
     blocking: tuple[str, ...]
     reason: str
-    action: str  # "promote" | "wait" | "rebase" | "expire_registration" | "none"
+    action: str  # "promote" | "wait" | "recompare" | "expire_registration" | "none"
 
 
 def blockers_for(entry: QueueEntry, all_entries: list[QueueEntry]) -> list[QueueEntry]:
@@ -74,7 +73,7 @@ def decide_promotion(
         or entry.compared_rule_hash != current_rule_hash
     ):
         return PromotionDecision(
-            False, (), "evidence was measured against a different champion or rule version", "rebase"
+            False, (), "measured against an earlier champion: re-compare with the current one", "recompare"
         )
     blockers = blockers_for(entry, all_entries)
     if blockers:

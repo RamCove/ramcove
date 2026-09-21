@@ -1,7 +1,10 @@
-"""Leases, job results and stage transitions (Sections 6.4, 7.8; review R2-R4).
+"""Leases, job results and stage transitions (Sections 6.4, 7.8).
 
 Dispatch order = oldest admission key first among compatible queued jobs. Completion order is free.
 Promotion order is enforced separately in settlement.py.
+
+Each worker holds the current champion's fixed score, measured once when that champion was crowned. A
+challenger's evaluation is set against that score: one reading, a second only when the first is close.
 """
 
 from __future__ import annotations
@@ -11,9 +14,9 @@ from typing import Any
 
 from ramcove_chain.beacon import DevBeacon, resolve_round
 from ramcove_protocol.reservation import remaining_envelope
-from ramcove_protocol.scoring import Block, replacement_bound
-from ramcove_protocol.state import S
-from sqlalchemy import Connection, and_, func, select, update
+from ramcove_protocol.scoring import Reading, gain_against_later_champion
+from ramcove_protocol.state import PAID_ACTIVE, S
+from sqlalchemy import Connection, select, update
 
 from ..store import audit
 from ..store.db import new_id, now, tx
@@ -33,13 +36,14 @@ from .accounting import issue_credit, ledger_entry
 from .context import AppContext, ServiceError
 from .intake import _set_state, lock_submission
 
-CALIBRATION_VALID_DAYS = 7
 STAGE_LEASE = {
     "screen": "lease_screen_s",
     "full": "lease_full_s",
-    "confirm_block": "lease_block_s",
+    "reproduce": "lease_reproduce_s",
     "calibration": "lease_full_s",
 }
+# a winner whose patch touches native code goes to a person before promotion
+NATIVE_SUFFIXES = (".cu", ".cuh", ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".pyx", ".so")
 
 
 def current_champion(conn: Connection, profile_id: str):
@@ -59,11 +63,7 @@ def _set_reserved(conn: Connection, ctx: AppContext, sub_id: str) -> None:
     conn.execute(
         update(submissions)
         .where(submissions.c.id == sub_id)
-        .values(
-            reserved_centi=remaining_envelope(
-                S(sub.state), profile.envelope, sub.rebases_used, profile.deadlines.max_rebases
-            )
-        )
+        .values(reserved_centi=remaining_envelope(S(sub.state), profile.envelope))
     )
 
 
@@ -89,11 +89,8 @@ def lease_next(ctx: AppContext, worker_id: str) -> dict | None:
             return None
         profile = ctx.profile(conn, w.profile_id)
         champ = current_champion(conn, w.profile_id)
-        stale_cal = (
-            w.calibrated_champion_version != champ.version
-            or w.calibrated_at is None
-            or now() - w.calibrated_at > timedelta(days=CALIBRATION_VALID_DAYS)
-        )
+        # the champion's score on this worker: measured once per champion, never again
+        stale_cal = w.calibrated_champion_version != champ.version or w.calibrated_at is None
         if stale_cal:
             job = conn.execute(
                 select(jobs)
@@ -123,34 +120,32 @@ def lease_next(ctx: AppContext, worker_id: str) -> dict | None:
             if job.status == "leased" and job.lease_expires_at and job.lease_expires_at > now():
                 return None
             return _lease(conn, ctx, job, worker_id, profile, champ)
-        others_ready = len(ctx.ready_workers(conn, w.profile_id))
-        measured_by_me = select(comparisons.c.submission_id).where(
-            comparisons.c.worker == worker_id, comparisons.c.champion_version == champ.version
-        )
         q = (
             select(jobs)
             .where(
                 jobs.c.status == "queued",
                 jobs.c.profile_id == w.profile_id,
-                jobs.c.stage.in_(["screen", "full", "confirm_block"]),
+                jobs.c.stage.in_(["screen", "full", "reproduce"]),
             )
-            .order_by(jobs.c.priority_block, jobs.c.priority_index, jobs.c.block_no)
+            .order_by(jobs.c.priority_block, jobs.c.priority_index)
             .with_for_update(skip_locked=True)
             .limit(20)
         )
+        my_group = conn.execute(
+            select(validators.c.independence_group).where(validators.c.hotkey == w.validator)
+        ).scalar()
         for job in conn.execute(q).all():
-            if job.stage == "confirm_block" and others_ready > 1:
-                # spread blocks across separately provisioned workers: each may take at most its fair share
-                mine = (
-                    conn.execute(
-                        select(func.count()).select_from(
-                            measured_by_me.where(comparisons.c.submission_id == job.submission_id).subquery()
-                        )
-                    ).scalar()
-                    or 0
-                )
-                total_blocks = profile.replacement.blocks
-                if mine >= -(-total_blocks // others_ready):  # ceiling division
+            if job.stage == "reproduce":
+                # a reproduction must come from a validator with no shared operator
+                measured_by = {
+                    g
+                    for (g,) in conn.execute(
+                        select(validators.c.independence_group)
+                        .join(comparisons, comparisons.c.validator == validators.c.hotkey)
+                        .where(comparisons.c.submission_id == job.submission_id)
+                    ).all()
+                }
+                if my_group in measured_by:
                     continue
             if job.stage == "full":
                 art = conn.execute(
@@ -166,7 +161,7 @@ def lease_next(ctx: AppContext, worker_id: str) -> dict | None:
 
 def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, champ) -> dict:
     lease_s = getattr(profile.deadlines, STAGE_LEASE[job.stage])
-    champion_version = job.champion_version if job.stage == "confirm_block" else champ.version
+    champion_version = champ.version
     conn.execute(
         update(jobs)
         .where(jobs.c.id == job.id)
@@ -194,14 +189,14 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
         event = {
             "screen": ("screen_start", S.ADMITTED),
             "full": ("eval_start", S.EVAL_QUEUED),
-            "confirm_block": ("confirm_start", S.CONFIRM_QUEUED),
+            "reproduce": ("reproduce_start", S.REPRODUCE_QUEUED),
         }[job.stage]
         if sub.state == event[1]:
             transition(conn, ctx, sub.id, event[0])
         payload["seed"] = f"{sub.id}:{job.stage}:{job.attempts + 1}:{champ.version}"
-    if job.stage in ("full", "confirm_block"):
+    if job.stage in ("full", "reproduce"):
+        # promotion evidence: tests come from a beacon round nobody can know when the artifact is frozen
         payload["calibration"] = w.readiness.get("calibration", {})
-    if job.stage == "confirm_block":
         chain = ctx.chain(conn)
         anchor = chain.finalized_head()
         beacon = DevBeacon()
@@ -233,22 +228,9 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
             cid,
             {"anchor_block": anchor.number, "beacon_round": res.used_round, "simulated_beacon": True},
         )
-        sub = conn.execute(select(submissions).where(submissions.c.id == job.submission_id)).first()
-        payload.update(
-            comparison_id=cid,
-            seed=res.seed,
-            block_no=job.block_no,
-            start_k=_start_k(sub.triage_gain_ppm or 0, profile),
-        )
+        payload.update(comparison_id=cid, seed=res.seed or payload["seed"])
     audit.append(conn, worker_id, "job_leased", "job", job.id, {"stage": job.stage})
     return payload
-
-
-def _start_k(gain_ppm: int, profile) -> int:
-    import math
-
-    step = profile.replacement.grid_step_ppm / 1e6
-    return max(0, round(math.log(1 + gain_ppm / 1e6) / math.log(1 + step))) if gain_ppm > 0 else 0
 
 
 def _store_report(
@@ -277,19 +259,7 @@ def _store_report(
 
 def _operator_failure(conn: Connection, ctx: AppContext, sub_id: str, reason: str) -> None:
     sub = lock_submission(conn, sub_id)
-    if sub.state not in {
-        s.value
-        for s in (
-            S.ADMITTED,
-            S.SCREENING,
-            S.EVAL_QUEUED,
-            S.EVALUATING,
-            S.CONFIRM_QUEUED,
-            S.CONFIRMING,
-            S.IN_REVIEW,
-            S.READY_FOR_PROMOTION,
-        )
-    }:
+    if sub.state not in {s.value for s in PAID_ACTIVE}:
         return
     transition(
         conn,
@@ -367,7 +337,9 @@ def complete(ctx: AppContext, worker_id: str, job_id: str, result: dict) -> dict
             w = conn.execute(select(workers).where(workers.c.id == worker_id)).first()
             readiness = dict(w.readiness)
             readiness["calibration"] = {
-                k: result[k] for k in ("capacity_milli_rps", "tight_capacity_milli_rps", "flag")
+                k: result[k]
+                for k in ("capacity_milli_rps", "tight_capacity_milli_rps", "flag", "pctl")
+                if k in result
             }
             conn.execute(
                 update(workers)
@@ -378,13 +350,14 @@ def complete(ctx: AppContext, worker_id: str, job_id: str, result: dict) -> dict
             )
             if (
                 champ.version == job.champion_version
-                and not champ.capacity_milli_rps
+                and not champ.capacity_measured
                 and result["capacity_milli_rps"]
             ):
+                # the first worker to measure a new champion replaces the estimate shown publicly
                 conn.execute(
                     update(champions)
                     .where(champions.c.profile_id == job.profile_id, champions.c.version == champ.version)
-                    .values(capacity_milli_rps=result["capacity_milli_rps"])
+                    .values(capacity_milli_rps=result["capacity_milli_rps"], capacity_measured=True)
                 )
             audit.append(
                 conn,
@@ -443,60 +416,25 @@ def complete(ctx: AppContext, worker_id: str, job_id: str, result: dict) -> dict
                 public=True,
             )
         elif job.stage == "full":
-            if job.champion_version != champ.version:
-                return _rebase_full(conn, ctx, job, sub, profile, champ)
-            _store_report(conn, ctx, job, worker_id, "full", result, _public_full(result))
-            potential = bool(result.get("potential_winner"))
-            if potential:
-                transition(
-                    conn,
-                    ctx,
-                    sub.id,
-                    "eval_potential",
-                    triage_gain_ppm=result.get("triage_gain_ppm"),
-                    compared_champion_version=champ.version,
-                    compared_rule_hash=profile.rule_hash(),
-                )
-                _create_blocks(conn, sub, profile, champ.version)
-            else:
-                transition(
-                    conn,
-                    ctx,
-                    sub.id,
-                    "eval_not_potential",
-                    triage_gain_ppm=result.get("triage_gain_ppm"),
-                    compared_champion_version=champ.version,
-                    compared_rule_hash=profile.rule_hash(),
-                    fee_outcome="consumed",
-                    outcome_code="not_potential_winner",
-                    outcome_summary=result.get("summary"),
-                )
-                _consume_fee(conn, ctx, sub.id)
-            audit.append(
-                conn,
-                worker_id,
-                "full_evaluation_done",
-                "submission",
-                sub.id,
-                {"potential_winner": potential, "triage_gain_ppm": result.get("triage_gain_ppm")},
-                public=True,
-            )
-        elif job.stage == "confirm_block":
-            _complete_block(conn, ctx, job, sub, profile, champ, worker_id, result)
+            _complete_evaluation(conn, ctx, job, sub, profile, champ, worker_id, result)
+        elif job.stage == "reproduce":
+            _complete_reproduction(conn, ctx, job, sub, profile, champ, worker_id, result)
         return {"job_id": job_id, "status": "done"}
 
 
 def _public_full(result: dict) -> dict:
     keep = (
-        "capacity",
+        "readings",
+        "decision",
         "gates",
         "failed_gates",
-        "triage_gain_ppm",
-        "potential_winner",
+        "gain_ppm",
+        "winner",
         "summary",
         "p_ctl",
         "p_live",
-        "pooled_gate_reasons",
+        "soak",
+        "band_attainment_reasons",
     )
     out = {k: result.get(k) for k in keep if k in result}
     q = result.get("quality", {})
@@ -511,28 +449,35 @@ def _public_full(result: dict) -> dict:
     return out
 
 
-def _create_blocks(conn: Connection, sub, profile, champion_version: int) -> None:
-    for b in range(profile.replacement.blocks):
-        conn.execute(
-            jobs.insert().values(
-                id=new_id("job"),
-                submission_id=sub.id,
-                profile_id=sub.profile_id,
-                stage="confirm_block",
-                block_no=b,
-                priority_block=sub.admission_block,
-                priority_index=sub.admission_index,
-                champion_version=champion_version,
-                rule_hash=sub.rule_hash,
-            )
+def promoted_gains_since(conn: Connection, profile_id: str, measured_version: int, current_version: int):
+    """Gains of the champions crowned after ``measured_version``, oldest first, so a measured gain can be set
+    against the current champion without measuring again. ``None`` if a rollback happened in between: a
+    restored stack has no gain relative to the one it replaced, so that evaluation runs again."""
+    rows = conn.execute(
+        select(champions)
+        .where(
+            champions.c.profile_id == profile_id,
+            champions.c.version > measured_version,
+            champions.c.version <= current_version,
         )
+        .order_by(champions.c.version)
+    ).all()
+    gains = []
+    for r in rows:
+        if (r.attribution or {}).get("restored_from_version") is not None or r.bound_gain_ppm is None:
+            return None
+        gains.append(r.bound_gain_ppm)
+    return gains
 
 
-def _rebase_full(conn: Connection, ctx: AppContext, job, sub, profile, champ) -> dict:
-    if sub.rebases_used >= profile.deadlines.max_rebases:
-        _operator_failure(conn, ctx, sub.id, "maximum automatic rebases reached after champion changes")
-        return {"job_id": job.id, "status": "done", "rebase": "limit"}
-    transition(conn, ctx, sub.id, "rebase", rebases_used=sub.rebases_used + 1)
+def requeue_evaluation(conn: Connection, ctx: AppContext, sub, reason: str) -> None:
+    """Evaluate again against the current champion, same admission key, no new fee (after a rollback)."""
+    conn.execute(
+        update(jobs)
+        .where(jobs.c.submission_id == sub.id, jobs.c.status.in_(["queued", "leased"]))
+        .values(status="cancelled", updated_at=now())
+    )
+    transition(conn, ctx, sub.id, "requeue", compared_champion_version=None, ready_since=None)
     conn.execute(
         jobs.insert().values(
             id=new_id("job"),
@@ -547,125 +492,255 @@ def _rebase_full(conn: Connection, ctx: AppContext, job, sub, profile, champ) ->
     audit.append(
         conn,
         "controller",
-        "rebased",
+        "evaluation_requeued",
         "submission",
         sub.id,
-        {"reason": "champion changed during full evaluation", "new_champion_version": champ.version},
+        {"reason": reason, "fee": "no new fee", "priority": "kept"},
         public=True,
     )
-    return {"job_id": job.id, "status": "done", "rebase": True}
 
 
-def _complete_block(
-    conn: Connection, ctx: AppContext, job, sub, profile, champ, worker_id: str, result: dict
-) -> None:
-    cmp_row = conn.execute(
-        select(comparisons).where(comparisons.c.job_id == job.id, comparisons.c.status == "scheduled")
-    ).first()
-    if cmp_row is None or result.get("comparison_id") != cmp_row.id:
-        raise ServiceError("bad_comparison", "result does not match the scheduled comparison", 409)
-    conn.execute(
-        update(comparisons)
-        .where(comparisons.c.id == cmp_row.id)
-        .values(
+def automatic_flags(conn: Connection, sub, result: dict) -> list[str]:
+    """What sends a winner to a person before promotion; otherwise promotion is automatic."""
+    flags = list(result.get("review_flags") or [])
+    art = conn.execute(select(artifacts).where(artifacts.c.sha256 == sub.artifact_sha256)).first()
+    if art is not None:
+        if any(str(p).lower().endswith(NATIVE_SUFFIXES) for p in (art.changed_paths or [])):
+            flags.append("native_code")
+        if (art.manifest or {}).get("third_party"):
+            flags.append("third_party_components")
+    return sorted(set(flags))
+
+
+def _record_readings(conn: Connection, job, readings: list[dict], cmp_id: str | None) -> None:
+    cmp_row = conn.execute(select(comparisons).where(comparisons.c.id == cmp_id)).first() if cmp_id else None
+    if cmp_row is None or cmp_row.job_id != job.id or cmp_row.status != "scheduled":
+        raise ServiceError("bad_comparison", "result does not match the scheduled measurement", 409)
+    for n, r in enumerate(readings):
+        values = dict(
             status="measured",
-            challenger_milli_rps=int(result["challenger_milli_rps"]),
-            champion_milli_rps=int(result["champion_milli_rps"]),
-            report_hash=result.get("report_hash"),
+            challenger_milli_rps=int(r["challenger_milli_rps"]),
+            champion_milli_rps=int(r["champion_milli_rps"]),
         )
-    )
-    _store_report(
-        conn,
-        ctx,
-        job,
-        worker_id,
-        "confirm_block",
-        result,
-        {
-            k: result.get(k)
-            for k in ("challenger_milli_rps", "champion_milli_rps", "arm_order", "report_hash")
-        },
-    )
-    if job.champion_version != champ.version or sub.state not in (S.CONFIRMING, S.CONFIRM_QUEUED):
-        return  # superseded evidence; rebase path already scheduled fresh blocks
-    open_blocks = conn.execute(
-        select(func.count())
-        .select_from(jobs)
-        .where(
-            jobs.c.submission_id == sub.id,
-            jobs.c.stage == "confirm_block",
-            jobs.c.champion_version == champ.version,
-            jobs.c.status.in_(["queued", "leased"]),
+        if n == 0:
+            conn.execute(update(comparisons).where(comparisons.c.id == cmp_row.id).values(**values))
+        else:
+            conn.execute(
+                comparisons.insert().values(
+                    id=new_id("cmp"),
+                    submission_id=cmp_row.submission_id,
+                    job_id=job.id,
+                    champion_version=cmp_row.champion_version,
+                    rule_hash=cmp_row.rule_hash,
+                    validator=cmp_row.validator,
+                    worker=cmp_row.worker,
+                    anchor_block=cmp_row.anchor_block,
+                    beacon_round=cmp_row.beacon_round,
+                    beacon_simulated=cmp_row.beacon_simulated,
+                    seed=f"{cmp_row.seed}:reading{n}",
+                    **values,
+                )
+            )
+    if not readings:
+        conn.execute(
+            update(comparisons)
+            .where(comparisons.c.id == cmp_row.id)
+            .values(status="void", void_reason="quality failed before any capacity reading")
         )
-    ).scalar()
-    if open_blocks:
+
+
+def _win(
+    conn: Connection, ctx: AppContext, sub, profile, champ, gain_ppm: int, result: dict, via: str
+) -> None:
+    """A challenger cleared the rule: automatic promotion unless a check flags it for a person."""
+    flags = automatic_flags(conn, sub, result)
+    common = dict(
+        bound_gain_ppm=gain_ppm,
+        compared_champion_version=champ.version,
+        compared_rule_hash=profile.rule_hash(),
+    )
+    if via == "evaluation" and profile.bootstrap.mode == "mainnet":
+        transition(conn, ctx, sub.id, "eval_win_reproduce", **common)
+        conn.execute(
+            jobs.insert().values(
+                id=new_id("job"),
+                submission_id=sub.id,
+                profile_id=sub.profile_id,
+                stage="reproduce",
+                priority_block=sub.admission_block,
+                priority_index=sub.admission_index,
+                rule_hash=sub.rule_hash,
+            )
+        )
         return
-    rows = conn.execute(
-        select(comparisons, validators.c.independence_group)
-        .join(validators, validators.c.hotkey == comparisons.c.validator)
-        .where(
-            comparisons.c.submission_id == sub.id,
-            comparisons.c.champion_version == champ.version,
-            comparisons.c.status == "measured",
+    if flags:
+        transition(
+            conn,
+            ctx,
+            sub.id,
+            "eval_win_flagged" if via == "evaluation" else "reproduce_pass_flagged",
+            **common,
         )
-    ).all()
-    blocks = [
-        Block(r.id, r.champion_version, r.challenger_milli_rps, r.champion_milli_rps, r.validator, r.worker)
-        for r in rows
-    ]
-    bound = replacement_bound(blocks, profile.replacement, champ.version)
-    distinct_workers = {r.worker for r in rows}
-    groups = {r.independence_group for r in rows}
-    reasons = list(bound.reasons)
-    if profile.bootstrap.mode == "mainnet":
-        quorum_ok = len(groups) >= profile.bootstrap.quorum_validators_after_sunset
-    else:
-        quorum_ok = len(distinct_workers) >= 2
-    if not quorum_ok:
-        reasons.append("blocks did not come from enough separately provisioned workers/validators")
-    summary = {
-        "n": bound.n,
-        "mean_gain_ppm": int(bound.mean_gain * 1e6),
-        "lower_bound_gain_ppm": int(bound.lower_gain * 1e6) if bound.lower_gain > -1 else None,
-        "sd_used_ppm": int(bound.sd_used * 1e6),
-        "workers": sorted(distinct_workers),
-        "independence_groups": sorted(groups),
-        "quorum_ok": quorum_ok,
-        "reasons": reasons,
-    }
-    audit.append(conn, "controller", "confirmation_evaluated", "submission", sub.id, summary, public=True)
-    if bound.passes_margin and quorum_ok:
-        transition(conn, ctx, sub.id, "confirm_pass", bound_gain_ppm=int(bound.lower_gain * 1e6))
         conn.execute(
             reviews.insert().values(
                 id=new_id("rev"),
                 submission_id=sub.id,
                 reviewer="unassigned",
-                criteria=review_criteria(),
+                criteria=[{**c, "flagged": c["id"] in _criteria_for(flags)} for c in review_criteria()],
+                reasons=None,
                 due_at=now() + timedelta(seconds=profile.deadlines.review_s),
             )
         )
-    elif not quorum_ok and sub.quorum_reschedules < profile.deadlines.max_quorum_reschedules:
-        conn.execute(
-            update(submissions)
-            .where(submissions.c.id == sub.id)
-            .values(quorum_reschedules=sub.quorum_reschedules + 1)
+        audit.append(
+            conn, "controller", "flagged_for_review", "submission", sub.id, {"flags": flags}, public=True
         )
-        _create_blocks(conn, sub, profile, champ.version)
-    elif not quorum_ok:
-        _operator_failure(conn, ctx, sub.id, "confirmation quorum could not be assembled")
     else:
         transition(
             conn,
             ctx,
             sub.id,
-            "confirm_fail",
-            bound_gain_ppm=int(bound.lower_gain * 1e6) if bound.lower_gain > -1 else None,
-            fee_outcome="consumed",
-            outcome_code="margin_not_cleared",
-            outcome_summary="; ".join(reasons),
+            "eval_win" if via == "evaluation" else "reproduce_pass",
+            ready_since=now(),
+            **common,
         )
-        _consume_fee(conn, ctx, sub.id)
+        audit.append(
+            conn,
+            "controller",
+            "cleared_for_promotion",
+            "submission",
+            sub.id,
+            {"gain_ppm": gain_ppm},
+            public=True,
+        )
+
+
+def _criteria_for(flags: list[str]) -> set[str]:
+    by_flag = {
+        "native_code": "native_review",
+        "third_party_components": "license",
+        "security_scan": "security",
+    }
+    return {by_flag.get(f, f) for f in flags}
+
+
+def _lose(conn: Connection, ctx: AppContext, sub, event: str, code: str, summary: str, **values) -> None:
+    transition(
+        conn,
+        ctx,
+        sub.id,
+        event,
+        fee_outcome="consumed",
+        outcome_code=code,
+        outcome_summary=summary[:500],
+        **values,
+    )
+    _consume_fee(conn, ctx, sub.id)
+
+
+def _complete_evaluation(
+    conn: Connection, ctx: AppContext, job, sub, profile, champ, worker_id: str, result: dict
+) -> None:
+    readings = result.get("readings") or []
+    _record_readings(conn, job, readings, result.get("comparison_id"))
+    _store_report(conn, ctx, job, worker_id, "full", result, _public_full(result))
+    first = readings[0] if readings else None
+    first_gain = (
+        Reading("", 0, int(first["challenger_milli_rps"]), int(first["champion_milli_rps"]), "").gain_ppm()
+        if first and first["champion_milli_rps"]
+        else None
+    )
+    gain = result.get("gain_ppm")
+    measured = dict(
+        first_gain_ppm=first_gain,
+        compared_champion_version=job.champion_version,
+        compared_rule_hash=profile.rule_hash(),
+    )
+    audit.append(
+        conn,
+        worker_id,
+        "evaluation_done",
+        "submission",
+        sub.id,
+        {"winner": bool(result.get("winner")), "gain_ppm": gain, "readings": len(readings)},
+        public=True,
+    )
+    if not result.get("winner"):
+        failed = result.get("failed_gates") or []
+        code = (
+            "quality_failed"
+            if "offline_quality" in failed
+            else "winner_check_failed"
+            if (result.get("decision") or {}).get("outcome") == "win"
+            else "margin_not_cleared"
+        )
+        _lose(
+            conn,
+            ctx,
+            sub,
+            "eval_lose",
+            code,
+            result.get("summary") or "did not clear the rule",
+            bound_gain_ppm=gain,
+            **measured,
+        )
+        return
+    if job.champion_version != champ.version:
+        # another challenger was crowned while this one was being measured
+        gains = promoted_gains_since(conn, sub.profile_id, job.champion_version, champ.version)
+        if gains is None:
+            requeue_evaluation(conn, ctx, sub, "the champion was rolled back during this evaluation")
+            return
+        gain = gain_against_later_champion(gain, gains)
+        if gain <= profile.replacement.delta_ppm:
+            _lose(
+                conn,
+                ctx,
+                sub,
+                "eval_lose",
+                "champion_changed",
+                f"A new champion (version {champ.version}) was crowned first. Over it the gain is "
+                f"{gain / 1e4:.1f}%, which does not exceed the {profile.replacement.delta_ppm / 1e4:.0f}% margin.",
+                bound_gain_ppm=gain,
+                **measured,
+            )
+            return
+    conn.execute(update(submissions).where(submissions.c.id == sub.id).values(first_gain_ppm=first_gain))
+    _win(conn, ctx, sub, profile, champ, gain, result, "evaluation")
+
+
+def _complete_reproduction(
+    conn: Connection, ctx: AppContext, job, sub, profile, champ, worker_id: str, result: dict
+) -> None:
+    readings = result.get("readings") or []
+    _record_readings(conn, job, readings, result.get("comparison_id"))
+    _store_report(
+        conn,
+        ctx,
+        job,
+        worker_id,
+        "reproduce",
+        result,
+        {k: result.get(k) for k in ("readings", "gain_ppm", "passed")},
+    )
+    gain = int(result.get("gain_ppm") or -1_000_000)
+    if job.champion_version != champ.version:
+        gains = promoted_gains_since(conn, sub.profile_id, job.champion_version, champ.version)
+        if gains is None:
+            requeue_evaluation(conn, ctx, sub, "the champion was rolled back during reproduction")
+            return
+        gain = gain_against_later_champion(gain, gains)
+    if gain > profile.replacement.delta_ppm:
+        _win(conn, ctx, sub, profile, champ, min(gain, sub.bound_gain_ppm or gain), result, "reproduction")
+    else:
+        _lose(
+            conn,
+            ctx,
+            sub,
+            "reproduce_fail",
+            "not_reproduced",
+            f"An independent validator measured {gain / 1e4:.1f}% over the champion's score, which does not "
+            f"exceed the {profile.replacement.delta_ppm / 1e4:.0f}% margin.",
+        )
 
 
 def review_criteria() -> list[dict]:
@@ -677,7 +752,7 @@ def review_criteria() -> list[dict]:
             ("adaptivity", "No forbidden benchmark-recognition adaptivity"),
             ("security", "Security scans and fuzzing clean"),
             ("native_review", "Independent review of native code"),
-            ("soak", "6-hour soak at 90% of confirmed capacity without errors above the gate"),
+            ("soak", "6-hour soak at 90% of measured capacity without errors above the gate"),
             ("mechanism", "Declared memory mechanism confirmed in the code"),
         ]
     ]
@@ -697,7 +772,7 @@ def _infra_failure(conn: Connection, ctx: AppContext, job, profile, reason: str)
         )
         if job.submission_id:
             sub = lock_submission(conn, job.submission_id)
-            if sub.state in (S.SCREENING, S.EVALUATING, S.CONFIRMING) and job.stage != "confirm_block":
+            if sub.state in (S.SCREENING, S.EVALUATING, S.REPRODUCING):
                 transition(conn, ctx, sub.id, "lease_expired")
         conn.execute(
             update(comparisons)
@@ -730,18 +805,3 @@ def expire_leases(conn: Connection, ctx: AppContext) -> int:
         _infra_failure(conn, ctx, job, profile, "lease expired")
         n += 1
     return n
-
-
-def cancel_stale_blocks(conn: Connection, sub_id: str, keep_version: int) -> None:
-    conn.execute(
-        update(jobs)
-        .where(
-            and_(
-                jobs.c.submission_id == sub_id,
-                jobs.c.stage == "confirm_block",
-                jobs.c.champion_version != keep_version,
-                jobs.c.status.in_(["queued", "leased"]),
-            )
-        )
-        .values(status="cancelled")
-    )

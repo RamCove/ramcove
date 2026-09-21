@@ -1,9 +1,9 @@
-"""Randomness scheduling for comparison blocks (Section 7.8).
+"""Randomness scheduling for capacity readings (Section 7.8).
 
 A comparison record names a *future* beacon round chosen only after the record's anchor is
 finalized. The seed is sha256(round randomness || comparison id). Fallback: if a round is
 unavailable after ``max_wait_s``, use the next round (round + 1, then + 2 ...) up to
-``max_fallback`` times, then void the block with a published reason. No discretionary redraws.
+``max_fallback`` times, then void the reading with a published reason. No discretionary redraws.
 
 Honest limits: the dev beacon is a deterministic SIMULATION. The drand HTTP reader fetches rounds
 from public relays but this build does NOT verify drand BLS signatures (docs/adr/0006).
@@ -62,7 +62,7 @@ def resolve_round(
         br = beacon.fetch(r)
         if br is not None:
             return RoundResolution(r, comparison_seed(br, comparison_id), None, tuple(tried))
-    return RoundResolution(None, None, f"beacon rounds {tried} unavailable; block voided", tuple(tried))
+    return RoundResolution(None, None, f"beacon rounds {tried} unavailable; reading voided", tuple(tried))
 
 
 class DevBeacon:

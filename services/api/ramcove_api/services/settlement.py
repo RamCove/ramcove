@@ -1,11 +1,15 @@
-"""Promotion in admission order with an atomic champion check-and-set (review R2, R5, R6)."""
+"""Promotion in admission order with an atomic champion check-and-set (review R2, R5, R6).
+
+When a challenger is crowned, every other measured winner is re-compared with it by arithmetic: both gains are
+ratios to the same earlier champion's fixed score, so nothing is measured again."""
 
 from __future__ import annotations
 
 from datetime import timedelta
 
+from ramcove_protocol.scoring import gain_against_later_champion
 from ramcove_protocol.settlement import AdmissionKey, QueueEntry, decide_promotion
-from ramcove_protocol.state import PAID_ACTIVE, S
+from ramcove_protocol.state import AWAITING_PROMOTION, S
 from ramcove_protocol.weights import ChampionState, UidSnapshot, build_weight_plan
 from sqlalchemy import Connection, select, update
 
@@ -23,10 +27,10 @@ from ..store.schema import (
 from .context import AppContext
 from .queue import (
     _consume_fee,
-    _create_blocks,
-    _operator_failure,
-    cancel_stale_blocks,
+    _lose,
     current_champion,
+    promoted_gains_since,
+    requeue_evaluation,
     transition,
 )
 
@@ -50,7 +54,6 @@ def _entries(conn: Connection, ctx: AppContext, profile_id: str) -> list[QueueEn
             r.compared_champion_version,
             r.compared_rule_hash,
             r.hotkey in uids,
-            bool(r.deadline_at and r.deadline_at < now()),
         )
         for r in rows
     ]
@@ -60,18 +63,6 @@ def settle(conn: Connection, ctx: AppContext, profile_id: str) -> list[dict]:
     advisory_lock(conn, f"settlement:{profile_id}")
     profile = ctx.profile(conn, profile_id)
     actions: list[dict] = []
-    # 1. bounded lifecycle: end-to-end deadlines release the barrier as operator failures (miner not charged)
-    for r in conn.execute(
-        select(submissions).where(
-            submissions.c.profile_id == profile_id,
-            submissions.c.state.in_([s.value for s in PAID_ACTIVE]),
-            submissions.c.deadline_at < now(),
-        )
-    ).all():
-        if r.state == S.READY_FOR_PROMOTION:
-            continue  # governed by the registration grace below
-        _operator_failure(conn, ctx, r.id, "end-to-end service deadline passed")
-        actions.append({"submission": r.id, "action": "deadline_operator_failure"})
     entries = _entries(conn, ctx, profile_id)
     champ = current_champion(conn, profile_id)
     rule_hash = profile.rule_hash()
@@ -86,11 +77,9 @@ def settle(conn: Connection, ctx: AppContext, profile_id: str) -> list[dict]:
             promoted = promote(conn, ctx, profile, sub, champ.version)
             actions.append({"submission": sub.id, "action": "promoted" if promoted else "cas_failed"})
             break  # champion changed: later entries are re-evaluated next tick against the new version
-        if d.action == "rebase":
-            rebase(
-                conn, ctx, profile, sub, champ.version, "champion or rule version changed before promotion"
-            )
-            actions.append({"submission": sub.id, "action": "rebase"})
+        if d.action == "recompare":
+            recompare(conn, ctx, profile, sub, champ.version, "the champion changed before promotion")
+            actions.append({"submission": sub.id, "action": "recompare"})
         elif d.action == "expire_registration":
             transition(
                 conn,
@@ -145,7 +134,7 @@ def promote(conn: Connection, ctx: AppContext, profile, sub, compared_version: i
             author_hotkey=sub.hotkey,
             artifact_sha256=sub.artifact_sha256,
             rule_hash=sub.rule_hash,
-            capacity_milli_rps=int(base * (1 + (sub.triage_gain_ppm or 0) / 1e6)) if base else None,
+            capacity_milli_rps=int(base * (1 + (sub.bound_gain_ppm or 0) / 1e6)) if base else None,
             capacity_measured=False,
             bound_gain_ppm=sub.bound_gain_ppm,
             status="current",
@@ -194,44 +183,60 @@ def promote(conn: Connection, ctx: AppContext, profile, sub, compared_version: i
         select(submissions).where(
             submissions.c.profile_id == sub.profile_id,
             submissions.c.id != sub.id,
-            submissions.c.state.in_(
-                [S.CONFIRM_QUEUED.value, S.CONFIRMING.value, S.IN_REVIEW.value, S.READY_FOR_PROMOTION.value]
-            ),
+            submissions.c.state.in_([s.value for s in AWAITING_PROMOTION]),
         )
     ).all():
-        rebase(conn, ctx, profile, other, new_version, f"champion changed to version {new_version}")
+        recompare(conn, ctx, profile, other, new_version, f"champion changed to version {new_version}")
     publish_weight_plan(conn, ctx, sub.profile_id)
     return True
 
 
-def rebase(conn: Connection, ctx: AppContext, profile, sub, champion_version: int, reason: str) -> None:
-    if sub.rebases_used >= profile.deadlines.max_rebases:
-        _operator_failure(conn, ctx, sub.id, "maximum automatic rebases reached after champion changes")
+def recompare(conn: Connection, ctx: AppContext, profile, sub, champion_version: int, reason: str) -> None:
+    """Set a measured winner against a champion crowned after its measurement, without measuring again.
+    Evidence taken under different published rules is not carried over: that evaluation runs again."""
+    gains = (
+        promoted_gains_since(conn, sub.profile_id, sub.compared_champion_version, champion_version)
+        if sub.compared_champion_version is not None and sub.compared_rule_hash == profile.rule_hash()
+        else None
+    )
+    if gains is None:
+        requeue_evaluation(conn, ctx, sub, reason)
         return
-    cancel_stale_blocks(conn, sub.id, champion_version)
-    transition(
+    gain = gain_against_later_champion(sub.bound_gain_ppm or 0, gains)
+    if gain > profile.replacement.delta_ppm:
+        conn.execute(
+            update(submissions)
+            .where(submissions.c.id == sub.id)
+            .values(
+                bound_gain_ppm=gain,
+                compared_champion_version=champion_version,
+                compared_rule_hash=profile.rule_hash(),
+            )
+        )
+        audit.append(
+            conn,
+            "controller",
+            "recompared",
+            "submission",
+            sub.id,
+            {
+                "reason": reason,
+                "new_champion_version": champion_version,
+                "gain_ppm": gain,
+                "still_clears": True,
+            },
+            public=True,
+        )
+        return
+    _lose(
         conn,
         ctx,
-        sub.id,
-        "rebase",
-        rebases_used=sub.rebases_used + 1,
-        compared_champion_version=None,
-        ready_since=None,
-    )
-    _create_blocks(
-        conn,
-        conn.execute(select(submissions).where(submissions.c.id == sub.id)).first(),
-        profile,
-        champion_version,
-    )
-    audit.append(
-        conn,
-        "controller",
-        "rebased",
-        "submission",
-        sub.id,
-        {"reason": reason, "new_champion_version": champion_version, "fee": "no new fee", "priority": "kept"},
-        public=True,
+        sub,
+        "recompare_lose",
+        "champion_changed",
+        f"A new champion (version {champion_version}) was crowned first. Over it the gain is {gain / 1e4:.1f}%, "
+        f"which does not exceed the {profile.replacement.delta_ppm / 1e4:.0f}% margin. Nothing was measured again.",
+        bound_gain_ppm=gain,
     )
 
 
@@ -295,8 +300,8 @@ def publish_weight_plan(conn: Connection, ctx: AppContext, profile_id: str) -> d
 def suspend_and_rollback(
     conn: Connection, ctx: AppContext, profile_id: str, operator: str, reason: str, deliberate: bool
 ) -> dict:
-    """Emergency path: the reviewed previous safe stack becomes current again as a NEW version number, so every
-    pending comparison is rebased and the audit trail keeps the suspended version intact."""
+    """Emergency path: the previous safe stack becomes current again as a NEW version number, so every pending
+    winner is evaluated again against it and the audit trail keeps the suspended version intact."""
     advisory_lock(conn, f"settlement:{profile_id}")
     profile = ctx.profile(conn, profile_id)
     champ = current_champion(conn, profile_id)
@@ -347,12 +352,10 @@ def suspend_and_rollback(
     for other in conn.execute(
         select(submissions).where(
             submissions.c.profile_id == profile_id,
-            submissions.c.state.in_(
-                [S.CONFIRM_QUEUED.value, S.CONFIRMING.value, S.IN_REVIEW.value, S.READY_FOR_PROMOTION.value]
-            ),
+            submissions.c.state.in_([s.value for s in AWAITING_PROMOTION]),
         )
     ).all():
-        rebase(conn, ctx, profile, other, new_version, f"rollback to a safe stack (version {new_version})")
+        requeue_evaluation(conn, ctx, other, f"rollback to a safe stack (version {new_version})")
     conn.execute(
         update(workers).where(workers.c.profile_id == profile_id).values(calibrated_champion_version=None)
     )

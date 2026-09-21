@@ -42,12 +42,12 @@ STAGE_LABEL = {
     "quoted": "Quote issued, awaiting payment",
     "admitted": "Paid, waiting for screening",
     "screening": "Screening (build and smoke checks)",
-    "eval_queued": "Waiting for full evaluation",
-    "evaluating": "Full evaluation running",
-    "confirm_queued": "Waiting for confirmation blocks",
-    "confirming": "Confirmation blocks running",
-    "in_review": "Human review",
-    "ready_for_promotion": "Approved, waiting in admission order",
+    "eval_queued": "Waiting for evaluation",
+    "evaluating": "Evaluation running",
+    "reproduce_queued": "Won, waiting for an independent reproduction",
+    "reproducing": "Independent reproduction running",
+    "in_review": "Flagged for human review",
+    "ready_for_promotion": "Cleared, waiting in admission order",
     "promoted": "Champion",
     "not_promoted": "Did not replace the champion",
     "rejected_preflight": "Rejected by free checks",
@@ -154,7 +154,7 @@ def overview(ctx: AppContext) -> dict:
                 "bound_gain_ppm": champ.bound_gain_ppm,
                 "explain": (
                     "No miner holds the crown yet: version 0 is the tuned baseline and earns "
-                    "nothing. The miner allocation is proposed for the owner UID (burn)."
+                    "nothing. Until a miner wins, the miner allocation goes to the owner UID (burn)."
                     if champ.submission_id is None
                     else "The champion's author receives this profile's whole miner allocation while "
                     "it stays eligible."
@@ -277,9 +277,8 @@ def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = Non
                     "current_stage": None
                     if not job
                     else {"stage": job.stage, "status": job.status, "worker": job.lease_worker},
-                    "triage_gain_ppm": r.triage_gain_ppm,
+                    "first_gain_ppm": r.first_gain_ppm,
                     "bound_gain_ppm": r.bound_gain_ppm,
-                    "rebases_used": r.rebases_used,
                     "outcome": None
                     if r.state not in {s.value for s in TERMINAL}
                     else {"code": r.outcome_code, "summary": r.outcome_summary, "fee": r.fee_outcome},
@@ -359,15 +358,12 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
             "updated_at": r.updated_at,
             "admission_key": [r.admission_block, r.admission_index] if r.admission_block else None,
             "admitted_at": r.admitted_at,
-            "deadline_at": r.deadline_at,
-            "rebases_used": r.rebases_used,
-            "max_rebases": profile.deadlines.max_rebases,
             "compared_champion_version": r.compared_champion_version,
             "current_champion_version": champ.version,
-            "triage_gain_ppm": r.triage_gain_ppm,
+            "first_gain_ppm": r.first_gain_ppm,
             "bound_gain_ppm": r.bound_gain_ppm,
             "margin_ppm": profile.replacement.delta_ppm,
-            "blocks_required": profile.replacement.blocks,
+            "clear_win_ppm": profile.replacement.clear_win_ppm,
             "outcome": {"code": r.outcome_code, "summary": r.outcome_summary, "fee": r.fee_outcome},
             "method": art.manifest.get("method") if art else None,
             "mechanism": art.manifest.get("mechanism") if art else None,
@@ -379,7 +375,6 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
                 {
                     "stage": j.stage,
                     "status": j.status,
-                    "block_no": j.block_no,
                     "worker": j.lease_worker,
                     "champion_version": j.champion_version,
                     "attempts": j.attempts,
@@ -501,7 +496,7 @@ def my_submissions(ctx: AppContext, hotkey: str) -> dict:
                     "admission_key": [r.admission_block, r.admission_index] if r.admission_block else None,
                     "outcome": {"code": r.outcome_code, "summary": r.outcome_summary, "fee": r.fee_outcome},
                     "support_ref": r.support_ref,
-                    "triage_gain_ppm": r.triage_gain_ppm,
+                    "first_gain_ppm": r.first_gain_ppm,
                     "bound_gain_ppm": r.bound_gain_ppm,
                 }
                 for r in rows
@@ -597,7 +592,7 @@ def validator_workspace(ctx: AppContext, hotkey: str) -> dict:
                 "genesis_hash": obs.genesis_hash,
             },
             "reimbursement_note": (
-                "Confirmation work is reimbursed per block at the published rate; this build "
+                "Reproduction work is reimbursed per run at the published rate; this build "
                 "records the policy but moves no funds."
             ),
         }
@@ -763,7 +758,7 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
                     "state_label": STAGE_LABEL.get(r.state, r.state),
                     "group": dashboard_group(r.state),
                     "current_stage": None if job is None else {"stage": job.stage, "status": job.status},
-                    "triage_gain_ppm": r.triage_gain_ppm,
+                    "first_gain_ppm": r.first_gain_ppm,
                     "bound_gain_ppm": r.bound_gain_ppm,
                     "outcome": None
                     if not r.outcome_code

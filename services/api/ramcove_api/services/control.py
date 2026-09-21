@@ -136,7 +136,7 @@ def _profiles(ctx: AppContext) -> list[str]:
 
 DEMO_REVIEW_REASON = (
     "Approved automatically by the public demo's stand-in reviewer after the published delay. "
-    "On a real network a person reviews every promotion against the published criteria."
+    "On a real network a person reviews each flagged winner against the published criteria."
 )
 
 

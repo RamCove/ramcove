@@ -109,11 +109,17 @@ def unique_submission(ctx, index: int, fixture: str = "fragmentation-aware-alloc
 def test_simultaneous_quotes_cannot_oversell_capacity(ctx):
     allow_untrusted(ctx)
     subs = [unique_submission(ctx, i) for i in range(14)]
+    filler, _ = unique_submission(ctx, 14)
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
         plan = ctx.capacity_plan(conn, profile, trusted_fixture=True)
-    fits = plan.capacity_centi() // profile.envelope.total()
-    assert 1 < fits < 14, fits
+        # most of the two-week queue is already booked, so only five more evaluations fit
+        fits = 5
+        conn.execute(
+            update(submissions)
+            .where(submissions.c.id == filler)
+            .values(reserved_centi=plan.capacity_centi() - fits * profile.envelope.total())
+        )
 
     def reserve(pair):
         sub_id, hotkey = pair
@@ -303,7 +309,7 @@ def test_modified_artifact_cannot_inherit_an_earlier_result(ctx):
         conn.execute(
             update(submissions)
             .where(submissions.c.id == sub_id)
-            .values(triage_gain_ppm=400_000, bound_gain_ppm=300_000)
+            .values(first_gain_ppm=400_000, bound_gain_ppm=300_000)
         )
         original = conn.execute(select(submissions).where(submissions.c.id == sub_id)).first()
     intake.withdraw(ctx, sub_id, hotkey, "revising the patch")
@@ -313,7 +319,7 @@ def test_modified_artifact_cannot_inherit_an_earlier_result(ctx):
     assert revised.id != original.id
     assert revised.artifact_sha256 != original.artifact_sha256
     assert revised.admission_block is None
-    assert revised.triage_gain_ppm is None and revised.bound_gain_ppm is None
+    assert revised.first_gain_ppm is None and revised.bound_gain_ppm is None
     assert revised.state == S.PREFLIGHT_PASSED
 
 
@@ -379,13 +385,19 @@ def test_earlier_active_admission_blocks_a_later_promotion(ctx):
     assert any(a["action"] == "promoted" for a in actions), actions
 
 
-def test_stale_evidence_against_an_old_champion_is_rebased_not_promoted(ctx):
+@pytest.mark.parametrize(
+    ("new_champion_gain", "outcome", "gain_over_new"),
+    [(100_000, S.PROMOTED, 181_818), (250_000, S.NOT_PROMOTED, 40_000)],
+)
+def test_a_winner_measured_against_an_old_champion_is_re_compared_not_re_measured(
+    ctx, new_champion_gain, outcome, gain_over_new
+):
     allow_untrusted(ctx)
     a, hk_a = unique_submission(ctx, 113)
     pay_and_admit_like(ctx, a, hk_a)
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
-        # champion moves to v1 while this submission was being measured against v0
+        # v1 is crowned while this submission, measured +30% over v0, waits its turn
         conn.execute(update(champion_pointer).values(version=1))
         conn.execute(update(champions).where(champions.c.version == 0).values(status="superseded"))
         conn.execute(
@@ -396,8 +408,10 @@ def test_stale_evidence_against_an_old_champion_is_rebased_not_promoted(ctx):
                 status="current",
                 attribution={},
                 author_hotkey=None,
+                bound_gain_ppm=new_champion_gain,
             )
         )
+        conn.execute(update(jobs).where(jobs.c.submission_id == a).values(status="done"))
         conn.execute(
             update(submissions)
             .where(submissions.c.id == a)
@@ -410,18 +424,18 @@ def test_stale_evidence_against_an_old_champion_is_rebased_not_promoted(ctx):
             )
         )
         actions = settlement.settle(conn, ctx, profile.profile_id)
-    assert any(act["action"] == "rebase" for act in actions), actions
+        actions += settlement.settle(conn, ctx, profile.profile_id)
+    assert actions[0]["action"] == "recompare", actions
     row = state(ctx, a)
-    assert row.state == S.CONFIRM_QUEUED and row.rebases_used == 1
+    # 1.30 / 1.10 - 1 = 18.2% still clears the 5% margin; 1.30 / 1.25 - 1 = 4.0% does not
+    assert row.state == outcome and abs(row.bound_gain_ppm - gain_over_new) <= 1, (
+        row.state,
+        row.bound_gain_ppm,
+    )
     with tx(ctx.engine) as conn:
-        fresh = conn.execute(
+        open_jobs = conn.execute(
             select(func.count())
             .select_from(jobs)
-            .where(
-                jobs.c.submission_id == a,
-                jobs.c.stage == "confirm_block",
-                jobs.c.champion_version == 1,
-                jobs.c.status == "queued",
-            )
+            .where(jobs.c.submission_id == a, jobs.c.status.in_(["queued", "leased"]))
         ).scalar()
-        assert fresh == ctx.profile(conn).replacement.blocks
+    assert open_jobs == 0  # nothing is measured again

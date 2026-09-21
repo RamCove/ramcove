@@ -144,8 +144,10 @@ def cmd_reviews(client: httpx.Client, args: argparse.Namespace) -> int:
         print("no open reviews")
     for r in q["items"]:
         own = "  (your own: recuse)" if r["is_own_submission"] else ""
+        flagged = ", ".join(r.get("flagged") or []) or "none recorded"
         print(
-            f"{r['review_id']}  {r['submission_id']}  bound {r['bound_gain_ppm']} ppm  due {r['due_at']}{own}"
+            f"{r['review_id']}  {r['submission_id']}  gain {r['bound_gain_ppm']} ppm  due {r['due_at']}{own}"
+            f"\n    flagged: {flagged}"
         )
     return 0
 

@@ -36,17 +36,9 @@ def execute(
         calibration = payload.get("calibration") or {}
         if not calibration.get("capacity_milli_rps"):
             return {"infra_failure": "worker has no valid champion calibration"}
-        if stage == "full":
-            return pipeline.full_evaluation(candidate, champion, profile, payload["seed"], calibration)
-        if stage == "confirm_block":
-            out = pipeline.confirm_block(
-                candidate,
-                champion,
-                profile,
-                payload["seed"],
-                calibration["capacity_milli_rps"] / 1000,
-                payload.get("start_k", 0),
-            )
+        if stage in ("full", "reproduce"):
+            run = pipeline.evaluate if stage == "full" else pipeline.reproduce
+            out = run(candidate, champion, profile, payload["seed"], calibration)
             out["comparison_id"] = payload["comparison_id"]
             return out
         return {"infra_failure": f"unknown stage {stage}"}

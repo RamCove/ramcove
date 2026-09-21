@@ -4,7 +4,7 @@ import pytest
 from ramcove_api.services import control
 from ramcove_api.store import audit
 from ramcove_api.store.db import tx
-from ramcove_api.store.schema import champions, ledger, receipts, weight_plans
+from ramcove_api.store.schema import champions, ledger, receipts, reviews, weight_plans
 from sqlalchemy import select
 
 from .helpers import (
@@ -36,30 +36,15 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
     f = state(ctx, fail["submission_id"])
     assert f.state == "not_promoted" and f.fee_outcome == "consumed", (f.state, f.outcome_summary)
 
-    # The triage gates are single-run pass/fail readings over a noisy simulated measurement, so a stack
-    # that really is better is sometimes rejected: see docs/acceptance-matrix.md for how often. A miner
-    # would pay and resubmit, so the test does the same rather than gambling on one attempt. The point of
-    # this test is that the journey works end to end, not that one run of the evaluator is lucky.
-    attempts, win, rejected = 0, None, []
-    while attempts < 3:
-        attempts += 1
-        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=attempts - 1)
-        assert sub["ok"]
-        pay_and_admit(ctx, sub["submission_id"], "miner-ada")
-        drain(ctx)
-        w = state(ctx, sub["submission_id"])
-        if w.state == "in_review":
-            win = sub
-            break
-        assert w.state == "not_promoted" and w.outcome_summary, (w.state, w.outcome_summary)
-        rejected.append(w.outcome_summary)
-    assert win is not None, f"a clearly better stack was rejected {attempts} times: {rejected}"
-    approve_review(ctx, win["submission_id"])
-    for _ in range(2):
-        control.tick(ctx)
+    # One evaluation is a set of pass/fail readings over a noisy simulated measurement, so a stack that
+    # really is better is sometimes rejected: see docs/acceptance-matrix.md for how often. A miner would pay
+    # and resubmit, so the test does the same rather than gambling on one attempt. The point of this test is
+    # that the journey works end to end, not that one run of the evaluator is lucky.
+    win = winning_submission(ctx, "miner-ada", "fragmentation-aware-allocator", "promoted")
     w = state(ctx, win["submission_id"])
-    assert w.state == "promoted"
     with tx(ctx.engine) as conn:
+        # nothing flagged it, so it was promoted without asking a person
+        assert conn.execute(select(reviews).where(reviews.c.submission_id == w.id)).first() is None
         cur = conn.execute(select(champions).where(champions.c.status == "current")).first()
         assert cur.version == 1 and cur.author_hotkey == w.hotkey
         plan = conn.execute(select(weight_plans).order_by(weight_plans.c.created_at.desc())).first()
@@ -67,10 +52,39 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
             plan.body["entries"][0]["hotkey"] == w.hotkey and plan.body["status"] == "proposed_not_submitted"
         )
         kinds = [r.kind for r in conn.execute(select(ledger))]
-        paid = 1 + attempts  # the losing challenger plus every attempt by the winner
+        paid = 1 + win["attempts"]  # the losing challenger plus every attempt by the winner
         assert kinds.count("fee_received") == paid and kinds.count("fee_consumed") == paid
         ok, n, bad = audit.verify_chain(conn)
         assert ok and n > 20, bad
+
+
+def test_a_flagged_winner_waits_for_a_person(ctx):
+    bring_workers_online(ctx)
+    win = winning_submission(ctx, "miner-ada", "native-paged-kv-kernel", "in_review")
+    with tx(ctx.engine) as conn:
+        rv = conn.execute(select(reviews).where(reviews.c.submission_id == win["submission_id"])).first()
+    flagged = {c["id"] for c in rv.criteria if c.get("flagged")}
+    assert flagged == {"native_review"}, rv.criteria
+    approve_review(ctx, win["submission_id"])
+    for _ in range(2):
+        control.tick(ctx)
+    assert state(ctx, win["submission_id"]).state == "promoted"
+
+
+def winning_submission(ctx, miner: str, fixture: str, expected: str) -> dict:
+    attempts, rejected = 0, []
+    while attempts < 3:
+        attempts += 1
+        sub = submit_fixture(ctx, miner, fixture, variant=attempts - 1)
+        assert sub["ok"]
+        pay_and_admit(ctx, sub["submission_id"], miner)
+        drain(ctx)
+        w = state(ctx, sub["submission_id"])
+        if w.state == expected:
+            return {**sub, "attempts": attempts}
+        assert w.state == "not_promoted" and w.outcome_summary, (w.state, w.outcome_summary)
+        rejected.append(w.outcome_summary)
+    raise AssertionError(f"a clearly better stack was rejected {attempts} times: {rejected}")
 
 
 def test_a_resubmission_needs_a_changed_artifact(ctx):

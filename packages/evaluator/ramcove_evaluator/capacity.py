@@ -2,16 +2,17 @@
 
 Grid: rate_k = base * (1 + step)^k for integer k in [grid_min_steps, grid_max_steps].
 
-Confirmed capacity (triage, Section 7.2): ascend in coarse jumps of 3 grid steps from k=0 until a run
-fails or the ceiling is reached, bisect on grid indices, then confirm with three fresh runs at the edge
-minus one step (about 97%), then further steps down (94%, 91%, ... to about 78%); the first level where all
-three fresh runs pass is the confirmed capacity. Capacity is therefore never above a rate proven three times. Boundary rules:
+Confirmed capacity (the champion's fixed score, Section 7.8): ascend in coarse jumps of 3 grid steps from
+k=0 until a run fails or the ceiling is reached, bisect on grid indices, then confirm with three fresh runs at
+the edge minus one step (about 97%), then further steps down (94%, 91%, ... to about 78%); the first level
+where all three fresh runs pass is the confirmed capacity. The score is therefore never above a rate proven
+three times. Boundary rules:
 - no pass at the lowest grid rate -> capacity 0 ("below_grid");
 - pass at the highest grid rate -> capacity = ceiling rate, flagged "at_grid_ceiling" (conservative).
 
-Block capacity (paired blocks, Section 7.8): a single-run reading. Start at the expected index, move
-up while passing / down while failing, at most ``max_runs_per_arm_per_block`` runs. Highest passing index
-seen is the reading; none -> 0.
+Reading (a challenger, Section 7.8): single runs on the grid built on the champion's fixed score. Start at
+k=0 and step up while each run passes, at most ``max_runs_per_reading`` runs; the highest passing index is
+the reading. A failure at k=0 ends it at once ("below_champion"): the challenger did not reach the score.
 """
 
 from __future__ import annotations
@@ -99,27 +100,22 @@ def confirmed_capacity(
     return CapacityResult(0.0, None, "not_confirmed", len(trace), tuple(trace))
 
 
-def block_capacity(base: float, start_k: int, rule: ReplacementRule, run: RunFn) -> CapacityResult:
-    lo_k, hi_k = rule.grid_min_steps, rule.grid_max_steps
+def reading_capacity(base: float, rule: ReplacementRule, run: RunFn) -> CapacityResult:
+    hi_k = rule.grid_max_steps
     trace: list[tuple[int, bool]] = []
     best: int | None = None
-    k = max(lo_k, min(hi_k, start_k))
-    direction = 0
-    while len(trace) < rule.max_runs_per_arm_per_block:
-        ok = run(grid_rate(base, k, rule), f"block-run{len(trace)}")
+    best_label: str | None = None
+    k = 0
+    while len(trace) < rule.max_runs_per_reading and k <= hi_k:
+        label = f"reading-run{len(trace)}"
+        ok = run(grid_rate(base, k, rule), label)
         trace.append((k, ok))
-        if ok:
-            best = k if best is None else max(best, k)
-            if direction == -1 or k >= hi_k:
-                break
-            direction = 1
-            k += 1
-        else:
-            if direction == 1 or k <= lo_k:
-                break
-            direction = -1
-            k -= 1
+        if not ok:
+            break
+        best, best_label = k, label
+        k += 1
     if best is None:
-        return CapacityResult(0.0, None, "below_grid", len(trace), tuple(trace))
-    flag = "at_grid_ceiling" if best >= hi_k else "ok"
-    return CapacityResult(grid_rate(base, best, rule), best, flag, len(trace), tuple(trace))
+        return CapacityResult(0.0, None, "below_champion", len(trace), tuple(trace))
+    capped = trace[-1][1]  # still passing when the reading stopped: the true edge may be higher
+    flag = "at_grid_ceiling" if capped else "ok"
+    return CapacityResult(grid_rate(base, best, rule), best, flag, len(trace), tuple(trace), best_label)

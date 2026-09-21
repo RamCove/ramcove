@@ -48,17 +48,20 @@ class HardwarePin(Frozen):
 
 
 class ReplacementRule(Frozen):
-    """Section 8.2: replace only if exp(L) - 1 > delta, L a one-sided lower bound over paired blocks."""
+    """Section 8.2: the challenger is measured once against the champion's fixed score.
+
+    A first reading at or above ``clear_win_ppm`` wins at once; one at or below ``delta_ppm`` loses; one in
+    between gets exactly one more reading, and the average of the two must exceed the margin.
+    """
 
     delta_ppm: int = Field(description="Margin in parts per million; 50_000 = 5%")
-    blocks: int = Field(ge=3, le=30)
-    sigma_floor_ppm: int = Field(description="Floor on block log-ratio SD, ppm; 20_000 = 0.02")
-    confidence: Literal["one_sided_95"] = "one_sided_95"
+    clear_win_ppm: int = Field(
+        90_000, description="A first reading at or above this gain needs no second one"
+    )
     grid_step_ppm: int = 30_000
     grid_min_steps: int = Field(-8, description="Lowest grid rate = base * (1+step)^min")
     grid_max_steps: int = Field(16, description="Highest grid rate = base * (1+step)^max")
-    max_runs_per_arm_per_block: int = 6
-    triage_allowance_ppm: int = 20_000
+    max_runs_per_reading: int = 6
     calibrated: bool = Field(False, description="False until a Stage 1 noise study has been published")
 
 
@@ -93,24 +96,17 @@ class LatencyGates(Frozen):
 
 
 class StageEnvelope(Frozen):
-    """Review R3: conservative GPU-hour reservation per stage, in centi-GPU-hours (integers)."""
+    """GPU time booked for a paid admission, in centi-GPU-hours (integers): screening plus one evaluation
+    (quality, up to two capacity readings and the GPU check). A winner's extra checks and the new champion's
+    calibration draw on the published reserve instead of being booked in advance."""
 
     screen: int = 35
-    full: int = 892
-    confirmation_worst: int = 1925
-    rebase_allowance: int = 1925
-    soak: int = 600
-    recalibration_on_promotion: int = 867
+    evaluation: int = 299
+    winner_checks: int = 830
+    recalibration_on_promotion: int = 576
 
     def total(self) -> int:
-        return (
-            self.screen
-            + self.full
-            + self.confirmation_worst
-            + self.rebase_allowance
-            + self.soak
-            + self.recalibration_on_promotion
-        )
+        return self.screen + self.evaluation
 
 
 class Deadlines(Frozen):
@@ -121,21 +117,19 @@ class Deadlines(Frozen):
     screen_start_target_s: int = 24 * 3600
     lease_screen_s: int = 2 * 3600
     lease_full_s: int = 24 * 3600
-    lease_block_s: int = 8 * 3600
+    lease_reproduce_s: int = 8 * 3600
     max_lease_retries: int = 1
-    max_rebases: int = 2
     quorum_wait_s: int = 7 * 24 * 3600
     max_quorum_reschedules: int = 1
     review_s: int = 14 * 24 * 3600
     review_extension_s: int = 14 * 24 * 3600
     registration_grace_s: int = 14 * 24 * 3600
-    end_to_end_s: int = 60 * 24 * 3600
     upload_hold_s: int = 72 * 3600
     credit_expiry_s: int = 180 * 24 * 3600
 
 
 class FeePolicy(Frozen):
-    service_cost_usd_cents_per_admission: int = Field(5246, description="Planning estimate, not measured")
+    service_cost_usd_cents_per_admission: int = Field(1563, description="Planning estimate, not measured")
     recovery_bp: int = 5000
     round_step_rao: int = 10_000_000
     price_max_age_s: int = 15 * 60

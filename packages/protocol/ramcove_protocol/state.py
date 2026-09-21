@@ -20,19 +20,20 @@ class S(StrEnum):
     SCREENING = "screening"
     EVAL_QUEUED = "eval_queued"
     EVALUATING = "evaluating"
-    CONFIRM_QUEUED = "confirm_queued"
-    CONFIRMING = "confirming"
-    IN_REVIEW = "in_review"
+    # after the sunset only: a second validator repeats a winning reading
+    REPRODUCE_QUEUED = "reproduce_queued"
+    REPRODUCING = "reproducing"
+    IN_REVIEW = "in_review"  # only when an automatic check flags the winner
     READY_FOR_PROMOTION = "ready_for_promotion"  # technically approved; waiting registration and order
     # terminal
     PROMOTED = "promoted"
-    NOT_PROMOTED = "not_promoted"  # evaluated/confirmed but did not clear the rule
+    NOT_PROMOTED = "not_promoted"  # evaluated but did not clear the rule
     REJECTED_PREFLIGHT = "rejected_preflight"
     REJECTED_SCREEN = "rejected_screen"
     REVIEW_REJECTED = "review_rejected"
     EXPIRED_QUOTE = "expired_quote"
     EXPIRED_UNREGISTERED = "expired_unregistered"
-    OPERATOR_FAILED = "operator_failed"  # infra/quorum/deadline failure: refund or credit
+    OPERATOR_FAILED = "operator_failed"  # repeated infrastructure or quorum failure: refund or credit
     WITHDRAWN = "withdrawn"
 
 
@@ -56,12 +57,15 @@ PAID_ACTIVE = frozenset(
         S.SCREENING,
         S.EVAL_QUEUED,
         S.EVALUATING,
-        S.CONFIRM_QUEUED,
-        S.CONFIRMING,
+        S.REPRODUCE_QUEUED,
+        S.REPRODUCING,
         S.IN_REVIEW,
         S.READY_FOR_PROMOTION,
     }
 )
+
+# measured and waiting on promotion: these are re-compared when the champion changes
+AWAITING_PROMOTION = frozenset({S.REPRODUCE_QUEUED, S.REPRODUCING, S.IN_REVIEW, S.READY_FOR_PROMOTION})
 
 # event name -> {from_state: to_state}
 TRANSITIONS: dict[str, dict[S, S]] = {
@@ -75,26 +79,33 @@ TRANSITIONS: dict[str, dict[S, S]] = {
     "screen_pass": {S.SCREENING: S.EVAL_QUEUED},
     "screen_decisive_fail": {S.SCREENING: S.REJECTED_SCREEN},
     "eval_start": {S.EVAL_QUEUED: S.EVALUATING},
-    "eval_not_potential": {S.EVALUATING: S.NOT_PROMOTED},
-    "eval_potential": {S.EVALUATING: S.CONFIRM_QUEUED},
-    "confirm_start": {S.CONFIRM_QUEUED: S.CONFIRMING},
-    "confirm_fail": {S.CONFIRMING: S.NOT_PROMOTED},
-    "confirm_pass": {S.CONFIRMING: S.IN_REVIEW},
+    "eval_lose": {S.EVALUATING: S.NOT_PROMOTED},
+    "eval_win": {S.EVALUATING: S.READY_FOR_PROMOTION},
+    "eval_win_flagged": {S.EVALUATING: S.IN_REVIEW},
+    "eval_win_reproduce": {S.EVALUATING: S.REPRODUCE_QUEUED},
+    "reproduce_start": {S.REPRODUCE_QUEUED: S.REPRODUCING},
+    "reproduce_fail": {S.REPRODUCING: S.NOT_PROMOTED},
+    "reproduce_pass": {S.REPRODUCING: S.READY_FOR_PROMOTION},
+    "reproduce_pass_flagged": {S.REPRODUCING: S.IN_REVIEW},
     "review_approve": {S.IN_REVIEW: S.READY_FOR_PROMOTION},
     "review_reject": {S.IN_REVIEW: S.REVIEW_REJECTED},
     "appeal_upheld": {S.REVIEW_REJECTED: S.IN_REVIEW},
     "promote": {S.READY_FOR_PROMOTION: S.PROMOTED},
     "registration_expired": {S.READY_FOR_PROMOTION: S.EXPIRED_UNREGISTERED},
     # lease expiry keeps admission priority: back to the queue of the same stage
-    "lease_expired": {S.SCREENING: S.ADMITTED, S.EVALUATING: S.EVAL_QUEUED, S.CONFIRMING: S.CONFIRM_QUEUED},
-    # champion changed before promotion: fresh evidence against the new champion, same key, no fee
-    "rebase": {
-        S.CONFIRM_QUEUED: S.CONFIRM_QUEUED,
-        S.CONFIRMING: S.CONFIRM_QUEUED,
-        S.IN_REVIEW: S.CONFIRM_QUEUED,
-        S.READY_FOR_PROMOTION: S.CONFIRM_QUEUED,
+    "lease_expired": {
+        S.SCREENING: S.ADMITTED,
+        S.EVALUATING: S.EVAL_QUEUED,
+        S.REPRODUCING: S.REPRODUCE_QUEUED,
+    },
+    # a new champion was crowned first: the measured gain is re-compared with the new champion's score, and a
+    # challenger that no longer clears the margin ends here (no new measurement, no new fee)
+    "recompare_lose": {s: S.NOT_PROMOTED for s in AWAITING_PROMOTION},
+    # emergency rollback: pending work is evaluated again against the restored stack, same key, no fee
+    "requeue": {
         S.EVAL_QUEUED: S.EVAL_QUEUED,
         S.EVALUATING: S.EVAL_QUEUED,
+        **{s: S.EVAL_QUEUED for s in AWAITING_PROMOTION},
     },
     "operator_failure": {s: S.OPERATOR_FAILED for s in PAID_ACTIVE},
     "withdraw": {

@@ -39,7 +39,7 @@ def queue(
                 submissions.c.hotkey,
                 submissions.c.lineage,
                 submissions.c.bound_gain_ppm,
-                submissions.c.triage_gain_ppm,
+                submissions.c.first_gain_ppm,
             )
             .join(submissions, submissions.c.id == reviews.c.submission_id)
             .where(reviews.c.decision.is_(None))
@@ -54,7 +54,8 @@ def queue(
                     "author": r.hotkey,
                     "lineage": r.lineage,
                     "bound_gain_ppm": r.bound_gain_ppm,
-                    "triage_gain_ppm": r.triage_gain_ppm,
+                    "first_gain_ppm": r.first_gain_ppm,
+                    "flagged": [c["id"] for c in (r.criteria or []) if c.get("flagged")],
                     "opened_at": r.opened_at,
                     "due_at": r.due_at,
                     "is_own_submission": r.hotkey == sess["hotkey"],

@@ -39,6 +39,7 @@ class StackParams:
     screen_failure: str | None = None
     crash_under_load: bool = False
     exceeds_memory_ceiling: bool = False
+    review_flag: str | None = None  # an automatic check that would send a winner to human review
 
 
 @dataclass

@@ -1,4 +1,4 @@
-"""Pure scoring: replacement bound, quality non-inferiority and gate combination.
+"""Pure scoring: the replacement decision, quality non-inferiority and gate combination.
 
 Everything here is deterministic and independent of HTTP, databases and chains. Numeric outputs that
 enter signed records are converted to integer ppm / basis points by the caller.
@@ -11,95 +11,82 @@ from dataclasses import dataclass, field
 
 from .rules import QualityRule, ReplacementRule
 
-# One-sided 95% Student t quantiles, df = 1..30 (standard table values).
-T95 = {
-    1: 6.314,
-    2: 2.920,
-    3: 2.353,
-    4: 2.132,
-    5: 2.015,
-    6: 1.943,
-    7: 1.895,
-    8: 1.860,
-    9: 1.833,
-    10: 1.812,
-    11: 1.796,
-    12: 1.782,
-    13: 1.771,
-    14: 1.761,
-    15: 1.753,
-    16: 1.746,
-    17: 1.740,
-    18: 1.734,
-    19: 1.729,
-    20: 1.725,
-    21: 1.721,
-    22: 1.717,
-    23: 1.714,
-    24: 1.711,
-    25: 1.708,
-    26: 1.706,
-    27: 1.703,
-    28: 1.701,
-    29: 1.699,
-    30: 1.697,
-}
-
 
 @dataclass(frozen=True)
-class Block:
-    """One paired block: block capacities (single-run grid readings) of both arms on the same fresh tests."""
+class Reading:
+    """One capacity reading of a challenger, set against the champion's fixed score on the same worker."""
 
     comparison_id: str
     champion_version: int
     challenger_capacity_milli_rps: int
     champion_capacity_milli_rps: int
-    validator: str
     worker: str
     voided: bool = False
 
+    def gain_ppm(self) -> int:
+        """Integer parts per million (rounded down), so a gain exactly at the margin compares exactly."""
+        if self.challenger_capacity_milli_rps <= 0 or self.champion_capacity_milli_rps <= 0:
+            return -1_000_000
+        return self.challenger_capacity_milli_rps * 1_000_000 // self.champion_capacity_milli_rps - 1_000_000
+
 
 @dataclass(frozen=True)
-class BoundResult:
-    n: int
-    mean_log_ratio: float
-    sd_log_ratio: float
-    sd_used: float
-    lower_log: float
-    lower_gain: float
-    mean_gain: float
-    passes_margin: bool
+class Decision:
+    outcome: str  # "win" | "lose" | "another_reading"
+    gain_ppm: int | None  # the gain the decision rests on: one reading, or the average of two
+    readings: int
     reasons: tuple[str, ...] = field(default_factory=tuple)
 
 
-def replacement_bound(blocks: list[Block], rule: ReplacementRule, champion_version: int) -> BoundResult:
-    """Section 8.2 with review R7: only non-void blocks measured against *this* champion version count."""
-    usable = [b for b in blocks if not b.voided and b.champion_version == champion_version]
+def replacement_decision(readings: list[Reading], rule: ReplacementRule, champion_version: int) -> Decision:
+    """Section 8.2: at or below the margin loses, at or above the clear-win line wins, in between one more
+    reading decides and the average of the two must exceed the margin. Only non-void readings taken against
+    *this* champion version count."""
+    usable = [r for r in readings if not r.voided and r.champion_version == champion_version]
     reasons: list[str] = []
-    stale = [b for b in blocks if not b.voided and b.champion_version != champion_version]
+    stale = [r for r in readings if not r.voided and r.champion_version != champion_version]
     if stale:
-        reasons.append(f"{len(stale)} block(s) measured against another champion version were ignored")
-    if len(usable) < rule.blocks:
-        reasons.append(f"need {rule.blocks} usable blocks, have {len(usable)}")
-        return BoundResult(len(usable), 0.0, 0.0, 0.0, -math.inf, -1.0, 0.0, False, tuple(reasons))
-    for b in usable:
-        if b.challenger_capacity_milli_rps <= 0 or b.champion_capacity_milli_rps <= 0:
-            reasons.append("a block has no passing grid rate for one arm; treated as failure")
-            return BoundResult(len(usable), 0.0, 0.0, 0.0, -math.inf, -1.0, 0.0, False, tuple(reasons))
-    r = [math.log(b.challenger_capacity_milli_rps / b.champion_capacity_milli_rps) for b in usable]
-    n = len(r)
-    mean = sum(r) / n
-    sd = math.sqrt(sum((x - mean) ** 2 for x in r) / (n - 1)) if n > 1 else 0.0
-    floor = rule.sigma_floor_ppm / 1e6
-    sd_used = max(sd, floor)
-    t = T95.get(n - 1, 1.645)
-    lower = mean - t * sd_used / math.sqrt(n)
-    lower_gain = math.exp(lower) - 1
-    delta = rule.delta_ppm / 1e6
-    passes = lower_gain > delta
-    if not passes:
-        reasons.append(f"lower bound {lower_gain * 100:.2f}% does not exceed margin {delta * 100:.2f}%")
-    return BoundResult(n, mean, sd, sd_used, lower, lower_gain, math.exp(mean) - 1, passes, tuple(reasons))
+        reasons.append(f"{len(stale)} reading(s) against another champion version were ignored")
+    if not usable:
+        return Decision("another_reading", None, 0, tuple(reasons + ["no usable reading yet"]))
+    first = usable[0].gain_ppm()
+    if first <= rule.delta_ppm:
+        why = (
+            "the challenger did not reach the champion's score"
+            if first < 0
+            else f"gain {first / 1e4:.2f}% does not exceed the {rule.delta_ppm / 1e4:.2f}% margin"
+        )
+        return Decision("lose", first, 1, tuple(reasons + [why]))
+    if first >= rule.clear_win_ppm:
+        return Decision("win", first, 1, tuple(reasons))
+    if len(usable) < 2:
+        return Decision(
+            "another_reading",
+            first,
+            1,
+            tuple(reasons + [f"gain {first / 1e4:.2f}% is close to the margin; one more reading decides"]),
+        )
+    avg = (first + usable[1].gain_ppm()) // 2
+    if avg > rule.delta_ppm:
+        return Decision("win", avg, 2, tuple(reasons))
+    return Decision(
+        "lose",
+        avg,
+        2,
+        tuple(reasons + [f"average gain {avg / 1e4:.2f}% over two readings does not exceed the margin"]),
+    )
+
+
+def gain_against_later_champion(gain_ppm: int, promoted_gains_ppm: list[int]) -> int:
+    """Re-compare a measured gain with a champion crowned after the measurement, without measuring again.
+
+    Both gains are ratios to the same earlier champion's fixed score, so the challenger's gain over each later
+    champion is the ratio of the two: (1 + g) / (1 + g_new) - 1, applied once per promotion in between.
+    """
+    ratio = 1 + gain_ppm / 1e6
+    for g in promoted_gains_ppm:
+        ratio /= 1 + g / 1e6
+    return int((ratio - 1) * 1e6)
 
 
 @dataclass(frozen=True)
@@ -191,17 +178,17 @@ def quality_verdict(ev: QualityEvidence, rule: QualityRule) -> QualityVerdict:
 
 @dataclass(frozen=True)
 class GateSet:
+    """Pass/fail checks. ``None`` means the check did not run: the winner checks run only for a challenger
+    whose readings clear the rule."""
+
     offline_quality: bool
-    per_run_gates: bool
-    pooled_gates: bool
-    memory_evidence: bool
-    short_request_control: bool
-    live_conversation_check: bool
-    resource_ceilings: bool
+    capacity_reading: bool | None = None
+    band_attainment: bool | None = None
+    memory_evidence: bool | None = None
+    short_request_control: bool | None = None
+    live_conversation_check: bool | None = None
+    soak: bool | None = None
+    resource_ceilings: bool = True
 
     def failed(self) -> list[str]:
-        return [k for k, v in self.__dict__.items() if not v]
-
-
-def triage_is_potential_winner(g_hat_ppm: int, gates: GateSet, rule: ReplacementRule) -> bool:
-    return not gates.failed() and g_hat_ppm >= rule.delta_ppm - rule.triage_allowance_ppm
+        return [k for k, v in self.__dict__.items() if v is False]
