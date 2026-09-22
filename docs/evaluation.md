@@ -100,8 +100,13 @@ bursts, then up to 90 seconds of drain. A run passes when:
 - at least **95%** of offered requests are qualified (every scheduled request counts, including those
   rejected, timed out or unfinished);
 - at most **0.5%** errored, were rejected or timed out;
-- p90 end-to-end time in the last quarter is at most **1.25×** the second quarter's — a queue that keeps
+- p90 end-to-end time in the last quarter is at most **1.40×** the second quarter's — a queue that keeps
   growing means the rate is past capacity;
+- after each of the two one-minute bursts, p90 end-to-end returns to **1.35×** the pre-burst level in the
+  quiet stretch that follows;
+- every request answers within its stall limit (no gap over 2 s between output tokens) and comes back
+  whole; a truncated answer does not qualify, however fast it was;
+- nothing is still in flight when the drain ends;
 - peak GPU memory stays under the ceiling.
 
 The reading is the highest rate that passed, and it stops at the first rate that fails. A run is not

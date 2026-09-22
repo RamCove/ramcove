@@ -25,6 +25,7 @@ def rps_to_conversations_per_s(rps: float) -> float:
 # runs and P-live use 20 minutes; the short-request control 10; the soak an hour. Bursts last one minute.
 READING_WINDOW_S, CONFIRM_WINDOW_S, CTL_WINDOW_S, SOAK_WINDOW_S = 480.0, 1200.0, 600.0, 3600.0
 DRAIN_S, BURST_S = 90.0, 60.0
+BURST_STARTS = (0.40, 0.70)  # as a share of the window
 
 
 def pmem_schedule(seed: str, rps: float, window_s: float, bursts: bool = True):
@@ -38,7 +39,7 @@ def pmem_schedule(seed: str, rps: float, window_s: float, bursts: bool = True):
     ci = 0
     while t < window_s and ci < len(convs):
         rate = conv_rate * (
-            1.5 if bursts and (any(b <= t < b + BURST_S for b in (0.40 * window_s, 0.70 * window_s))) else 1.0
+            1.5 if bursts and any(b * window_s <= t < b * window_s + BURST_S for b in BURST_STARTS) else 1.0
         )
         t += r.expovariate(rate)
         conv = convs[ci]
@@ -106,9 +107,42 @@ class RunGates:
     drift_ok: bool
     ceiling_ok: bool
     reasons: tuple[str, ...]
+    recovered_ok: bool = True
+    drained_ok: bool = True
 
 
-def per_run_gates(logs: list[RequestLog], gates: LatencyGates, ceiling_ok: bool) -> RunGates:
+def _p90(xs: list[int]) -> int:
+    return sorted(xs)[min(len(xs) - 1, int(0.9 * len(xs)))]
+
+
+def recovered_after_bursts(
+    logs: list[RequestLog], gates: LatencyGates, bursts: tuple[float, ...], window_s: float
+) -> bool:
+    """Section 8.2: after a burst, p90 end-to-end must come back to the pre-burst level (within 1.2x).
+    A stack that never recovers is over its capacity even if the averages look fine. Each burst is judged
+    against the quiet stretch before it and the quiet stretch after it, which never reaches into the
+    next burst."""
+    done = [x for x in logs if x.e2e_ms is not None]
+    for i, b in enumerate(bursts):
+        quiet_ends = bursts[i + 1] if i + 1 < len(bursts) else window_s
+        before = [x.e2e_ms for x in done if b - 90.0 <= x.scheduled_s < b]
+        after = [x.e2e_ms for x in done if b + BURST_S <= x.scheduled_s < quiet_ends]
+        if (
+            len(before) >= 8
+            and len(after) >= 8
+            and _p90(after) * 10_000 > gates.burst_recovery_bp * max(1, _p90(before))
+        ):
+            return False
+    return True
+
+
+def per_run_gates(
+    logs: list[RequestLog],
+    gates: LatencyGates,
+    ceiling_ok: bool,
+    bursts: tuple[float, ...] = (),
+    window_s: float = READING_WINDOW_S,
+) -> RunGates:
     offered = len(logs)
     if offered == 0:
         return RunGates(False, 0, 0, 0, 0, False, ceiling_ok, ("no offered requests",))
@@ -128,13 +162,21 @@ def per_run_gates(logs: list[RequestLog], gates: LatencyGates, ceiling_ok: bool)
         quarter = len(done) // 4
         q2 = sorted(x.e2e_ms for x in done[quarter : 2 * quarter])
         q4 = sorted(x.e2e_ms for x in done[3 * quarter :])
-        p90 = lambda xs: xs[min(len(xs) - 1, int(0.9 * len(xs)))]  # noqa: E731
-        drift_ok = p90(q4) * 10_000 <= gates.drift_q4_over_q2_bp * max(1, p90(q2))
+        drift_ok = _p90(q4) * 10_000 <= gates.drift_q4_over_q2_bp * max(1, _p90(q2))
         if not drift_ok:
             reasons.append("end-to-end time keeps growing: the queue is not stable")
+    recovered_ok = recovered_after_bursts(logs, gates, bursts, window_s)
+    if not recovered_ok:
+        reasons.append("response times did not recover after a burst")
+    # everything still in flight when the drain ended: the run did not settle
+    drained_ok = not any(x.status == "unfinished" for x in logs)
+    if not drained_ok:
+        reasons.append("requests were still in flight when the drain ended")
     if not ceiling_ok:
         reasons.append("GPU memory ceiling exceeded")
-    return RunGates(not reasons, offered, q, bad, att, drift_ok, ceiling_ok, tuple(reasons))
+    return RunGates(
+        not reasons, offered, q, bad, att, drift_ok, ceiling_ok, tuple(reasons), recovered_ok, drained_ok
+    )
 
 
 def pooled_gates(runs: list[list[RequestLog]], gates: LatencyGates) -> tuple[bool, list[str]]:
@@ -176,4 +218,8 @@ def run_once(
         logs = simulate_run(
             params, pmem_schedule(seed, rps, window_s), window_s, drain_s, budget_gib, gates, sim_seed
         )
-    return logs, per_run_gates(logs, gates, ceiling_ok=not params.exceeds_memory_ceiling)
+    # only the P-mem schedule has bursts; the control and multi-turn runs have none to recover from
+    bursts = () if (ctl or live) else tuple(b * window_s for b in BURST_STARTS)
+    return logs, per_run_gates(
+        logs, gates, ceiling_ok=not params.exceeds_memory_ceiling, bursts=bursts, window_s=window_s
+    )

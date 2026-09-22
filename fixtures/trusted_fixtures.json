@@ -108,6 +108,183 @@
     "title": "Native paged-KV packing kernel",
     "variant": 4
   },
+  "0f5cf67904740ae24b733014e757160cbb61c7972565b058b900ad5fcbec309d": {
+    "name": "quality-drift",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_late": 150
+      },
+      "base_accuracy_bp": 8800,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.35,
+      "length_ratio_bp": 10000,
+      "name": "quality-drift",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Aggressive 4-bit KV with small quality losses",
+    "variant": 10
+  },
+  "12068d9366c69452e18028b5cb01bfaba710322e7aff52e1db60bec286d212a4": {
+    "name": "fragmentation-aware-allocator",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "fragmentation-aware-allocator",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.8
+    },
+    "simulated": true,
+    "title": "Fragmentation-aware block allocation",
+    "variant": 6
+  },
+  "13d194a9db9723f6d71bf6f9a293926de9379acc585b809b8c503f9ac213951b": {
+    "name": "kv8-conversation-retention",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 40
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.6,
+      "length_ratio_bp": 10000,
+      "name": "kv8-conversation-retention",
+      "retention_bonus": 0.25,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "8-bit KV entries with conversation-aware retention",
+    "variant": 9
+  },
+  "15f7796bec9da139d14506c78b8334d0588ef752b3de92e14df54b03b9496cdf": {
+    "name": "quality-drift",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_late": 150
+      },
+      "base_accuracy_bp": 8800,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.35,
+      "length_ratio_bp": 10000,
+      "name": "quality-drift",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Aggressive 4-bit KV with small quality losses",
+    "variant": 8
+  },
+  "19110a3e65c07c5122abed55761b58dd642d535df748864affd572ae1ac62749": {
+    "name": "evict-quarter",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 1900,
+        "position_middle": 700
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.25,
+      "length_ratio_bp": 10000,
+      "name": "evict-quarter",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Evict to a quarter of the cache",
+    "variant": 7
+  },
+  "1b8b9b02e91ae33a3a0a21397630dbb629157c3f68f96cea447b00bae083a2cc": {
+    "name": "build-breaks",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "build-breaks",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": "build_failure",
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Patch that does not build",
+    "variant": 8
+  },
+  "1d2e4329ff7ca836cab3c32f1055d43f534e7fe5fbc099e47c251db52879eb08": {
+    "name": "native-paged-kv-kernel",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "native-paged-kv-kernel",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 2.6
+    },
+    "simulated": true,
+    "title": "Native paged-KV packing kernel",
+    "variant": 10
+  },
+  "205e468ad59403426b13e2439f6936f490a330569136b81eb37f9290a4eeb226": {
+    "name": "native-paged-kv-kernel",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "native-paged-kv-kernel",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 2.6
+    },
+    "simulated": true,
+    "title": "Native paged-KV packing kernel",
+    "variant": 8
+  },
   "207228f435f6c3ad8d17339d4b82576b290c5fc40d3e7aa60e8bd38cd88e9f34": {
     "name": "evict-quarter",
     "params": {
@@ -132,6 +309,95 @@
     "title": "Evict to a quarter of the cache",
     "variant": 1
   },
+  "22badaaa677bd85943f2f24a2005091cde7e0ae7a296045af3e24cb01746ab68": {
+    "name": "evict-quarter",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 1900,
+        "position_middle": 700
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.25,
+      "length_ratio_bp": 10000,
+      "name": "evict-quarter",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Evict to a quarter of the cache",
+    "variant": 10
+  },
+  "248f60e27496e9bbf1e14b14c5d681f1d038fe80a4e8fc7a97119abf63a781f0": {
+    "name": "native-paged-kv-kernel",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "native-paged-kv-kernel",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 2.6
+    },
+    "simulated": true,
+    "title": "Native paged-KV packing kernel",
+    "variant": 7
+  },
+  "252936308b0c1abb8dd49318894d45cfb342eb4d862d5dd4c469ed67b0578929": {
+    "name": "decode-kernel-speedup",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.3,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "decode-kernel-speedup",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Faster decode attention kernel",
+    "variant": 9
+  },
+  "2660c4b3d441de220ee0d2bd6b0b95bbf9178cad20e93d5ef4610a53f456faee": {
+    "name": "quality-drift",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_late": 150
+      },
+      "base_accuracy_bp": 8800,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.35,
+      "length_ratio_bp": 10000,
+      "name": "quality-drift",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Aggressive 4-bit KV with small quality losses",
+    "variant": 11
+  },
   "27a6cf20cf2318b93f47c65b0b2dd83d8d48ad9ea6198f5a38cc978b9857e88e": {
     "name": "kv8-conversation-retention",
     "params": {
@@ -155,6 +421,48 @@
     "title": "8-bit KV entries with conversation-aware retention",
     "variant": 0
   },
+  "288d41d587dc4d6f97897755c92fc9f67961fa609df77544e8b52bbf162eb8ee": {
+    "name": "decode-kernel-speedup",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.3,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "decode-kernel-speedup",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Faster decode attention kernel",
+    "variant": 11
+  },
+  "29d4427084b3e8286a26560d70bd22cc36c475f5ec3ecfe1dfff74a52fcdcd03": {
+    "name": "native-paged-kv-kernel",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "native-paged-kv-kernel",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 2.6
+    },
+    "simulated": true,
+    "title": "Native paged-KV packing kernel",
+    "variant": 9
+  },
   "2cad3b2b5dc3adcae31d17c3fef4d7227b5498a069d5b5c059019649076638c1": {
     "name": "native-paged-kv-kernel",
     "params": {
@@ -175,6 +483,95 @@
     "simulated": true,
     "title": "Native paged-KV packing kernel",
     "variant": 0
+  },
+  "2e41bddad22b667b31f50286266896e7d2e799d23ccdc970424f77c97b81b704": {
+    "name": "evict-quarter",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 1900,
+        "position_middle": 700
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.25,
+      "length_ratio_bp": 10000,
+      "name": "evict-quarter",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Evict to a quarter of the cache",
+    "variant": 6
+  },
+  "3056dbc5fdddafa458470518daeaddaae1e691151c575c93205a47f54861c2d2": {
+    "name": "kv8-conversation-retention",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 40
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.6,
+      "length_ratio_bp": 10000,
+      "name": "kv8-conversation-retention",
+      "retention_bonus": 0.25,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "8-bit KV entries with conversation-aware retention",
+    "variant": 6
+  },
+  "30db9f47eb671a33a7866dfa6fbc763efae34348361bbfe0999346c840022a16": {
+    "name": "decode-kernel-speedup",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.3,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "decode-kernel-speedup",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Faster decode attention kernel",
+    "variant": 8
+  },
+  "39bf5289e42c4c9c7276793b296fc7e32adcdb0d3f5ff63bd2e7d7ab08c6be81": {
+    "name": "native-paged-kv-kernel",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "native-paged-kv-kernel",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 2.6
+    },
+    "simulated": true,
+    "title": "Native paged-KV packing kernel",
+    "variant": 6
   },
   "4564113356b04e2e66550124a57067b32d9a8b0c8cede3feca0823bdddaf209f": {
     "name": "kv8-conversation-retention",
@@ -223,6 +620,30 @@
     "title": "Evict to a quarter of the cache",
     "variant": 2
   },
+  "48e9c205ac7c6e1451222044270606e6660b3fc41859ea99689ccb458aaa3f13": {
+    "name": "evict-quarter",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 1900,
+        "position_middle": 700
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.25,
+      "length_ratio_bp": 10000,
+      "name": "evict-quarter",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Evict to a quarter of the cache",
+    "variant": 9
+  },
   "49f820077f28106ea6309f461d510b57fca780a6c8f613dfd4913a1aa48c96b4": {
     "name": "decode-kernel-speedup",
     "params": {
@@ -244,6 +665,27 @@
     "title": "Faster decode attention kernel",
     "variant": 0
   },
+  "4a165d6b0c88897ce8ed8e0c25ae0b6aa6a32436c7ccc2a1ebeb5e9ae202f7c9": {
+    "name": "fragmentation-aware-allocator",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "fragmentation-aware-allocator",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.8
+    },
+    "simulated": true,
+    "title": "Fragmentation-aware block allocation",
+    "variant": 11
+  },
   "4a22154a62b245664d0424ab23de07f3c0ca643d06c760a9d6021aa06b474a54": {
     "name": "fragmentation-aware-allocator",
     "params": {
@@ -264,6 +706,29 @@
     "simulated": true,
     "title": "Fragmentation-aware block allocation",
     "variant": 5
+  },
+  "4e8abe021ee372a32ab227a0560bdecf4ddbe65c7325158a73a6dcd08e0cc03f": {
+    "name": "quality-drift",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_late": 150
+      },
+      "base_accuracy_bp": 8800,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.35,
+      "length_ratio_bp": 10000,
+      "name": "quality-drift",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Aggressive 4-bit KV with small quality losses",
+    "variant": 7
   },
   "50ae1695e90abeb6ff1200dd5871488b39e257c8b9fb6197dbff968f9bae546a": {
     "name": "native-paged-kv-kernel",
@@ -308,6 +773,27 @@
     "simulated": true,
     "title": "Aggressive 4-bit KV with small quality losses",
     "variant": 3
+  },
+  "54b3a233020e3af40de07ed4a8f6611f042d1b5f90f1b00a44249886b54077d5": {
+    "name": "fragmentation-aware-allocator",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "fragmentation-aware-allocator",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.8
+    },
+    "simulated": true,
+    "title": "Fragmentation-aware block allocation",
+    "variant": 9
   },
   "59f56f4ef5e389351ad18db3d531c6739f4bfe4293d66ca85951baf40e1c2ed0": {
     "name": "fragmentation-aware-allocator",
@@ -463,6 +949,93 @@
     "title": "Fragmentation-aware block allocation",
     "variant": 2
   },
+  "6a9836eeea2456ab4df5cbaab4bca157e97dd3aec31325ee611c994fb0c65e33": {
+    "name": "evict-quarter",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 1900,
+        "position_middle": 700
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.25,
+      "length_ratio_bp": 10000,
+      "name": "evict-quarter",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Evict to a quarter of the cache",
+    "variant": 8
+  },
+  "6da5357d68246637c45290f89b9dbf8c2b8634ddb2362afd39f7786e47ef4b87": {
+    "name": "build-breaks",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "build-breaks",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": "build_failure",
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Patch that does not build",
+    "variant": 9
+  },
+  "70844d985c4a2b24c133206e7b969ec92b2d03b6cc2fd6e3d277ca8ba6adda9b": {
+    "name": "build-breaks",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "build-breaks",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": "build_failure",
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Patch that does not build",
+    "variant": 6
+  },
+  "7d1428924a508e61655765dcc0e3e27936102033bb2e50cac5cfe389be9e53e9": {
+    "name": "fragmentation-aware-allocator",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "fragmentation-aware-allocator",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.8
+    },
+    "simulated": true,
+    "title": "Fragmentation-aware block allocation",
+    "variant": 7
+  },
   "851ce20ebed423856119324fa227f7e493a80496baefcf1204ef20c1026d5142": {
     "name": "decode-kernel-speedup",
     "params": {
@@ -591,6 +1164,29 @@
     "title": "Patch that does not build",
     "variant": 5
   },
+  "a22c803446d4d5b03424cac0fb2e04c0a4838ba47047c74d950dcdbc08dd6f76": {
+    "name": "quality-drift",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_late": 150
+      },
+      "base_accuracy_bp": 8800,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.35,
+      "length_ratio_bp": 10000,
+      "name": "quality-drift",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Aggressive 4-bit KV with small quality losses",
+    "variant": 9
+  },
   "a8072e9d95817ea5c045b9b785be302f303cd56f3e9364117bafaa0da0930778": {
     "name": "build-breaks",
     "params": {
@@ -611,6 +1207,69 @@
     "simulated": true,
     "title": "Patch that does not build",
     "variant": 0
+  },
+  "aaae26b2bf701762556d5beeb4dcfd88dabb06d7d0d090dc3c15f3a1f865130e": {
+    "name": "build-breaks",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "build-breaks",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": "build_failure",
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Patch that does not build",
+    "variant": 7
+  },
+  "aaebe50b10adea003bf11085b392eb9544b910d44eca0a4c696a4c39cccf96d5": {
+    "name": "fragmentation-aware-allocator",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "fragmentation-aware-allocator",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.8
+    },
+    "simulated": true,
+    "title": "Fragmentation-aware block allocation",
+    "variant": 10
+  },
+  "ad03c54e97fef640c088b72967335a41a8404baa4db7a102a7a2cfc59ffff239": {
+    "name": "decode-kernel-speedup",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.3,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "decode-kernel-speedup",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Faster decode attention kernel",
+    "variant": 6
   },
   "ad7fe58dc9e8e312d9bb9480db0b681651e6d1eef5be13fdb17288bebd55dfcd": {
     "name": "decode-kernel-speedup",
@@ -743,6 +1402,29 @@
     "title": "Fragmentation-aware block allocation",
     "variant": 3
   },
+  "b93d9c22e52b6e1414b5c1943e3ce63d58c7677d955003ba92825d50fd6d689b": {
+    "name": "kv8-conversation-retention",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 40
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.6,
+      "length_ratio_bp": 10000,
+      "name": "kv8-conversation-retention",
+      "retention_bonus": 0.25,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "8-bit KV entries with conversation-aware retention",
+    "variant": 8
+  },
   "bff2a5d23fd695799c5e33bffa685668d9ecc70af581c26a0305e84e4cfbf057": {
     "name": "build-breaks",
     "params": {
@@ -763,6 +1445,27 @@
     "simulated": true,
     "title": "Patch that does not build",
     "variant": 1
+  },
+  "c69dfcf6a812c62c27ec5ec317eb94321422644af199fcf31014d8ec34f5f739": {
+    "name": "fragmentation-aware-allocator",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "fragmentation-aware-allocator",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.8
+    },
+    "simulated": true,
+    "title": "Fragmentation-aware block allocation",
+    "variant": 8
   },
   "c7cac7357f0bf27140867b7fcf147753728f706d71bbb84984ae4212fa5fceb1": {
     "name": "evict-quarter",
@@ -787,6 +1490,29 @@
     "simulated": true,
     "title": "Evict to a quarter of the cache",
     "variant": 3
+  },
+  "c8f104e9f1a44152cb8bd8dba233ef7d4c97f508da286e23c142ec35bc582393": {
+    "name": "kv8-conversation-retention",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 40
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.6,
+      "length_ratio_bp": 10000,
+      "name": "kv8-conversation-retention",
+      "retention_bonus": 0.25,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "8-bit KV entries with conversation-aware retention",
+    "variant": 10
   },
   "d196804e6ec1d388cc73403c26c25f16b5a8f91b22e3567f5ae400d007ff91fb": {
     "name": "decode-kernel-speedup",
@@ -832,6 +1558,27 @@
     "title": "Aggressive 4-bit KV with small quality losses",
     "variant": 1
   },
+  "d66668e038b4bb55bf23552dcbb0f3e39f510f7cdf19f778c292a82cebdd740d": {
+    "name": "decode-kernel-speedup",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.3,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "decode-kernel-speedup",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Faster decode attention kernel",
+    "variant": 10
+  },
   "d71dce36b74b5f1986834203dcc8c370c096d5d666fecce26b39e5e8d08ad500": {
     "name": "native-paged-kv-kernel",
     "params": {
@@ -852,6 +1599,117 @@
     "simulated": true,
     "title": "Native paged-KV packing kernel",
     "variant": 2
+  },
+  "d9787d85b31d80ae93482847e4d8470d12028a6725d0c29bdc5d6c531c7c2204": {
+    "name": "decode-kernel-speedup",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.3,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "decode-kernel-speedup",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Faster decode attention kernel",
+    "variant": 7
+  },
+  "dbd547c699048c171795d5eec0eb10263a4207e3558ac2cd99a3dec83e822203": {
+    "name": "quality-drift",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_late": 150
+      },
+      "base_accuracy_bp": 8800,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.35,
+      "length_ratio_bp": 10000,
+      "name": "quality-drift",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Aggressive 4-bit KV with small quality losses",
+    "variant": 6
+  },
+  "de0f12a7456f4812f2b8e6f0a2f26a32128d8f9c4ab5ac2ddb217cbfbbd0529f": {
+    "name": "kv8-conversation-retention",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 40
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.6,
+      "length_ratio_bp": 10000,
+      "name": "kv8-conversation-retention",
+      "retention_bonus": 0.25,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "8-bit KV entries with conversation-aware retention",
+    "variant": 11
+  },
+  "e18edb51256ca31eb62f44860f9a23605151e2de3d3305622c74dc0f00d83b87": {
+    "name": "kv8-conversation-retention",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 40
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.6,
+      "length_ratio_bp": 10000,
+      "name": "kv8-conversation-retention",
+      "retention_bonus": 0.25,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "8-bit KV entries with conversation-aware retention",
+    "variant": 7
+  },
+  "e44722a16b6fa9452816db36a82d737f4c1999d3b76067dde983a0fbca99c393": {
+    "name": "native-paged-kv-kernel",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "native-paged-kv-kernel",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 2.6
+    },
+    "simulated": true,
+    "title": "Native paged-KV packing kernel",
+    "variant": 11
   },
   "e672ff554753788e1fce3b9de8d2b824d7428a7017693c5fb2ea922a5abdaff8": {
     "name": "evict-quarter",
@@ -877,6 +1735,27 @@
     "title": "Evict to a quarter of the cache",
     "variant": 0
   },
+  "e74f119dd137b4b0bfecee7c76778632fef93368f1b9ec1928a82b65cc761e70": {
+    "name": "build-breaks",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "build-breaks",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": "build_failure",
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Patch that does not build",
+    "variant": 10
+  },
   "ea29c92833ea18efbace2160f3fbf722b6d7d4dfaa4a7debb0875209e26ba2e7": {
     "name": "kv8-conversation-retention",
     "params": {
@@ -899,6 +1778,30 @@
     "simulated": true,
     "title": "8-bit KV entries with conversation-aware retention",
     "variant": 3
+  },
+  "efbcc57a63c119252db10e5763f70625ea4e9bc8cd75d6d8f3527c0f47456b5d": {
+    "name": "evict-quarter",
+    "params": {
+      "accuracy_loss_bp": {
+        "position_early": 1900,
+        "position_middle": 700
+      },
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 0.25,
+      "length_ratio_bp": 10000,
+      "name": "evict-quarter",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": null,
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Evict to a quarter of the cache",
+    "variant": 11
   },
   "f1001e6bbfccffde4b55ee884387550196ae37bc12d3e9899e0456d2f561d9d9": {
     "name": "fragmentation-aware-allocator",
@@ -941,5 +1844,26 @@
     "simulated": true,
     "title": "Faster decode attention kernel",
     "variant": 1
+  },
+  "fc6bff85d56703503a918281ff90e04dcf1844c692e888670ddb237112230601": {
+    "name": "build-breaks",
+    "params": {
+      "accuracy_loss_bp": {},
+      "base_accuracy_bp": 9100,
+      "compute_speedup": 1.0,
+      "crash_under_load": false,
+      "decode_overhead": 1.0,
+      "exceeds_memory_ceiling": false,
+      "kv_factor": 1.0,
+      "length_ratio_bp": 10000,
+      "name": "build-breaks",
+      "retention_bonus": 0.0,
+      "review_flag": null,
+      "screen_failure": "build_failure",
+      "usable_factor": 1.0
+    },
+    "simulated": true,
+    "title": "Patch that does not build",
+    "variant": 11
   }
 }

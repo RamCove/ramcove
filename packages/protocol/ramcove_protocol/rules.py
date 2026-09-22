@@ -91,7 +91,20 @@ class LatencyGates(Frozen):
     attainment_bp: int = 9500
     band_attainment_bp: int = 9000
     max_error_bp: int = 50
-    drift_q4_over_q2_bp: int = 12500
+    drift_q4_over_q2_bp: int = Field(
+        14000,
+        description="p90 end-to-end in the last quarter over the second quarter. An 8-minute window leaves "
+        "about 60 requests per quarter, and at 1.25 the band fires on sample noise in 3 runs in 20 well "
+        "below capacity; 1.40 fires in 1 and still catches half the runs at 1.5x capacity, where attainment "
+        "catches the rest (docs/acceptance-matrix.md).",
+    )
+    burst_recovery_bp: int = Field(
+        13500,
+        description="After a burst, p90 end-to-end must return to this share of the pre-burst level. An "
+        "8-minute window leaves about 30 requests on each side of the comparison, and at 1.20 that band "
+        "fires on sample noise in one run in five well below capacity; at 1.35 it fires in one in twenty "
+        "and still catches every run at 1.5x capacity (docs/acceptance-matrix.md).",
+    )
 
 
 class StageEnvelope(Frozen):

@@ -56,6 +56,8 @@ class RequestLog:
     correct: bool
     output_tokens: int
     recomputed_prefill_tokens: int
+    max_gap_ms: int = 0
+    contract_ok: bool = True
 
 
 @dataclass
@@ -172,7 +174,16 @@ def simulate_run(
                 srv.used_tokens += need
                 srv.peak_tokens = max(srv.peak_tokens, srv.used_tokens + sum(srv.idle_cache.values()))
                 prefill_s = recompute * 0.00012 * params.decode_overhead / params.compute_speedup
-                w.update(start=t, first_token_at=t + prefill_s, produced=0, need=need, recompute=recompute)
+                w.update(
+                    start=t,
+                    first_token_at=t + prefill_s,
+                    produced=0,
+                    need=need,
+                    recompute=recompute,
+                    last_token_at=t + prefill_s,
+                    max_gap=0.0,
+                    emitted=0,
+                )
                 srv.active.append(w)
             else:
                 if reuse:
@@ -194,6 +205,11 @@ def simulate_run(
             if t < a["first_token_at"]:
                 continue
             a["produced"] += tokens_this_step
+            # the longest gap between two output tokens: Section 8.2 disqualifies a request that stalls
+            if int(a["produced"]) > a["emitted"]:
+                a["emitted"] = int(a["produced"])
+                a["max_gap"] = max(a["max_gap"], t - a["last_token_at"])
+                a["last_token_at"] = t
             if params.crash_under_load and batch > 24 and rng.random() < 0.002:
                 logs[a["rid"]].status = "errored"
                 _abandon(a["conv"])
@@ -215,7 +231,16 @@ def simulate_run(
                 e2e_limit = min(
                     gates.deadline_ms, ttft_limit + gates.e2e_per_output_token_ms * item.output_tokens
                 )
-                ok = lg.ttft_ms <= ttft_limit and lg.tpot_ms <= gates.tpot_mean_ms and lg.e2e_ms <= e2e_limit
+                lg.max_gap_ms = _ms(a["max_gap"])
+                # the task contract: an answer that comes back truncated does not qualify, however fast it was
+                lg.contract_ok = lg.output_tokens * 2 >= item.output_tokens
+                ok = (
+                    lg.ttft_ms <= ttft_limit
+                    and lg.tpot_ms <= gates.tpot_mean_ms
+                    and lg.e2e_ms <= e2e_limit
+                    and lg.max_gap_ms <= gates.stall_ms
+                    and lg.contract_ok
+                )
                 lg.status = "qualified" if ok else "unqualified"
                 _release_next(a["conv"])
                 done.append(a)

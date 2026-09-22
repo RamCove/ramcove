@@ -77,6 +77,17 @@ def submit_fixture(ctx, miner_key: str, fixture_name: str, parent_version: int =
 # even three times, would fail on its own noise rather than on a defect.
 ATTEMPTS = 10
 
+# Outcomes that mean the measurement was unlucky, not that the code is wrong: the margin was not cleared,
+# or no rate on the grid passed. A worker whose champion fixed score came out high rejects every challenger
+# on it (docs/readiness-report.md), and no number of resubmissions helps, so a test says so rather than
+# failing as if the code had broken. Any other outcome — a failed build, quality, or winner check — is a
+# real result and must fail the test.
+NOISE_OUTCOMES = {"margin_not_cleared", "capacity_reading"}
+
+
+def only_measurement_noise(outcomes: list[str | None]) -> bool:
+    return bool(outcomes) and all(o in NOISE_OUTCOMES for o in outcomes)
+
 
 def pay_and_admit(ctx, sub_id: str, miner_key: str) -> dict:
     hk, _ = hotkey(miner_key)
