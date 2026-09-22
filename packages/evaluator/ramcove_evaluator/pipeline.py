@@ -32,6 +32,7 @@ from ramcove_protocol.scoring import (
 from .bank import Bank, pack_outcomes, unpack_outcomes
 from .capacity import confirmed_capacity, reading_capacity
 from .loadgen import CONFIRM_WINDOW_S, CTL_WINDOW_S, SOAK_WINDOW_S, pooled_gates, run_once
+from .progress import Reporter, send
 from .target import StackParams
 from .taskgen import POSITIONS, grade, seed_manifest
 
@@ -66,16 +67,29 @@ def _answer(params: StackParams, item, seed: str) -> str | None:
     return item.answer if correct else "wrong"
 
 
-def _outcomes(params: StackParams, items, seed: str) -> tuple[int, ...]:
-    return tuple(int(grade(i, _answer(params, i, seed))) for i in items)
+def _outcomes(
+    params: StackParams,
+    items,
+    seed: str,
+    on_progress: Reporter | None = None,
+    step: str = "questions",
+) -> tuple[int, ...]:
+    out = []
+    for i, item in enumerate(items, 1):
+        out.append(int(grade(item, _answer(params, item, seed))))
+        if on_progress and (i % 100 == 0 or i == len(items)):
+            send(on_progress, step, done=i, total=len(items))
+    return tuple(out)
 
 
-def champion_answers(champion: StackParams, bank: Bank) -> dict:
+def champion_answers(champion: StackParams, bank: Bank, on_progress: Reporter | None = None) -> dict:
     """The champion's right/wrong per bank question, kept in the worker's calibration record for the period."""
     return {
         "bank_id": bank.bank_id,
         "screening": pack_outcomes(_outcomes(champion, bank.screening, bank.answer_seed)),
-        "offline": pack_outcomes(_outcomes(champion, bank.offline, bank.answer_seed)),
+        "offline": pack_outcomes(
+            _outcomes(champion, bank.offline, bank.answer_seed, on_progress, "champion_answers")
+        ),
     }
 
 
@@ -91,6 +105,7 @@ def screen(
     seed: str,
     bank: Bank,
     calibration: dict | None = None,
+    on_progress: Reporter | None = None,
 ) -> dict:
     checks = []
     if params.screen_failure:
@@ -116,7 +131,7 @@ def screen(
             "checks": checks,
         }
     items = bank.screening
-    cand = sum(_outcomes(params, items, bank.answer_seed))
+    cand = sum(_outcomes(params, items, bank.answer_seed, on_progress, "screen_questions"))
     cached = _cached_answers(calibration, bank)
     champ = (
         sum(unpack_outcomes(cached["screening"], len(items)))
@@ -176,17 +191,27 @@ def _fixed_score(champion: StackParams, start_rps: float, profile: ProfileVersio
     return cap
 
 
-def calibrate(champion: StackParams, profile: ProfileVersion, seed: str, base_rps: float, bank: Bank) -> dict:
+def calibrate(
+    champion: StackParams,
+    profile: ProfileVersion,
+    seed: str,
+    base_rps: float,
+    bank: Bank,
+    on_progress: Reporter | None = None,
+) -> dict:
     """The champion's fixed score on this worker: confirmed capacity at the full and the tighter cache budget,
     and its short-request baseline, measured once, when the champion is crowned; plus its answers to the
     current bank, which are refreshed when the bank rotates."""
     seed = f"{bank.traffic_seed}:{seed}"
+    send(on_progress, "champion_score", rate_milli_rps=int(base_rps * 1000))
     cap = _fixed_score(champion, base_rps, profile, seed, FULL_BUDGET_GIB)
+    send(on_progress, "champion_tight_score", rate_milli_rps=int((cap.capacity_rps or base_rps) * 800))
     # the smaller cache budget can only lower capacity, so search just below the full-budget score
     tight = _fixed_score(
         champion, (cap.capacity_rps or base_rps) * 0.8, profile, seed + ":tight", TIGHT_BUDGET_GIB
     )
     ctl_rate = max(0.2, cap.capacity_rps * 2.0)
+    send(on_progress, "short_request", rate_milli_rps=int(ctl_rate * 1000))
     _, ctl = run_once(champion, seed + ":pctl", ctl_rate, profile.latency, ctl=True, window_s=CTL_WINDOW_S)
     return {
         "stage": "calibration",
@@ -200,15 +225,32 @@ def calibrate(champion: StackParams, profile: ProfileVersion, seed: str, base_rp
             "attainment_bp": ctl.attainment_bp,
             "errored_or_rejected": ctl.errored_or_rejected,
         },
-        "answers": champion_answers(champion, bank),
+        "answers": champion_answers(champion, bank, on_progress),
         "gpu_centi": CALIBRATION_CENTI + CHAMPION_ANSWERS_CENTI,
     }
 
 
-def _reading(params: StackParams, base: float, profile: ProfileVersion, seed: str, budget: float):
+def _reading(
+    params: StackParams,
+    base: float,
+    profile: ProfileVersion,
+    seed: str,
+    budget: float,
+    on_progress: Reporter | None = None,
+    step: str = "reading",
+    reading: int = 1,
+):
     runs: dict[str, list] = {}
 
     def run(rate: float, label: str) -> bool:
+        send(
+            on_progress,
+            step,
+            reading=reading,
+            run=len(runs) + 1,
+            rate_milli_rps=int(rate * 1000),
+            over_champion_ppm=int(round((rate / base - 1) * 1e6)) if base > 0 else None,
+        )
         logs, g = run_once(params, f"{seed}:{label}", rate, profile.latency, budget_gib=budget)
         runs[label] = logs
         return g.passed
@@ -229,7 +271,12 @@ def _reading_record(cap, base: float) -> dict:
 
 
 def _memory_evidence(
-    params: StackParams, cap_rps: float, profile: ProfileVersion, seed: str, champion_calibration: dict
+    params: StackParams,
+    cap_rps: float,
+    profile: ProfileVersion,
+    seed: str,
+    champion_calibration: dict,
+    on_progress: Reporter | None = None,
 ) -> tuple[dict, int]:
     """Winner check. The challenger's reading under a 25% smaller cache budget, set against the champion's
     fixed score at that budget: the gain must still exceed the replacement margin (ADR 0007). A reading that
@@ -242,7 +289,16 @@ def _memory_evidence(
         return {"passed": False, "tight_measured": False, "margin_ppm": delta_ppm}, 0
     readings, runs = [], 0
     for n in range(2):
-        tight, _ = _reading(params, tight_base, profile, f"{seed}:tight{n or ''}", TIGHT_BUDGET_GIB)
+        tight, _ = _reading(
+            params,
+            tight_base,
+            profile,
+            f"{seed}:tight{n or ''}",
+            TIGHT_BUDGET_GIB,
+            on_progress,
+            step="memory",
+            reading=n + 1,
+        )
         runs += tight.runs
         record = _reading_record(tight, tight_base)
         readings.append(
@@ -284,6 +340,7 @@ def evaluate(
     seed: str,
     champion_calibration: dict,
     bank: Bank,
+    on_progress: Reporter | None = None,
 ) -> dict:
     """One evaluation: quality on fresh questions, then one capacity reading against the champion's fixed
     score (a second only when the first lands between the margin and the clear-win line), then, for a winner,
@@ -292,9 +349,9 @@ def evaluate(
     if base <= 0:
         raise CalibrationMissing("champion calibration has no confirmed capacity; evaluation cannot run")
     items = bank.offline
-    cand = _outcomes(params, items, bank.answer_seed)
+    cand = _outcomes(params, items, bank.answer_seed, on_progress, "quality")
     cached = _cached_answers(champion_calibration, bank)
-    fresh_answers = None if cached else champion_answers(champion, bank)
+    fresh_answers = None if cached else champion_answers(champion, bank, on_progress)
     champ = unpack_outcomes((cached or fresh_answers)["offline"], len(items))
     # the frozen reference's answers ship with the bank: the owner computes them once per period
     ref = _outcomes(REFERENCE, items, bank.answer_seed)
@@ -334,7 +391,9 @@ def evaluate(
         return result
     readings, reading_runs, decision, cap = [], [], None, None
     for n in range(2):
-        cap, runs = _reading(params, base, profile, f"{seed}:reading{n}", FULL_BUDGET_GIB)
+        cap, runs = _reading(
+            params, base, profile, f"{seed}:reading{n}", FULL_BUDGET_GIB, on_progress, reading=n + 1
+        )
         gpu += RUN_CENTI * cap.runs
         readings.append(_reading_record(cap, base))
         if cap.confirm_label:
@@ -358,17 +417,22 @@ def evaluate(
     extra: dict = {}
     if winner:
         band_ok, band_reasons = pooled_gates(reading_runs, profile.latency)
-        mem, mem_gpu = _memory_evidence(params, cap.capacity_rps, profile, seed, champion_calibration)
+        mem, mem_gpu = _memory_evidence(
+            params, cap.capacity_rps, profile, seed, champion_calibration, on_progress
+        )
         base_ctl = champion_calibration.get("pctl") or {}
         ctl_rate = base_ctl.get("rate_milli_rps", int(base * 2000)) / 1000
+        send(on_progress, "short_request", rate_milli_rps=int(ctl_rate * 1000))
         _, ctl = run_once(params, seed + ":pctl", ctl_rate, profile.latency, ctl=True, window_s=CTL_WINDOW_S)
         ctl_ok = ctl.attainment_bp >= base_ctl.get("attainment_bp", 0) - 200 and (
             ctl.errored_or_rejected <= base_ctl.get("errored_or_rejected", 0) + 2
         )
         live_rate = max(0.1, cap.capacity_rps * profile.plive_rate_bp / 10_000)
+        send(on_progress, "live_conversations", rate_milli_rps=int(live_rate * 1000))
         _, live = run_once(
             params, seed + ":plive", live_rate, profile.latency, live=True, window_s=CONFIRM_WINDOW_S
         )
+        send(on_progress, "soak", rate_milli_rps=int(cap.capacity_rps * 900), minutes=int(SOAK_WINDOW_S / 60))
         _, soak = run_once(
             params, seed + ":soak", cap.capacity_rps * 0.9, profile.latency, window_s=SOAK_WINDOW_S
         )
@@ -478,13 +542,14 @@ def reproduce(
     seed: str,
     champion_calibration: dict,
     bank: Bank,
+    on_progress: Reporter | None = None,
 ) -> dict:
     """After the sunset: a second validator repeats one reading against its own worker's fixed score."""
     seed = f"{bank.traffic_seed}:{seed}"
     base = champion_calibration["capacity_milli_rps"] / 1000
     if base <= 0:
         raise CalibrationMissing("champion calibration has no confirmed capacity; reproduction cannot run")
-    cap, _ = _reading(params, base, profile, f"{seed}:reproduce", FULL_BUDGET_GIB)
+    cap, _ = _reading(params, base, profile, f"{seed}:reproduce", FULL_BUDGET_GIB, on_progress)
     reading = _reading_record(cap, base)
     gain = Reading(
         "reproduce", 0, reading["challenger_milli_rps"], reading["champion_milli_rps"], ""

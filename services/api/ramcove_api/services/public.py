@@ -37,6 +37,40 @@ from . import banks
 from .context import AppContext, ServiceError
 from .queue import current_champion
 
+
+def progress_label(p: dict | None) -> str | None:
+    """One line for a stage that is still running. The numbers come from the worker; the wording is here,
+    so the dashboard, the submission page and any other reader say the same thing."""
+    if not p:
+        return None
+    step = p.get("step")
+    done, total, run = p.get("done"), p.get("total"), p.get("run")
+    over = p.get("over_champion_ppm")
+    rate = f"{(p.get('rate_milli_rps') or 0) / 1000:.3f} req/s"
+    at = "at the champion's score" if not over else f"at the champion's score {over / 1e4:+.1f}%"
+    if step == "screen_questions":
+        return f"Screening: {done:,} of {total:,} smoke questions answered"
+    if step == "quality":
+        return f"Question quality: {done:,} of {total:,} answered"
+    if step == "champion_answers":
+        return f"The champion answers this week's bank: {done:,} of {total:,}"
+    if step == "reading":
+        return f"Capacity reading {p.get('reading', 1)}: run {run} {at} ({rate})"
+    if step == "memory":
+        return f"Winner check, memory: tighter-budget reading {p.get('reading', 1)}, run {run} ({rate})"
+    if step == "short_request":
+        return f"Winner check: short-request control at {rate}"
+    if step == "live_conversations":
+        return f"Winner check: real conversations at {rate}"
+    if step == "soak":
+        return f"Winner check: {p.get('minutes', 60)}-minute soak at {rate}"
+    if step == "champion_score":
+        return f"Measuring the champion's fixed score, from {rate}"
+    if step == "champion_tight_score":
+        return f"Measuring the champion's score at the tighter cache budget, from {rate}"
+    return None
+
+
 STAGE_LABEL = {
     "preflight_passed": "Checked, not yet reserved",
     "waitlisted": "On the free waiting list",
@@ -258,7 +292,7 @@ def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = Non
         items = []
         for r in rows:
             job = conn.execute(
-                select(jobs.c.stage, jobs.c.status, jobs.c.lease_worker)
+                select(jobs.c.stage, jobs.c.status, jobs.c.lease_worker, jobs.c.progress)
                 .where(jobs.c.submission_id == r.id, jobs.c.status.in_(["queued", "leased"]))
                 .order_by(jobs.c.created_at.desc())
                 .limit(1)
@@ -275,7 +309,12 @@ def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = Non
                     "updated_at": r.updated_at,
                     "current_stage": None
                     if not job
-                    else {"stage": job.stage, "status": job.status, "worker": job.lease_worker},
+                    else {
+                        "stage": job.stage,
+                        "status": job.status,
+                        "worker": job.lease_worker,
+                        "progress_label": progress_label(job.progress),
+                    },
                     "first_gain_ppm": r.first_gain_ppm,
                     "bound_gain_ppm": r.bound_gain_ppm,
                     "outcome": None
@@ -377,6 +416,7 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
                     "worker": j.lease_worker,
                     "champion_version": j.champion_version,
                     "attempts": j.attempts,
+                    "progress_label": progress_label(j.progress) if j.status == "leased" else None,
                     "created_at": j.created_at,
                     "updated_at": j.updated_at,
                     "lease_expires_at": j.lease_expires_at,
@@ -705,6 +745,113 @@ DASHBOARD_GROUPS: dict[str, frozenset[str]] = {
 }
 
 
+def workflow(profile) -> list[dict]:
+    """The whole path a submission takes, with the numbers taken from the rules that will run it, so the
+    site cannot drift from the evaluator. GPU time is in centi-GPU-hours."""
+    from ramcove_evaluator.pipeline import CHECK_CENTI, QUALITY_CENTI, RUN_CENTI
+
+    q = profile.question_bank
+    screening = q.screening_long + q.screening_general
+    offline = q.offline_long + q.offline_general
+    rep = profile.replacement
+    env = profile.envelope
+    step_pct = rep.grid_step_ppm / 1e4
+    return [
+        {
+            "key": "preflight",
+            "name": "Free checks",
+            "what": "Signature, manifest, patch scope and duplicate check. No GPU, no fee, no queue place.",
+            "when": "Every submission",
+            "gpu_centi": 0,
+            "states": ["preflight_passed", "rejected_preflight"],
+        },
+        {
+            "key": "admission",
+            "name": "Quote, payment, queue place",
+            "what": (
+                f"A flat fee of {format_tao(profile.fees.flat_fee_rao).rstrip('0').rstrip('.')} TAO books "
+                f"{env.total() / 100:.2f} GPU-hours: screening plus one evaluation. The payment block and "
+                "index fix the order."
+            ),
+            "when": "After a quote is accepted",
+            "gpu_centi": 0,
+            "states": ["quoted", "admitted"],
+        },
+        {
+            "key": "screen",
+            "name": "Screening",
+            "what": (
+                f"Build, engine start, {screening:,} questions from this week's owner bank and the memory "
+                "ceiling. A failure here ends the submission and the fee is consumed."
+            ),
+            "when": "Once, before any measurement",
+            "gpu_centi": env.screen,
+            "states": ["screening", "rejected_screen"],
+        },
+        {
+            "key": "quality",
+            "name": "Question quality",
+            "what": (
+                f"The challenger answers all {offline:,} bank questions. Its answers are set against the "
+                "champion's answers to the same questions and against a frozen reference. Failing ends the "
+                "evaluation before any capacity is measured."
+            ),
+            "when": "First half of the evaluation",
+            "gpu_centi": QUALITY_CENTI + CHECK_CENTI,
+            "states": ["eval_queued", "evaluating"],
+        },
+        {
+            "key": "reading",
+            "name": "Capacity reading",
+            "what": (
+                f"Eight-minute runs, starting at the champion's fixed score and stepping up {step_pct:.0f}% "
+                "after every run that passes the gates. The reading is the last rate that passed; it stops "
+                "at the first run that fails."
+            ),
+            "when": "Second half of the evaluation",
+            "gpu_centi": RUN_CENTI,
+            "states": ["evaluating"],
+        },
+        {
+            "key": "rule",
+            "name": "The rule",
+            "what": (
+                f"A reading at or below {rep.delta_ppm / 1e4:.0f}% loses. One at or above "
+                f"{rep.clear_win_ppm / 1e4:.0f}% wins. In between, one more reading is taken and the average "
+                "of the two must clear the margin."
+            ),
+            "when": "As soon as the reading is in",
+            "gpu_centi": 0,
+            "states": ["evaluating", "not_promoted"],
+        },
+        {
+            "key": "winner_checks",
+            "name": "Winner checks",
+            "what": (
+                "Only for a winner, and paid from the reserve rather than the miner's booking: attainment "
+                "across context bands, memory evidence at a 25% smaller cache budget, a short-request "
+                "control, real multi-turn conversations, and an hour-long soak at 90% of the measured "
+                "capacity."
+            ),
+            "when": "Only after a winning reading",
+            "gpu_centi": env.winner_checks,
+            "states": ["evaluating"],
+        },
+        {
+            "key": "promotion",
+            "name": "Promotion",
+            "what": (
+                "Automatic unless an automatic check flagged the work for a person. The new champion's code "
+                "is published, the weight plan is written, and the champion's fixed score is measured again "
+                "on every worker."
+            ),
+            "when": "In admission order",
+            "gpu_centi": env.recalibration_on_promotion,
+            "states": ["in_review", "ready_for_promotion", "promoted"],
+        },
+    ]
+
+
 def dashboard_group(state: str) -> str:
     for group, states in DASHBOARD_GROUPS.items():
         if state in states:
@@ -761,7 +908,15 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
                     "state": r.state,
                     "state_label": STAGE_LABEL.get(r.state, r.state),
                     "group": dashboard_group(r.state),
-                    "current_stage": None if job is None else {"stage": job.stage, "status": job.status},
+                    "current_stage": None
+                    if job is None
+                    else {
+                        "stage": job.stage,
+                        "status": job.status,
+                        "progress": job.progress,
+                        "progress_label": progress_label(job.progress),
+                        "progress_at": job.progress_at,
+                    },
                     "first_gain_ppm": r.first_gain_ppm,
                     "bound_gain_ppm": r.bound_gain_ppm,
                     "outcome": None
@@ -823,6 +978,10 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
             },
             "counts": counts,
             "total": sum(counts.values()),
+            "workflow": workflow(profile),
+            "running": [
+                i for i in items if i["current_stage"] and i["current_stage"].get("status") == "leased"
+            ],
             "items": items,
             "rejection_reasons": sorted(reasons.values(), key=lambda e: -e["count"]),
             "miners": [{**m, "is_champion": hk == champ_hotkey} for hk, m in leaderboard][:20],

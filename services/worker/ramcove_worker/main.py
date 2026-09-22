@@ -73,6 +73,30 @@ class WorkerClient:
         return r.json()
 
 
+def progress_reporter(client: WorkerClient, job_id: str, pace_s: float):
+    """Tell the API where the stage is, at most once a second. Progress is display only, so a failed post is
+    logged and forgotten rather than retried: the next event replaces it.
+
+    ``pace_s`` is for the public demonstration only. A simulated evaluation finishes in seconds, which would
+    leave the dashboard with nothing to show, so the demonstration slows each step to about real time.
+    """
+    last = {"at": 0.0, "step": None}
+
+    def report(event: dict) -> None:
+        if pace_s:
+            time.sleep(pace_s)
+        now_s = time.monotonic()
+        if event.get("step") == last["step"] and now_s - last["at"] < 1.0:
+            return
+        last["at"], last["step"] = now_s, event.get("step")
+        try:
+            client.post(f"/v1/worker/jobs/{job_id}/progress", {"event": event})
+        except httpx.HTTPError:
+            log.debug("progress not delivered", exc_info=True)
+
+    return report
+
+
 def build_provider() -> IsolationProvider:
     kind = os.environ.get("RAMCOVE_WORKER_PROVIDER", "simulated")
     if kind == "vfio-vm":
@@ -107,6 +131,8 @@ def run() -> None:
     provider = build_provider()
     log.info("worker %s starting with provider %s", worker_id, provider.name)
     idle = float(os.environ.get("RAMCOVE_WORKER_IDLE_S", "3"))
+    # demonstration only: 0 runs the simulation at full speed
+    pace_s = float(os.environ.get("RAMCOVE_WORKER_DEMO_PACE_S", "0"))
     while not _stop:
         try:
             readiness = provider.readiness().as_dict()
@@ -126,7 +152,11 @@ def run() -> None:
                 "leased %s stage=%s submission=%s", job["job_id"], job["stage"], job.get("submission_id")
             )
             result = execute(
-                job, provider, profile, lambda sha: client.get_bytes(f"/v1/worker/artifacts/{sha}")
+                job,
+                provider,
+                profile,
+                lambda sha: client.get_bytes(f"/v1/worker/artifacts/{sha}"),
+                progress_reporter(client, job["job_id"], pace_s),
             )
             client.post(
                 f"/v1/worker/jobs/{job['job_id']}/complete",

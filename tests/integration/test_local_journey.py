@@ -80,8 +80,8 @@ def test_a_close_first_reading_gets_a_second_and_both_are_recorded(ctx, monkeypa
 
     original = pipeline._reading
 
-    def close_reading(params, base, profile, seed, budget):
-        cap, runs = original(params, base, profile, seed, budget)
+    def close_reading(params, base, profile, seed, budget, *args, **kwargs):
+        cap, runs = original(params, base, profile, seed, budget, *args, **kwargs)
         if ":reading" in seed and budget == pipeline.FULL_BUDGET_GIB:
             return replace(cap, capacity_rps=base * 1.0609), runs  # two grid steps: +6.1%
         return cap, runs

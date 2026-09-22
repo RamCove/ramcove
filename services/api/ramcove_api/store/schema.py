@@ -272,6 +272,9 @@ jobs = Table(
     Column("lease_expires_at", DateTime(timezone=True)),
     Column("attempts", Integer, nullable=False, server_default=text("0")),
     Column("result", JSONB),
+    # where the stage is right now, as the worker last reported it: display only, never a decision input
+    Column("progress", JSONB),
+    ts("progress_at", True, False),
     Column("gpu_centi_used", Integer),
     Column("simulated", Boolean, nullable=False, server_default=text("true")),
     ts("created_at", False, True),

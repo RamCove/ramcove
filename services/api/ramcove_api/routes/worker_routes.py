@@ -23,6 +23,10 @@ class CompleteIn(BaseModel):
     result: dict
 
 
+class ProgressIn(BaseModel):
+    event: dict
+
+
 @router.post("/heartbeat")
 def heartbeat(
     body: HeartbeatIn, ctx: AppContext = Depends(get_ctx), worker: str = Depends(worker_identity)
@@ -47,6 +51,13 @@ def artifact(
     if row is None:
         raise ServiceError("not_found", "artifact not found", 404)
     return Response(ctx.artifacts.get(row.storage_key), media_type="application/gzip")
+
+
+@router.post("/jobs/{job_id}/progress")
+def progress(
+    job_id: str, body: ProgressIn, ctx: AppContext = Depends(get_ctx), worker: str = Depends(worker_identity)
+) -> dict:
+    return queue.progress(ctx, worker, job_id, body.event)
 
 
 @router.post("/jobs/{job_id}/complete")

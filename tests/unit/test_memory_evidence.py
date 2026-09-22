@@ -13,7 +13,7 @@ def scripted(gains):
     """A stand-in for one tighter-budget reading per call, returning the given gains in order."""
     calls = []
 
-    def reading(params, base, profile, seed, budget):
+    def reading(params, base, profile, seed, budget, on_progress=None, step="reading", reading=1):
         g = gains[len(calls)]
         calls.append(seed)
         rps = base * (1 + g) if g > -1 else 0.0

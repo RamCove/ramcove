@@ -31,6 +31,7 @@ SCENARIOS = {
     "stale_comparison": "Two winners: the first is promoted, the second is re-compared with the new champion by arithmetic.",
     "failed_quality": "A challenger that saves memory but loses accuracy is rejected.",
     "no_champion_registration": "A technically approved winner never registers, so the incumbent keeps the crown.",
+    "live": "Paid submissions left in the queue: the workers pick them up, so the dashboard shows work running.",
 }
 
 
@@ -145,6 +146,22 @@ def run(ctx: AppContext, name: str) -> dict:
     out: dict = {"scenario": name, "description": SCENARIOS[name], "submissions": {}}
 
     if name == "fresh":
+        return out
+
+    if name == "live":
+        # Nothing is worked here on purpose: the running workers lease these jobs themselves, which is what
+        # gives the dashboard a queue, a submission on a GPU and its live progress.
+        for miner, fixture in (
+            ("miner-ada", "fragmentation-aware-allocator"),
+            ("miner-bao", "kv8-conversation-retention"),
+            ("miner-cyd", "native-paged-kv-kernel"),
+            ("miner-dee", "evict-quarter"),
+        ):
+            sub = h.submit(miner, fixture)
+            h.mark(sub, name)
+            h.pay(sub, miner)
+            out["submissions"][fixture] = sub
+        out["note"] = "Left queued for the workers; watch /dashboard."
         return out
 
     if name in ("champion", "busy", "stale_comparison", "no_champion_registration"):

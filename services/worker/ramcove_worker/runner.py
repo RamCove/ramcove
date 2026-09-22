@@ -23,6 +23,7 @@ def execute(
     provider: IsolationProvider,
     profile: ProfileVersion,
     fetch_artifact: Callable[[str], bytes],
+    on_progress: Callable[[dict], None] | None = None,
 ) -> dict[str, Any]:
     try:
         champ = payload["champion"]
@@ -36,17 +37,24 @@ def execute(
         if stage == "calibration":
             start = (payload.get("start_milli_rps") or 500) / 1000
             return pipeline.calibrate(
-                champion, profile, f"calibration:{payload['job_id']}", base_rps=start, bank=bank
+                champion,
+                profile,
+                f"calibration:{payload['job_id']}",
+                base_rps=start,
+                bank=bank,
+                on_progress=on_progress,
             )
         candidate = _params(provider.resolve_stack(fetch_artifact(payload["artifact_sha256"])))
         calibration = payload.get("calibration") or {}
         if stage == "screen":
-            return pipeline.screen(candidate, champion, profile, payload["seed"], bank, calibration)
+            return pipeline.screen(
+                candidate, champion, profile, payload["seed"], bank, calibration, on_progress
+            )
         if not calibration.get("capacity_milli_rps"):
             return {"infra_failure": "worker has no valid champion calibration"}
         if stage in ("full", "reproduce"):
             run = pipeline.evaluate if stage == "full" else pipeline.reproduce
-            out = run(candidate, champion, profile, payload["seed"], calibration, bank)
+            out = run(candidate, champion, profile, payload["seed"], calibration, bank, on_progress)
             out["comparison_id"] = payload["comparison_id"]
             return out
         return {"infra_failure": f"unknown stage {stage}"}

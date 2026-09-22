@@ -1,4 +1,4 @@
-"""Leases, job results and stage transitions (Sections 6.4, 7.8).
+"""Leases, job results and stage transitions (Sections 7.4, 8.9).
 
 Dispatch order = oldest admission key first among compatible queued jobs. Completion order is free.
 Promotion order is enforced separately in settlement.py.
@@ -314,6 +314,43 @@ def _consume_fee(conn: Connection, ctx: AppContext, sub_id: str) -> None:
         ledger_entry(
             conn, ctx, "fee_consumed", q.amount_rao, sub_id, f"fee_consumed:{sub_id}", q.hotkey, sub_id
         )
+
+
+# What a worker may say about a running stage. Anything else is dropped: progress is shown, never trusted.
+PROGRESS_STEPS = {
+    "screen_questions",
+    "quality",
+    "champion_answers",
+    "reading",
+    "memory",
+    "short_request",
+    "live_conversations",
+    "soak",
+    "champion_score",
+    "champion_tight_score",
+}
+PROGRESS_FIELDS = {"done", "total", "reading", "run", "rate_milli_rps", "over_champion_ppm", "minutes"}
+
+
+def progress(ctx: AppContext, worker_id: str, job_id: str, event: dict) -> dict:
+    """Record where a leased stage is. Display only: no outcome, fee or weight depends on it, so a lost or
+    late event costs nothing and a stale one is simply overwritten by the next."""
+    step = str(event.get("step", ""))
+    if step not in PROGRESS_STEPS:
+        raise ServiceError("bad_progress", f"unknown step {step!r}", 400)
+    clean: dict = {"step": step}
+    for k in PROGRESS_FIELDS:
+        v = event.get(k)
+        if isinstance(v, int):
+            clean[k] = v
+    with tx(ctx.engine) as conn:
+        job = conn.execute(select(jobs).where(jobs.c.id == job_id)).first()
+        if job is None:
+            raise ServiceError("not_found", "job not found", 404)
+        if job.status != "leased" or job.lease_worker != worker_id:
+            raise ServiceError("not_lease_holder", "this worker does not hold the lease", 409)
+        conn.execute(update(jobs).where(jobs.c.id == job_id).values(progress=clean, progress_at=now()))
+    return {"job_id": job_id, "progress": clean}
 
 
 def complete(ctx: AppContext, worker_id: str, job_id: str, result: dict) -> dict:
