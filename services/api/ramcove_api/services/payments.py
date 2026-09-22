@@ -1,4 +1,4 @@
-"""Payment observation: finalized payment -> exactly-once receipt and admission (Section 6.3)."""
+"""Payment observation: finalized payment -> exactly-once receipt and admission (Section 7.3)."""
 
 from __future__ import annotations
 

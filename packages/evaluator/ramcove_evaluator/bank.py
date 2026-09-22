@@ -1,4 +1,4 @@
-"""A period's question bank, built from its seed (Section 7.6).
+"""A period's question bank, built from its seed (Section 8.7).
 
 The owner platform builds one secret bank per period (7 days in the first profile): the screening questions,
 the offline quality questions and the traffic scripts the capacity readings play. Before the period starts it

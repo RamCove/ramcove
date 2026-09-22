@@ -1,4 +1,4 @@
-"""Proposed weight plan (Section 8.3, prompt C). Pure and deterministic.
+"""Proposed weight plan (Section 9.3, prompt C). Pure and deterministic.
 
 The plan is a *recommendation* keyed by hotkey. The chain adapter resolves hotkeys to UIDs at
 publication time; realized emissions depend on consensus and are displayed separately.

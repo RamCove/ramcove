@@ -1,4 +1,4 @@
-"""Worked examples from the whitepaper (Section 8.2, 7.10) and review R1/R7."""
+"""Worked examples from the whitepaper (Sections 9.2 and 8.10) and review R1/R7."""
 
 import math
 

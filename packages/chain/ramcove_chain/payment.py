@@ -1,4 +1,4 @@
-"""Verification of a RamCove evaluation-fee payment (Section 6.3, verified runtime design).
+"""Verification of a RamCove evaluation-fee payment (Section 7.3, verified runtime design).
 
 Expected extrinsic, signed by the authorized payer:
     Utility.batch_all([Balances.transfer_keep_alive(dest=<wallet>, value=<fee>),

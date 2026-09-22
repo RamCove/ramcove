@@ -90,6 +90,7 @@ def test_a_close_first_reading_gets_a_second_and_both_are_recorded(ctx, monkeypa
     bring_workers_online(ctx)
     measured = []
     for variant in range(ATTEMPTS):  # offline quality is noisy in the simulation; a miner would resubmit
+        bring_workers_online(ctx)  # readiness expires in 120 s, and resubmitting takes longer than that
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
@@ -133,6 +134,7 @@ def test_after_the_sunset_a_second_validator_reproduces_the_winner(ctx):
     bring_workers_online(ctx, everyone)
     outcomes = []
     for variant in range(ATTEMPTS):  # the simulated measurement is noisy; a miner would resubmit
+        bring_workers_online(ctx, everyone)
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx, workers=everyone)
@@ -162,6 +164,7 @@ def winning_submission(ctx, miner: str, fixture: str, expected: str) -> dict:
     attempts, rejected = 0, []
     while attempts < ATTEMPTS:
         attempts += 1
+        bring_workers_online(ctx)  # readiness expires in 120 s, and resubmitting takes longer than that
         sub = submit_fixture(ctx, miner, fixture, variant=attempts - 1)
         assert sub["ok"]
         pay_and_admit(ctx, sub["submission_id"], miner)

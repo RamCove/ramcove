@@ -1,4 +1,4 @@
-"""Fee quotes (Section 11.3, review R10): a flat fee in TAO. Accepted quotes never change.
+"""Fee quotes (Section 12.3, review R10): a flat fee in TAO. Accepted quotes never change.
 
 The TAO price no longer sets the fee. A recent price from the published source is used only to show what the
 fee is worth in US dollars; without one the quote still goes out, without a dollar figure.

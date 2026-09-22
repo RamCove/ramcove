@@ -1,6 +1,6 @@
 # ADR 0007 — Memory evidence: margin under a tighter budget, not "within 2 points"
 
-**Status:** accepted, 2026-09-18. This deviates from RamCove whitepaper v0.2 Section 7.3.
+**Status:** accepted, 2026-09-18. This deviates from RamCove whitepaper v0.2 Section 8.3.
 
 **Context.** The paper requires that a challenger's gain under a 25% smaller cache budget stays "within 2
 percentage points" of its full-budget gain. Both numbers are single-run readings on a 3% grid, so grid
@@ -25,4 +25,4 @@ the objective to "capacity under memory pressure" if the diagnostics cannot sepa
 **Update, 2026-09-22.** With one evaluation per submission (ADR 0009) the tighter-budget reading is set
 against the champion's fixed tighter-budget score, recorded once when the champion was crowned, and its gain
 must exceed the margin; the full-versus-tight difference is no longer computed. The whitepaper now states
-this rule in Section 7.3, so it is no longer a deviation.
+this rule in Section 8.3, so it is no longer a deviation.

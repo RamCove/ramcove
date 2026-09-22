@@ -2,7 +2,7 @@
 
 Grid: rate_k = base * (1 + step)^k for integer k in [grid_min_steps, grid_max_steps].
 
-Confirmed capacity (the champion's fixed score, Section 7.8): ascend in coarse jumps of 3 grid steps from
+Confirmed capacity (the champion's fixed score, Section 8.9): ascend in coarse jumps of 3 grid steps from
 k=0 until a run fails or the ceiling is reached, bisect on grid indices, then confirm with three fresh runs at
 the edge minus one step (about 97%), then further steps down (94%, 91%, ... to about 78%); the first level
 where all three fresh runs pass is the confirmed capacity. The score is therefore never above a rate proven
@@ -10,7 +10,7 @@ three times. Boundary rules:
 - no pass at the lowest grid rate -> capacity 0 ("below_grid");
 - pass at the highest grid rate -> capacity = ceiling rate, flagged "at_grid_ceiling" (conservative).
 
-Reading (a challenger, Section 7.8): single runs on the grid built on the champion's fixed score. Start at
+Reading (a challenger, Section 8.9): single runs on the grid built on the champion's fixed score. Start at
 k=0 and step up while each run passes, up to the top of the grid; the highest passing index is the reading.
 It is not cut short, because a winner's gain is later set against newer champions by arithmetic. A failure
 at k=0 ends it at once ("below_champion"): the challenger did not reach the score.

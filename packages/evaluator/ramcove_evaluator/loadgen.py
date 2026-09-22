@@ -124,7 +124,7 @@ def per_run_gates(logs: list[RequestLog], gates: LatencyGates, ceiling_ok: bool)
     drift_ok = True
     if len(done) >= 8:
         # Over-saturation shows as a queue that keeps growing: compare p90 end-to-end time of the last quarter
-        # with the second quarter (Section 7.7).
+        # with the second quarter (Section 8.8).
         quarter = len(done) // 4
         q2 = sorted(x.e2e_ms for x in done[quarter : 2 * quarter])
         q4 = sorted(x.e2e_ms for x in done[3 * quarter :])

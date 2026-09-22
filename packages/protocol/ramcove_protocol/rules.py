@@ -48,7 +48,7 @@ class HardwarePin(Frozen):
 
 
 class ReplacementRule(Frozen):
-    """Section 8.2: the challenger is measured once against the champion's fixed score.
+    """Section 9.2: the challenger is measured once against the champion's fixed score.
 
     A first reading at or above ``clear_win_ppm`` wins at once; one at or below ``delta_ppm`` loses; one in
     between gets exactly one more reading, and the average of the two must exceed the margin.
@@ -145,7 +145,7 @@ class Bootstrap(Frozen):
 
 
 class QuestionBankRule(Frozen):
-    """Section 7.6: the owner platform's secret question bank, rotated on a fixed schedule.
+    """Section 8.7: the owner platform's secret question bank, rotated on a fixed schedule.
 
     Periods start at ``epoch`` plus whole multiples of ``period_days``. The next bank's commitment is published
     at least ``commit_ahead_s`` before its period starts, and a bank's seed is revealed when its period ends.

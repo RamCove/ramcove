@@ -7,6 +7,10 @@ current champion's fixed score, once per submission. One champion per profile ho
 allocation until a challenger proves a real improvement; a person reviews a winner only when an automatic
 check flags it.
 
+**[How a submission is evaluated](docs/evaluation.md)** walks the whole path — free checks, screening,
+question quality, the capacity reading, the rule and the winner checks — with the number that decides each
+step and why each step exists.
+
 This repository is a **local development build**. Nothing here has been measured on an H100, no real tokens
 move, and mainnet writes are disabled. Every simulated component says so in the code, the API and the
 interface.
@@ -77,6 +81,7 @@ uv run pytest -m chain_readonly     # read-only queries against the public Bitte
 
 ## Documentation
 
+- `docs/evaluation.md` — the whole evaluation workflow, step by step, and why each step is there
 - `docs/spec/protocol.md` — the corrected protocol, rule by rule
 - `docs/requirements-matrix.md` — whitepaper and review requirements mapped to code, tests and status
 - `docs/readiness-report.md` — what is implemented, simulated, externally verified or blocked

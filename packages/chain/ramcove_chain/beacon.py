@@ -1,4 +1,4 @@
-"""Randomness scheduling for capacity readings (Section 7.8).
+"""Randomness scheduling for capacity readings (Section 8.9).
 
 A comparison record names a *future* beacon round chosen only after the record's anchor is
 finalized. The seed is sha256(round randomness || comparison id). Fallback: if a round is

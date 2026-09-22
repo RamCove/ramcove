@@ -1,4 +1,4 @@
-"""The owner's question bank (Section 7.6): periods, seeds and commitments."""
+"""The owner's question bank (Section 8.7): periods, seeds and commitments."""
 
 from datetime import UTC, datetime, timedelta
 

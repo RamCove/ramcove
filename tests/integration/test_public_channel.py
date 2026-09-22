@@ -98,6 +98,7 @@ def test_the_stand_in_reviewer_is_off_by_default_and_labels_what_it_approves(ctx
     # a native kernel is flagged for a person; the simulated evaluation is noisy, so resubmit as a miner would
     sub_id = None
     for attempt in range(ATTEMPTS):
+        bring_workers_online(ctx)  # readiness expires in 120 s, and resubmitting takes longer than that
         sub = submit_fixture(ctx, "miner-ada", "native-paged-kv-kernel", variant=attempt)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)

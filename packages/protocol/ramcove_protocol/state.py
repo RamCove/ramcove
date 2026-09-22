@@ -135,7 +135,7 @@ def next_state(current: S | str, event: str) -> S:
 
 
 def fee_outcome(terminal: S) -> str:
-    """Published fee rule for each terminal state (Section 6.3 table, review R4)."""
+    """Published fee rule for each terminal state (Section 7.3 table, review R4)."""
     return {
         S.PROMOTED: "consumed",
         S.NOT_PROMOTED: "consumed",

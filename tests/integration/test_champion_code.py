@@ -27,6 +27,7 @@ def ctx(tmp_path):
 def promote_one(ctx) -> str:
     bring_workers_online(ctx)
     for variant in range(ATTEMPTS):  # the simulated measurement is noisy; a miner would resubmit
+        bring_workers_online(ctx)  # readiness expires in 120 s, and resubmitting takes longer than that
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)

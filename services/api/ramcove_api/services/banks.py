@@ -1,4 +1,4 @@
-"""The owner platform's question banks (whitepaper Section 7.6).
+"""The owner platform's question banks (whitepaper Section 8.7).
 
 One secret bank per profile and period. Its commitment is recorded in the public audit log (anchored on-chain
 with the log) at least a day before the period starts; validators receive the period seed with each job in the

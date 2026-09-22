@@ -1,4 +1,4 @@
-"""Free preflight, waiting list, capacity reservation and signed quotes (Sections 6.2-6.3; review R3)."""
+"""Free preflight, waiting list, capacity reservation and signed quotes (Sections 7.2-6.3; review R3)."""
 
 from __future__ import annotations
 

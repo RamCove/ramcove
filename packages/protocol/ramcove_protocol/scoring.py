@@ -39,7 +39,7 @@ class Decision:
 
 
 def replacement_decision(readings: list[Reading], rule: ReplacementRule, champion_version: int) -> Decision:
-    """Section 8.2: at or below the margin loses, at or above the clear-win line wins, in between one more
+    """Section 9.2: at or below the margin loses, at or above the clear-win line wins, in between one more
     reading decides and the average of the two must exceed the margin. Only non-void readings taken against
     *this* champion version count."""
     usable = [r for r in readings if not r.voided and r.champion_version == champion_version]

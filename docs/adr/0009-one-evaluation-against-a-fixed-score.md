@@ -1,6 +1,6 @@
 # ADR 0009 — One evaluation per submission against the champion's fixed score
 
-**Status:** accepted, 2026-09-22. The whitepaper was revised to match (Sections 6, 7.8, 8.2, 9.5).
+**Status:** accepted, 2026-09-22. The whitepaper was revised to match (Sections 7, 8.9, 9.2 and 10.5).
 
 **Context.** Each promotion used to need a triage evaluation, five paired confirmation blocks and a human
 review: about 62 GPU-hours booked per paid admission and up to ten business days of review. The champion was
