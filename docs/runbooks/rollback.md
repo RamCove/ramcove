@@ -12,15 +12,16 @@ Use this when a promoted champion turns out to be unsafe or wrong.
 
 1. Open an incident first, with a public summary that names the effect on miners and customers.
 2. Pause paid admissions if the fault could affect measurements.
-3. `/operator` → Controls → **Suspend and roll back**, with a reason of at least ten characters and the
-   deliberate flag set honestly.
+3. `ramcove-operator --key-uri … rollback --reason "…" [--deliberate]`, with a reason of at least ten
+   characters and the deliberate flag set honestly.
 
-What that does: the current champion becomes `rolled_back` and keeps its evidence; the previous reviewed
-stack becomes current under a **new** version number; every pending comparison is rebased onto it with fresh
-blocks, keeping admission keys and charging no new fee; workers lose their calibration and recalibrate;
-weight goes to no winner until a challenger qualifies, and the chain burns that share.
+What that does: the current champion becomes `rolled_back` and keeps its evidence; the previous champion's
+stack becomes current under a **new** version number; every waiting winner is evaluated again against it,
+keeping its admission key and charging no new fee (a rollback is the one case where arithmetic
+re-comparison does not apply); workers record the restored champion's fixed score once; weight goes to no
+winner until a challenger qualifies, and the chain burns that share.
 
-4. Tell the affected miners on their submission pages — the rebase reason is already published there.
+4. Tell the affected miners on their submission pages — the reason for the new evaluation is already published there.
 5. Resume admissions only when a worker is safe-and-ready and the evaluator version is pinned.
 
 ## What you must not do

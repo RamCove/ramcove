@@ -2,6 +2,24 @@
 
 Newest first. Commands are the ones actually run; results are what actually happened.
 
+## 2026-09-22 — one evaluation against the champion's fixed score
+
+- The champion is measured once per worker when it is crowned and not again. Each challenger gets offline
+  quality and one reading against that fixed score; 5% margin, 9% clear win, one more reading in between.
+  Winner checks run once, for winners only. Review happens only when an automatic check flags a winner.
+  A winner measured against an older champion is re-compared by arithmetic. No confirmation blocks,
+  rebases, evaluation deadline or waiting refunds (#20, `docs/adr/0009`).
+- Booking per paid submission is the expected work of one evaluation (3.34 GPU-hours); fee basis $15.63
+  (0.04 TAO at $227.92). Migration 0004.
+- Fixed while checking end to end: a second reading's seed did not fit its column (#21, caught by CI); the
+  champion's score search began at a fixed rate, so two workers scored the same champion 50% apart, and a
+  six-rate cap on readings made strong winners look equal (#22). The site shows the new flow (#23).
+- Verified: `uv run pytest` 128 passed, 2 deselected; migrations up, down, up and `alembic check` clean;
+  browser suite 14 passed and `node screenshots.mjs` 12 views with no problems, against the isolated stack.
+- Measured (`docs/acceptance-matrix.md`): clearly better fixtures won 17 of 24 evaluations and the ones that
+  should lose won 0 of 32. The simulator's drift gate fails up to a quarter of runs below capacity, and the
+  champion's tighter-budget score is noisy enough that in two of six seeds no stack reached it.
+
 ## 2026-09-19 — a read-only site; every role uses its own tool
 
 - The website has no sign-in any more. Miners submit with `ramcove-miner`, validators run `ramcove-worker`,

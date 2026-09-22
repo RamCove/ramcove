@@ -21,3 +21,8 @@ than tuned away.
 **Consequences.** The rule is testable and less noise-sensitive, but it is weaker for a method with a very
 large full-budget gain. Stage 1 on real hardware must revisit both the gate and the probe, and may rename
 the objective to "capacity under memory pressure" if the diagnostics cannot separate the two causes.
+
+**Update, 2026-09-22.** With one evaluation per submission (ADR 0009) the tighter-budget reading is set
+against the champion's fixed tighter-budget score, recorded once when the champion was crowned, and its gain
+must exceed the margin; the full-versus-tight difference is no longer computed. The whitepaper now states
+this rule in Section 7.3, so it is no longer a deviation.

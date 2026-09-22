@@ -23,7 +23,9 @@ again, except that an upheld appeal reopens a rejected review.
 
 ```
 preflight_passed → waitlisted ⇄ invited → quoted → admitted → screening → eval_queued → evaluating
-  → confirm_queued → confirming → in_review → ready_for_promotion → promoted
+  → ready_for_promotion → promoted
+  (a flagged winner: evaluating → in_review → ready_for_promotion)
+  (after the sunset: evaluating → reproduce_queued → reproducing → [in_review →] ready_for_promotion)
 ```
 
 Exits: `rejected_preflight`, `rejected_screen`, `not_promoted`, `review_rejected`, `expired_quote`,
@@ -81,27 +83,35 @@ errors, output-contract failures above 5%, peak GPU memory above the ceiling, or
 15 points below the champion (a gap at least four standard errors wide on 200 items). **Speed and capacity
 are never judged here.** Every rejection publishes a machine-readable error report.
 
-### 2.6 Full evaluation (triage)
+### 2.6 The champion's fixed score
 
-Offline quality first; failing it ends the evaluation. Then a capacity search on a published grid, memory
-evidence, the short-request control and the multi-turn check with real answers. The result is a triage
-estimate against the champion's calibration on the same worker. A submission becomes a *potential winner*
-when every gate passes and the triage gain is at least the margin minus a 2-point allowance, so one noisy
-estimate cannot reject it without confirmation. *Where: `ramcove_evaluator.pipeline`.*
+When a champion is crowned, each worker measures it once and keeps the result: full-budget capacity (a
+search from the champion's known capacity, confirmed by three fresh runs), tighter-budget capacity, and the
+short-request (P-ctl) baseline. It is not measured again until the next champion or a new profile version.
+It is kept per worker because physical GPUs differ slightly. *Where: `ramcove_evaluator.pipeline.calibrate`,
+`ramcove_api.services.queue`.*
 
-### 2.7 Confirmation
+### 2.7 One evaluation
 
-Promotion evidence is never triage data. It is five fresh **paired blocks**: one re-imaged worker session
-each, in which the frozen champion and the challenger are measured on the same newly generated tests, in
-an order set by the seed. Blocks are spread across separately provisioned workers, and after the sunset
-across independent validators. *Where: `ramcove_api.services.queue`, `ramcove_evaluator.pipeline`.*
+Offline quality first (paired against the champion's answers on the same fresh items, and against the frozen
+reference); failing it ends the evaluation. Then one **reading** against the fixed score: single runs step up
+a 3% grid from that score until one fails, up to the top of the grid; the reading is the highest rate that
+passed. The replacement rule (section 4) decides, with a second reading only when the first is close to the
+margin. A winner then runs the winner checks once each: pooled band attainment over its passing runs,
+memory evidence, P-ctl, P-live at 90% of its capacity, and a soak at 90%.
+
+A winner is promoted automatically unless an automatic check flags it: native code in the change,
+third-party components, or a check that reports a flag. Only a flagged winner opens a review, and the
+review records which criteria were flagged. After the bootstrap sunset a second validator reproduces the
+reading once before promotion. *Where: `ramcove_evaluator.pipeline`, `ramcove_api.services.queue`.*
 
 ## 3. Measurement
 
 ### 3.1 Qualified serving capacity
 
-The highest offered request rate (open-loop Poisson arrivals) that is confirmed by runs passing the
-per-run gates, with the pooled gates passing across them.
+The highest offered request rate (open-loop Poisson arrivals) at which runs pass the per-run gates, with
+the pooled gates passing across them. For the champion's fixed score it is confirmed by three fresh runs;
+for a challenger it is one reading.
 
 - **Per-run gates:** ≥ 95% of *offered* requests qualified; ≤ 0.5% errored, rejected or past deadline; no
   upward drift in time-to-first-token between the second and last quarter (ignored below the base TTFT
@@ -114,7 +124,9 @@ per-run gates, with the pooled gates passing across them.
 Rates are `base × (1 + step)^k` for integer `k` in a finite range. Confirmed capacity: ascend in jumps of
 three grid steps, bisect, then confirm three fresh runs at one step below the edge, then further steps down
 until a level passes. No pass at the lowest rate ⇒ `below_grid`; a pass at the ceiling ⇒ `at_grid_ceiling`
-(conservative). Block capacity is a single-run reading on the same grid, at most six runs per arm.
+(conservative). A challenger's reading uses the grid built on the champion's fixed score: it starts at
+`k = 0` and steps up while each run passes; a failure at `k = 0` means it did not reach the score. It is
+not cut short, because a winner's gain may later be set against a newer champion by arithmetic.
 *Where: `ramcove_evaluator.capacity`.*
 
 ### 3.3 Quality (review R1)
@@ -128,13 +140,13 @@ unpaired comparisons are labelled and use the wider interval. *Where: `ramcove_p
 
 Three kinds of evidence, none of which proves causation:
 
-1. **Tighter budget:** with the cache budget cut by a quarter, the gain must still exceed the replacement
-   margin. The full-versus-tight difference is reported.
+1. **Tighter budget:** with the cache budget cut by a quarter, the challenger's reading against the
+   champion's fixed score at that budget must still exceed the replacement margin.
 2. **External accounting:** the resumable idle-conversation capacity must improve by at least the margin.
    Recomputation per qualified request is reported but is never sufficient on its own, because a faster
    stack also recomputes less.
-3. **Mechanism review:** a reviewer confirms in the code that the declared mechanism acts on cache
-   storage, retention, allocation or admission.
+3. **Declared mechanism:** the manifest declares whether the change acts on cache storage, retention,
+   allocation or admission; a reviewer confirms it in the code when the winner is flagged or disputed.
 
 Validation against known methods is part of Stage 1 and is recorded in the readiness report.
 
@@ -148,32 +160,37 @@ deadline, so a slow system cannot hide demand.
 ## 4. Replacement rule
 
 ```
-G   = C_challenger / C_champion − 1                   (paired blocks, same profile version)
-r_b = ln(C_challenger,b / C_champion,b)               (one block b)
-L   = mean(r) − t(0.95, n−1) · max(sd(r), σ_floor) / √n
-replace only if exp(L) − 1 > δ and every gate, memory evidence, quorum and review pass
+G = R_challenger / S_champion − 1        one reading R against the fixed score S on the same worker
+G ≤ δ          the champion stays
+G ≥ δ_clear    the challenger wins
+otherwise      one more reading G₂ with fresh tests; the challenger wins only if (G + G₂) / 2 > δ
+a winner must also pass every quality gate and winner check
 ```
 
-Initial values: δ = 5%, n = 5 blocks, σ_floor = 0.02, one-sided 95%, grid step 3%. The replication unit is
-the block; requests inside a run are not replications. Ties and unclear evidence keep the incumbent. Each
-attempt needs a new submission, a new fee and fresh blocks; blocks are never pooled across attempts.
-*Where: `ramcove_protocol.scoring.replacement_bound`.*
+Initial values: δ = 5%, δ_clear = 9%, grid step 3%, grid from −8 to +16 steps. Gains are compared in
+integer parts per million, so exactly 5% does not win. Ties keep the incumbent. Each attempt needs a new
+submission, a new fee and fresh tests; readings are never pooled across attempts.
+*Where: `ramcove_protocol.scoring.replacement_decision`.*
 
 ## 5. Order, leases and settlement (review R2, R3, R4)
 
 - **Dispatch order:** oldest admission key first among compatible queued jobs.
 - **Completion order:** free. Workers run different submissions at once.
 - **Promotion order:** admission order. A later submission cannot be promoted while *any* earlier paid
-  admission is still active, whatever stage it is in. Priority is lost only at a terminal state, and every
-  active state is bounded by a published end-to-end deadline, so the barrier always releases.
-- **Leases:** 2 h screening, 24 h full evaluation, 8 h per block. An expiry requeues the job once at the
+  admission is still active, whatever stage it is in. Priority is lost only at a terminal state; leases
+  bound every running stage, so the barrier always releases.
+- **Leases:** 2 h screening, 24 h evaluation, 8 h reproduction. An expiry requeues the job once at the
   same admission key; a second expiry ends the submission as an operator failure with a refund or credit.
-- **Reservations:** the hard admission cap uses a worst-case envelope per admission (screening, full
-  evaluation, worst-case confirmation, one rebase allowance, soak and recalibration: 62.44 GPU-hours with
-  the current values), released stage by stage. Average pass rates are used only for forecasts.
-- **Promotion:** an atomic check-and-set on the champion pointer. Evidence measured against an older
-  champion or rule version is rebased with fresh blocks, keeping the admission key and charging no new fee,
-  up to a published maximum.
+- **Reservations:** each paid admission books screening plus the expected work of one evaluation (3.34
+  GPU-hours with the current values) until its result is known. Paid admissions stop when booked work
+  reaches two weeks at 80% availability; the rest of the time is the reserve for winners' checks, new
+  champions' scores, downtime and reruns. The cap limits the queue's length; it is not a submission window,
+  and a paid submission in the queue is always evaluated.
+- **Promotion:** an atomic check-and-set on the champion pointer. A queued challenger runs against the
+  champion that is current when its turn comes. A winner measured against an older champion is re-compared
+  by arithmetic, `(1 + G) / (1 + G_new) − 1` for each champion crowned in between: it keeps its place if the
+  result still exceeds the margin and ends as not promoted otherwise. Nothing is measured again. Only a rule
+  change or a rollback in between runs the evaluation again, at the same key and with no new fee.
 *Where: `ramcove_protocol.settlement`, `ramcove_protocol.reservation`, `ramcove_api.services.queue`, `settlement`.*
 
 ## 6. Champion, weights and registration (review R5, R6)
@@ -197,11 +214,11 @@ attempt needs a new submission, a new fee and fresh blocks; blocks are never poo
 ## 7. Verification and bootstrap (review R8)
 
 - Workers owned by one validator are **parallel**, not independent. The interface says so.
-- Bootstrap: the operator is the only scoring validator; promotion evidence must come from at least two
-  separately provisioned workers. This is a trust assumption, not verification.
-- After the sunset: at least two scoring validators with different operators, each contributing blocks,
-  with committed reports revealed before pooling; a missing validator is omitted rather than counted;
-  disagreement beyond the published noise band holds promotion.
+- Bootstrap: the operator is the only scoring validator, and every worker keeps its own fixed score of the
+  champion. This is a trust assumption, not verification.
+- After the sunset: a second scoring validator with a different operator reproduces each winner's reading
+  on its own worker, with reports committed before they are revealed; a missing validator is omitted rather
+  than counted; disagreement beyond the published noise band holds promotion.
 - Signatures and commitments prove authorship and integrity, never honest measurement.
 - Mainnet readiness keeps the whitepaper's Stage 5 gate: three independent scoring validators, none above
   one third of scoring stake.
@@ -218,8 +235,8 @@ with a maximum age; stale prices refuse new quotes. *Where: `ramcove_protocol.fe
 
 A comparison record naming the champion version, the challenger, the worker and a **future** drand round is
 anchored before that round exists; the seed is the hash of the round's randomness and the comparison
-identifier. Missing rounds roll forward by a fixed rule; a voided block is published with its reason and
-its exposed tests are never reused. Block hashes are not treated as unbiased randomness.
+identifier. Missing rounds roll forward by a fixed rule; a voided reading is published with its reason and
+its exposed tests are never reused. A second reading uses the same round with the suffix `:reading1`. Block hashes are not treated as unbiased randomness.
 
 Every consequential transition is appended to a hash-chained audit log that a database trigger protects
 from updates, deletes and truncation. The chain makes silent edits detectable; it does not prove that the
@@ -229,7 +246,5 @@ recorded decisions were fair.
 
 | Rule | Whitepaper v0.2 | Here | Why |
 |---|---|---|---|
-| Memory evidence | Gain within 2 points of the full-budget gain | Gain must exceed the margin under a 25% smaller budget; the difference is reported | Both are single-run grid readings; rounding alone moves 2 points (ADR 0007) |
 | Recomputation | Counts towards memory evidence | Reported only | It also falls for a faster stack (review R7) |
-| Confirmation step-downs | 97% then 94% of the edge | Continue stepping down until a level passes three fresh runs | Otherwise a noisy edge yields no capacity at all; the result stays conservative |
-| P-live rate | 97% of confirmed capacity | Configurable, 90% initially | Provisional until measured |
+| Fixed-score step-downs | 97% then 94% of the edge | Continue stepping down until a level passes three fresh runs | Otherwise a noisy edge yields no score at all; the result stays conservative |

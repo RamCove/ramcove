@@ -32,25 +32,29 @@ The workspace shows two separate states. *Online* means a heartbeat arrived. *Sa
 isolation probes passed. Only a safe-and-ready worker is given work, and a worker without untrusted-code
 isolation is never given an unknown artifact — it can only evaluate trusted repository fixtures.
 
-## Calibration
+## The champion's fixed score
 
-Before triage, each worker measures the current champion: full-budget capacity and tighter-budget capacity.
-A calibration is valid for a limited period and is invalidated by a champion change, a driver, firmware or
-image change, or canary drift. Calibration is used for triage only — never as promotion evidence.
+When a champion is crowned, each worker measures it once: full-budget capacity (a search confirmed by three
+fresh runs), tighter-budget capacity and the short-request baseline. The search starts from the champion's
+known capacity, so the grid brackets the real value. That fixed score is what every challenger on the worker
+is compared with, and it is not measured again until the next champion or a new profile version. It is
+recorded per worker because physical GPUs differ slightly.
 
-## Blocks and quorum
+## Readings and reproduction
 
-A confirmation block re-images the worker, takes a seed from a beacon round fixed in advance, and measures
-the champion and the challenger on the same tests. Blocks are spread across separately provisioned workers.
+A reading takes a seed from a beacon round fixed in advance and steps the challenger up a 3% grid from the
+fixed score until a rate fails. One reading decides; a first reading between the 5% margin and 9% gets one
+more, and the average of the two decides. A winner then runs the memory, short-request, multi-turn and soak
+checks once.
 
 Workers you run yourself are parallel, not independent. During bootstrap the operator's own measurements
-decide promotions, which is a trust assumption the interface states. After the sunset, promotion needs
-blocks from at least two validators with different operators, with reports committed before they are
-revealed; a validator that misses its window is omitted rather than counted, and disagreement beyond the
-published noise band holds the promotion.
+decide promotions, which is a trust assumption the interface states. After the sunset, a second validator
+with a different operator reproduces each winner's reading on its own worker before promotion, with reports
+committed before they are revealed; a validator that misses its window is omitted rather than counted, and
+disagreement beyond the published noise band holds the promotion.
 
 ## Costs and reimbursement
 
-Confirmation work is reimbursed per block at a published rate. The evaluation fee goes to the operator's
+Reproduction work is reimbursed per run at a published rate. The evaluation fee goes to the operator's
 wallet, and the operator, not the miner, pays the gap between one fee and the work of several validators.
 This build records the policy and moves no funds.

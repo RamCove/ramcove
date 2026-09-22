@@ -1,10 +1,11 @@
 # RamCove — More AI. Same GPU.
 
-RamCove is a **proposed** Bittensor subnet that pays for independently verified software improvements which
+RamCove is a Bittensor subnet that pays for independently verified software improvements which
 let one fixed GPU serve more useful AI requests, by using its memory better. Miners submit reviewable
 code. Validators build it in controlled environments and measure *qualified serving capacity* against the
-current champion. One champion per profile holds that profile's miner allocation until a challenger proves
-a real improvement and passes human review.
+current champion's fixed score, once per submission. One champion per profile holds that profile's miner
+allocation until a challenger proves a real improvement; a person reviews a winner only when an automatic
+check flags it.
 
 This repository is a **local development build**. Nothing here has been measured on an H100, no real tokens
 move, and mainnet writes are disabled. Every simulated component says so in the code, the API and the
@@ -12,8 +13,8 @@ interface.
 
 | Part | What it is |
 |---|---|
-| `packages/protocol` | Pure rules: lifecycle, replacement bound, promotion order, reservations, fees, weights, preflight |
-| `packages/evaluator` | Task generation, grading, open-loop load, gates, capacity search, paired blocks, memory evidence |
+| `packages/protocol` | Pure rules: lifecycle, replacement rule, promotion order, reservations, fees, weights, preflight |
+| `packages/evaluator` | Task generation, grading, open-loop load, gates, the champion's fixed score, capacity readings, memory evidence |
 | `packages/chain` | Payment verification, deterministic dev chain (simulation), read-only Bittensor adapter, drand scheduling |
 | `services/api` | FastAPI surface, authoritative PostgreSQL store, transactional services |
 | `services/controller` | Loop: chain observation, payment verification, expiries, settlement |

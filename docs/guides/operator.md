@@ -25,7 +25,7 @@ uv run ramcove-operator --key-uri <your key> console
 | Pause or resume paid admissions | `intake pause\|resume --reason …` | No new quotes; paid work continues; the free waiting list still accepts entries | Reason in the audit trail, visible publicly |
 | Open and resolve incidents | `incident open …`, `incident resolve <id>` | Shown on the status page and the overview | Audit trail |
 | Approve and send refunds | `refund approve <id>`, then `refund execute <id>` | Two steps, both idempotent; sending needs an authorized signer outside this build | Ledger and audit trail |
-| Suspend and roll back a champion | `rollback --reason … [--deliberate]` | The suspended version is kept with its evidence; the previous reviewed stack becomes current under a new version, so pending comparisons rebase; weight goes to no winner until a challenger qualifies | Audit trail, marked deliberate or not |
+| Suspend and roll back a champion | `rollback --reason … [--deliberate]` | The suspended version is kept with its evidence; the previous champion's stack becomes current under a new version, workers record its fixed score again, and waiting winners are evaluated again at their admission key with no new fee; weight goes to no winner until a challenger qualifies | Audit trail, marked deliberate or not |
 | Run a controller tick (demo) | `ramcove-admin tick` | Advances the simulated chain and settlement once | Audit trail |
 
 ## Controls you do not have, on purpose
@@ -43,8 +43,11 @@ evaluator changes at least seven days ahead and raise the weights version.
 
 ## Review
 
-Promotion review uses published criteria. A rejection must cite a failed criterion and explain the
-evidence. Reviewers list open reviews with `ramcove-operator reviews` and decide with
+Only a flagged winner is reviewed: native code, third-party components, a failed scan, a disagreement with
+the shadow validator, a dispute or a customer's release requirement. Every other winner is promoted
+automatically. Review uses published criteria, and the review record marks which criteria were flagged. A
+rejection must cite a failed criterion and explain the evidence. Reviewers list open reviews, with the
+flags that sent each one, with `ramcove-operator reviews` and decide with
 `review <id> approve`, `review <id> reject --failed <criteria> --reasons …` or `review <id> recuse`; the
 appeal panel uses `appeals` and `appeal <id> uphold|dismiss --reason …`. Authors never review their own submission; reviewers with a conflict recuse. Appeals are decided
 by someone who was not part of the disputed decision, within the published window.
