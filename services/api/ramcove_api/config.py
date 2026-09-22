@@ -36,6 +36,9 @@ class Settings:
     # Public demo only: approve a technically passing submission after this many seconds, as a labelled
     # stand-in for the human reviewer. 0 keeps every review with a person.
     demo_auto_review_s: int = 0
+    # The owner platform's secret for the question banks. Each period's seed is derived from it, so it must
+    # never reach a repository or a worker; workers receive only the current period's seed.
+    bank_secret: bytes | None = None
 
     @property
     def simulated_chain(self) -> bool:
@@ -72,4 +75,17 @@ def load_settings() -> Settings:
             if o.strip()
         ),
         demo_auto_review_s=int(os.environ.get("RAMCOVE_DEMO_AUTO_REVIEW_S", "0")),
+        bank_secret=_bank_secret(env),
     )
+
+
+# Demo, test and local runs have no owner secret to protect; they use this labelled stand-in. Any other
+# environment must set RAMCOVE_BANK_SECRET, or no question bank is issued and no evaluation starts.
+DEMO_BANK_SECRET = b"ramcove demo question-bank secret: simulated, never for a real network"
+
+
+def _bank_secret(env: str) -> bytes | None:
+    value = os.environ.get("RAMCOVE_BANK_SECRET", "").strip()
+    if value:
+        return value.encode()
+    return DEMO_BANK_SECRET if env in {"demo", "test", "local"} else None

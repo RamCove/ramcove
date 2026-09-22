@@ -18,6 +18,7 @@ import argparse
 import json
 import statistics
 
+from ramcove_evaluator.bank import build_bank
 from ramcove_evaluator.pipeline import (
     FULL_BUDGET_GIB,
     TIGHT_BUDGET_GIB,
@@ -59,7 +60,8 @@ def main() -> None:
     for i in range(args.seeds):
         # The real system calibrates the champion in one job and evaluates a challenger in another, so
         # the two carry independent noise. Using one seed for both hides exactly that effect.
-        cal = calibrate(champion, profile, f"calibration:{i}", base_rps=args.base_rps)
+        bank = build_bank(f"measure:{i}", f"measure-bank-{i}", profile.question_bank)
+        cal = calibrate(champion, profile, f"calibration:{i}", base_rps=args.base_rps, bank=bank)
         seed = f"evaluation:{i}"
         base = cal["capacity_milli_rps"] / 1000
         if base <= 0:

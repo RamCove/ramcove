@@ -32,6 +32,7 @@ from ..store.schema import (
     weight_plans,
     workers,
 )
+from . import banks
 from .context import AppContext
 from .queue import current_champion
 
@@ -593,6 +594,11 @@ def validator_workspace(ctx: AppContext, hotkey: str) -> dict:
                 "records the policy but moves no funds."
             ),
         }
+
+
+def question_banks(ctx: AppContext) -> dict:
+    with tx(ctx.engine) as conn:
+        return banks.public_banks(conn, ctx.profile(conn))
 
 
 def status_page(ctx: AppContext) -> dict:

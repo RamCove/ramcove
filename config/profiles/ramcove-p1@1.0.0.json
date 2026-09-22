@@ -45,6 +45,10 @@
   "envelope": {},
   "deadlines": {},
   "fees": {},
+  "question_bank": {
+    "period_days": 7, "epoch": "2026-09-21T00:00:00Z", "commit_ahead_s": 86400,
+    "screening_long": 150, "screening_general": 50, "offline_long": 3200, "offline_general": 800
+  },
   "bootstrap": {"mode": "local"},
   "measured": false,
   "no_winner_writer_verified": false

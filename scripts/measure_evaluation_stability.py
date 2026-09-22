@@ -18,6 +18,7 @@ import argparse
 import collections
 import json
 
+from ramcove_evaluator.bank import build_bank
 from ramcove_evaluator.pipeline import calibrate, evaluate
 from ramcove_miner.fixtures import FIXTURES, by_name
 from ramcove_protocol.rules import ProfileVersion
@@ -48,13 +49,15 @@ def main() -> None:
     runs: dict[str, int] = collections.defaultdict(int)
 
     for i in range(args.seeds):
-        cal = calibrate(champion, profile, f"calibration:{i}", base_rps=args.base_rps)
+        # one question bank per seed, as if each seed were a different week
+        bank = build_bank(f"measure:{i}", f"measure-bank-{i}", profile.question_bank)
+        cal = calibrate(champion, profile, f"calibration:{i}", base_rps=args.base_rps, bank=bank)
         if cal["capacity_milli_rps"] <= 0:
             print(f"  seed {i}: champion calibration did not confirm; skipped", flush=True)
             continue
         for entry in challengers:
             name = entry["name"]
-            res = evaluate(entry["params"], champion, profile, f"evaluation:{i}:{name}", cal)
+            res = evaluate(entry["params"], champion, profile, f"evaluation:{i}:{name}", cal, bank)
             runs[name] += 1
             if res.get("winner"):
                 winners[name] += 1

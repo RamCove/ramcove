@@ -100,9 +100,10 @@ class StageEnvelope(Frozen):
     calibration draw on the published reserve instead of being booked in advance."""
 
     screen: int = 17
-    evaluation: int = 299
-    winner_checks: int = 330
-    recalibration_on_promotion: int = 576
+    evaluation: int = 224
+    winner_checks: int = 357
+    recalibration_on_promotion: int = 651
+    champion_answers_per_bank: int = 75
 
     def total(self) -> int:
         return self.screen + self.evaluation
@@ -131,7 +132,7 @@ class FeePolicy(Frozen):
     """A flat evaluation fee in TAO. The TAO price is used only to show the fee's value in US dollars."""
 
     flat_fee_rao: int = Field(100_000_000, description="0.1 TAO per paid submission, whatever the TAO price")
-    service_cost_usd_cents_per_admission: int = Field(1563, description="Planning estimate, not measured")
+    service_cost_usd_cents_per_admission: int = Field(1118, description="Planning estimate, not measured")
     price_max_age_s: int = 15 * 60
     price_source: str = "coingecko:bittensor:usd"
 
@@ -141,6 +142,22 @@ class Bootstrap(Frozen):
     min_independent_validators_for_mainnet: int = 3
     max_stake_share_bp: int = 3333
     quorum_validators_after_sunset: int = 2
+
+
+class QuestionBankRule(Frozen):
+    """Section 7.6: the owner platform's secret question bank, rotated on a fixed schedule.
+
+    Periods start at ``epoch`` plus whole multiples of ``period_days``. The next bank's commitment is published
+    at least ``commit_ahead_s`` before its period starts, and a bank's seed is revealed when its period ends.
+    """
+
+    period_days: int = Field(7, ge=1)
+    epoch: str = Field("2026-09-21T00:00:00Z", description="First period start, UTC")
+    commit_ahead_s: int = 24 * 3600
+    screening_long: int = 150
+    screening_general: int = 50
+    offline_long: int = 3200
+    offline_general: int = 800
 
 
 class ProfileVersion(Frozen):
@@ -159,6 +176,7 @@ class ProfileVersion(Frozen):
     deadlines: Deadlines
     fees: FeePolicy
     bootstrap: Bootstrap
+    question_bank: QuestionBankRule = Field(default_factory=QuestionBankRule)
     plive_rate_bp: int = Field(
         9000, description="P-live runs at this share of confirmed capacity (provisional)"
     )

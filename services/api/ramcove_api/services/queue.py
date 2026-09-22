@@ -32,6 +32,7 @@ from ..store.schema import (
     validators,
     workers,
 )
+from . import banks
 from .accounting import issue_credit, ledger_entry
 from .context import AppContext, ServiceError
 from .intake import _set_state, lock_submission
@@ -182,8 +183,12 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
         "lease_seconds": lease_s,
         "champion": champion_payload(conn, champ),
         "simulated": ctx.settings.simulated_chain,
+        # the owner's question bank for the current period: the same questions for every job in it
+        "bank": banks.bank_for_job(conn, ctx, profile),
     }
     w = conn.execute(select(workers).where(workers.c.id == worker_id)).first()
+    # the champion's fixed score and its answers to the current bank, both kept per worker
+    payload["calibration"] = w.readiness.get("calibration", {})
     if job.stage == "calibration":
         # search from the champion's known capacity (its winning measurement, or another worker's score), so
         # the grid brackets the real value instead of starting from an arbitrary rate
@@ -200,8 +205,7 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
             transition(conn, ctx, sub.id, event[0])
         payload["seed"] = f"{sub.id}:{job.stage}:{job.attempts + 1}:{champ.version}"
     if job.stage in ("full", "reproduce"):
-        # promotion evidence: tests come from a beacon round nobody can know when the artifact is frozen
-        payload["calibration"] = w.readiness.get("calibration", {})
+        # promotion evidence: the reading's traffic also mixes in a beacon round nobody can know in advance
         chain = ctx.chain(conn)
         anchor = chain.finalized_head()
         beacon = DevBeacon()
@@ -343,7 +347,7 @@ def complete(ctx: AppContext, worker_id: str, job_id: str, result: dict) -> dict
             readiness = dict(w.readiness)
             readiness["calibration"] = {
                 k: result[k]
-                for k in ("capacity_milli_rps", "tight_capacity_milli_rps", "flag", "pctl")
+                for k in ("capacity_milli_rps", "tight_capacity_milli_rps", "flag", "pctl", "answers")
                 if k in result
             }
             conn.execute(
@@ -642,11 +646,26 @@ def _lose(conn: Connection, ctx: AppContext, sub, event: str, code: str, summary
     _consume_fee(conn, ctx, sub.id)
 
 
+def _store_answers(conn: Connection, job, worker_id: str, result: dict) -> None:
+    """The first evaluation after a bank rotates has the champion answer the new bank; keep those answers
+    with the worker's fixed score so later evaluations in the period do not ask the champion again."""
+    answers = result.get("champion_answers")
+    if not answers:
+        return
+    w = conn.execute(select(workers).where(workers.c.id == worker_id).with_for_update()).first()
+    if w is None or w.calibrated_champion_version != job.champion_version:
+        return
+    readiness = dict(w.readiness)
+    readiness["calibration"] = {**readiness.get("calibration", {}), "answers": answers}
+    conn.execute(update(workers).where(workers.c.id == worker_id).values(readiness=readiness))
+
+
 def _complete_evaluation(
     conn: Connection, ctx: AppContext, job, sub, profile, champ, worker_id: str, result: dict
 ) -> None:
     readings = result.get("readings") or []
     _record_readings(conn, job, readings, result.get("comparison_id"))
+    _store_answers(conn, job, worker_id, result)
     _store_report(conn, ctx, job, worker_id, "full", result, _public_full(result))
     first = readings[0] if readings else None
     first_gain = (

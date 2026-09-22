@@ -585,6 +585,21 @@ devchain_registrations = Table(
     UniqueConstraint("netuid", "uid", name="uid"),
 )
 
+question_banks = Table(
+    "question_banks",
+    metadata,
+    Column("bank_id", String(160), primary_key=True),
+    Column("profile_id", String(120), nullable=False),
+    Column("period_index", Integer, nullable=False),
+    Column("starts_at", DateTime(timezone=True), nullable=False),
+    Column("ends_at", DateTime(timezone=True), nullable=False),
+    Column("commitment", String(64), nullable=False),
+    Column("revealed_seed", String(64)),
+    ts("committed_at", False, True),
+    Column("revealed_at", DateTime(timezone=True)),
+    UniqueConstraint("profile_id", "period_index", name="profile_period"),
+)
+
 idempotency = Table(
     "idempotency",
     metadata,

@@ -19,6 +19,7 @@ from ..store.schema import (
     submissions,
     workers,
 )
+from . import banks
 from .accounting import confirm_sent_refunds
 from .context import WORKER_HEARTBEAT_FRESH_S, AppContext
 from .payments import expire_quotes, scan_finalized
@@ -115,6 +116,9 @@ def tick(ctx: AppContext, produce_block: bool = True) -> dict:
             update(workers).where(workers.c.last_heartbeat < stale, workers.c.ready).values(ready=False)
         )
     for pid in _profiles(ctx):
+        with tx(ctx.engine) as conn:
+            # commit the next question bank a day ahead and reveal the seeds of banks that have ended
+            out.setdefault("question_banks", []).append(banks.ensure_banks(conn, ctx, ctx.profile(conn, pid)))
         with tx(ctx.engine) as conn:
             out.setdefault("invited", 0)
             out["invited"] += invite_waitlist(conn, ctx, pid)

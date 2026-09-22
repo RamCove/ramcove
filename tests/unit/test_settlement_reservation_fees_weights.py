@@ -85,16 +85,16 @@ def test_booked_work_never_exceeds_the_two_week_queue(profile):
         committed += remaining_envelope(S.ADMITTED, env)
         admitted += 1
     # each admission books screening plus one evaluation; the reserve covers winners' extra checks
-    assert env.total() == 316
+    assert env.total() == 241
     assert committed <= plan.capacity_centi() < committed + env.total()
-    assert admitted == plan.capacity_centi() // env.total() == 170
+    assert admitted == plan.capacity_centi() // env.total() == 223
 
 
 def test_envelope_releases_as_outcomes_are_known(profile):
     env = profile.envelope
     seq = [S.ADMITTED, S.EVAL_QUEUED, S.IN_REVIEW, S.READY_FOR_PROMOTION, S.PROMOTED]
     values = [remaining_envelope(s, env) for s in seq]
-    assert values == [316, 299, 0, 0, 0]
+    assert values == [241, 224, 0, 0, 0]
 
 
 def test_no_quotes_when_paused_or_no_safe_workers(profile):

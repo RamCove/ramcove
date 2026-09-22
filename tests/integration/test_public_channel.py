@@ -67,7 +67,15 @@ def test_the_public_door_refuses_sign_in_writes_and_workspaces(public, method, p
 
 @pytest.mark.parametrize(
     "path",
-    ["/v1/meta", "/v1/overview", "/v1/dashboard", "/v1/profile", "/v1/status", "/v1/queue?kind=admitted"],
+    [
+        "/v1/meta",
+        "/v1/overview",
+        "/v1/dashboard",
+        "/v1/profile",
+        "/v1/status",
+        "/v1/queue?kind=admitted",
+        "/v1/question-banks",
+    ],
 )
 def test_the_pages_the_site_shows_are_readable_on_the_public_door(public, path):
     assert public.get(path).status_code == 200, path

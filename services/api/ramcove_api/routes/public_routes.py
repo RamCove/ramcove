@@ -73,6 +73,12 @@ def status(ctx: AppContext = Depends(get_ctx)) -> dict:
     return public.status_page(ctx)
 
 
+@router.get("/question-banks")
+def question_banks(ctx: AppContext = Depends(get_ctx)) -> dict:
+    """Commitments of the owner's question banks, and the seeds of banks whose period has ended."""
+    return public.question_banks(ctx)
+
+
 @router.get("/audit")
 def audit(cursor: str | None = None, ctx: AppContext = Depends(get_ctx)) -> dict:
     return public.audit_page(ctx, public_only=True, cursor=cursor)

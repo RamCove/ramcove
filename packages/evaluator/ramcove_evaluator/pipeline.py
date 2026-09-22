@@ -7,6 +7,10 @@ against the coarse ``SimulatedStack`` model. Every result carries ``simulated: t
 GPU time is accounted in centi-GPU-hours with the planning run lengths of Appendix B: one rate of a reading
 (engine start, warm-up, an 8-minute window, drain) is 0.36 h, the short-request control 0.31 h, the multi-turn
 run 0.56 h, the soak 1 h. Screening is 10 minutes of GPU time.
+
+Questions come from the owner's question bank for the period (``bank.py``): every evaluation in a period
+answers the same screening and quality questions, the champion answers each bank once per worker, and each
+capacity reading mixes the bank's traffic with its own drand seed.
 """
 
 from __future__ import annotations
@@ -25,10 +29,11 @@ from ramcove_protocol.scoring import (
     replacement_decision,
 )
 
+from .bank import Bank, pack_outcomes, unpack_outcomes
 from .capacity import confirmed_capacity, reading_capacity
 from .loadgen import pooled_gates, run_once
 from .target import StackParams
-from .taskgen import POSITIONS, grade, offline_suite, seed_manifest
+from .taskgen import POSITIONS, grade, seed_manifest
 
 
 class CalibrationMissing(RuntimeError):
@@ -36,11 +41,16 @@ class CalibrationMissing(RuntimeError):
 
 
 REFERENCE = StackParams("ramcove-quality-reference-16bit", base_accuracy_bp=9100)
-OFFLINE_LONG, OFFLINE_GENERAL = 3200, 800  # the profile suite size (Section 7.6)
 FULL_BUDGET_GIB, TIGHT_BUDGET_GIB = 32.0, 24.0
 RUN_CENTI, CTL_CENTI, LIVE_CENTI, SOAK_CENTI = 36, 31, 56, 100  # a reading's rate, P-ctl, P-live, the soak
 SCREEN_CENTI = 17  # engine start (at most 5 minutes), 200 questions sent in parallel, memory check
-QUALITY_CENTI, CHECK_CENTI = 150, 25  # the offline suite (both stacks answer), the GPU check and reset
+QUALITY_CENTI, CHECK_CENTI = (
+    75,
+    25,
+)  # the challenger answers the bank's 4,000 questions; the GPU check and reset
+CHAMPION_ANSWERS_CENTI = (
+    75  # the champion answers a bank once per worker, when crowned or when the bank rotates
+)
 CALIBRATION_CENTI = (
     576  # the champion's fixed score on one worker: search and confirmation, tight budget, P-ctl
 )
@@ -60,7 +70,28 @@ def _outcomes(params: StackParams, items, seed: str) -> tuple[int, ...]:
     return tuple(int(grade(i, _answer(params, i, seed))) for i in items)
 
 
-def screen(params: StackParams, champion: StackParams, profile: ProfileVersion, seed: str) -> dict:
+def champion_answers(champion: StackParams, bank: Bank) -> dict:
+    """The champion's right/wrong per bank question, kept in the worker's calibration record for the period."""
+    return {
+        "bank_id": bank.bank_id,
+        "screening": pack_outcomes(_outcomes(champion, bank.screening, bank.answer_seed)),
+        "offline": pack_outcomes(_outcomes(champion, bank.offline, bank.answer_seed)),
+    }
+
+
+def _cached_answers(calibration: dict | None, bank: Bank) -> dict | None:
+    cached = (calibration or {}).get("answers")
+    return cached if cached and cached.get("bank_id") == bank.bank_id else None
+
+
+def screen(
+    params: StackParams,
+    champion: StackParams,
+    profile: ProfileVersion,
+    seed: str,
+    bank: Bank,
+    calibration: dict | None = None,
+) -> dict:
     checks = []
     if params.screen_failure:
         return {
@@ -84,9 +115,14 @@ def screen(params: StackParams, champion: StackParams, profile: ProfileVersion, 
             "explanation": "Peak GPU memory exceeded the profile ceiling at low load.",
             "checks": checks,
         }
-    items = offline_suite(seed + ":smoke", 150, 50)
-    cand = sum(_outcomes(params, items, seed))
-    champ = sum(_outcomes(champion, items, seed))
+    items = bank.screening
+    cand = sum(_outcomes(params, items, bank.answer_seed))
+    cached = _cached_answers(calibration, bank)
+    champ = (
+        sum(unpack_outcomes(cached["screening"], len(items)))
+        if cached
+        else sum(_outcomes(champion, items, bank.answer_seed))
+    )
     gap_bp = (champ - cand) * 10_000 // len(items)
     checks.append(f"smoke accuracy: {cand}/{len(items)} (champion {champ}/{len(items)})")
     if gap_bp > 1500:
@@ -131,9 +167,11 @@ def _fixed_score(champion: StackParams, start_rps: float, profile: ProfileVersio
     return cap
 
 
-def calibrate(champion: StackParams, profile: ProfileVersion, seed: str, base_rps: float) -> dict:
+def calibrate(champion: StackParams, profile: ProfileVersion, seed: str, base_rps: float, bank: Bank) -> dict:
     """The champion's fixed score on this worker: confirmed capacity at the full and the tighter cache budget,
-    and its short-request baseline. Measured once, when the champion is crowned; never again."""
+    and its short-request baseline, measured once, when the champion is crowned; plus its answers to the
+    current bank, which are refreshed when the bank rotates."""
+    seed = f"{bank.traffic_seed}:{seed}"
     cap = _fixed_score(champion, base_rps, profile, seed, FULL_BUDGET_GIB)
     # the smaller cache budget can only lower capacity, so search just below the full-budget score
     tight = _fixed_score(
@@ -153,7 +191,8 @@ def calibrate(champion: StackParams, profile: ProfileVersion, seed: str, base_rp
             "attainment_bp": ctl.attainment_bp,
             "errored_or_rejected": ctl.errored_or_rejected,
         },
-        "gpu_centi": CALIBRATION_CENTI,
+        "answers": champion_answers(champion, bank),
+        "gpu_centi": CALIBRATION_CENTI + CHAMPION_ANSWERS_CENTI,
     }
 
 
@@ -230,7 +269,12 @@ def _memory_evidence(
 
 
 def evaluate(
-    params: StackParams, champion: StackParams, profile: ProfileVersion, seed: str, champion_calibration: dict
+    params: StackParams,
+    champion: StackParams,
+    profile: ProfileVersion,
+    seed: str,
+    champion_calibration: dict,
+    bank: Bank,
 ) -> dict:
     """One evaluation: quality on fresh questions, then one capacity reading against the champion's fixed
     score (a second only when the first lands between the margin and the clear-win line), then, for a winner,
@@ -238,10 +282,13 @@ def evaluate(
     base = champion_calibration["capacity_milli_rps"] / 1000
     if base <= 0:
         raise CalibrationMissing("champion calibration has no confirmed capacity; evaluation cannot run")
-    items = offline_suite(seed + ":offline", OFFLINE_LONG, OFFLINE_GENERAL)
-    cand = _outcomes(params, items, seed)
-    champ = _outcomes(champion, items, seed)
-    ref = _outcomes(REFERENCE, items, seed)
+    items = bank.offline
+    cand = _outcomes(params, items, bank.answer_seed)
+    cached = _cached_answers(champion_calibration, bank)
+    fresh_answers = None if cached else champion_answers(champion, bank)
+    champ = unpack_outcomes((cached or fresh_answers)["offline"], len(items))
+    # the frozen reference's answers ship with the bank: the owner computes them once per period
+    ref = _outcomes(REFERENCE, items, bank.answer_seed)
     groups = POSITIONS + ["general"]
     vs_ch, vs_ref, acc = [], [], {}
     for g in ["overall"] + groups:
@@ -250,11 +297,11 @@ def evaluate(
         vs_ref.append(PairedQuality(g, tuple(cand[i] for i in idx), tuple(ref[i] for i in idx)))
         acc[g] = sum(cand[i] for i in idx) * 10_000 // len(idx)
     qv = quality_verdict(QualityEvidence(vs_ch, vs_ref, acc, params.length_ratio_bp), profile.quality)
-    gpu = QUALITY_CENTI + CHECK_CENTI
+    gpu = QUALITY_CENTI + CHECK_CENTI + (CHAMPION_ANSWERS_CENTI if fresh_answers else 0)
     result: dict = {
         "stage": "full",
         "simulated": True,
-        "seed_manifest": seed_manifest(seed, items, None, True),
+        "seed_manifest": {**seed_manifest(seed, list(items), None, True), "bank_id": bank.bank_id},
         "quality": {
             "passed": qv.passed,
             "reasons": list(qv.reasons),
@@ -263,6 +310,9 @@ def evaluate(
         },
         "review_flags": [params.review_flag] if params.review_flag else [],
     }
+    if fresh_answers:
+        result["champion_answers"] = fresh_answers
+    seed = f"{bank.traffic_seed}:{seed}"  # the bank's traffic scripts, varied by this evaluation's drand seed
     if not qv.passed:
         result.update(
             winner=False,
@@ -409,9 +459,15 @@ def _why(gates: GateSet, extra: dict) -> str:
 
 
 def reproduce(
-    params: StackParams, champion: StackParams, profile: ProfileVersion, seed: str, champion_calibration: dict
+    params: StackParams,
+    champion: StackParams,
+    profile: ProfileVersion,
+    seed: str,
+    champion_calibration: dict,
+    bank: Bank,
 ) -> dict:
     """After the sunset: a second validator repeats one reading against its own worker's fixed score."""
+    seed = f"{bank.traffic_seed}:{seed}"
     base = champion_calibration["capacity_milli_rps"] / 1000
     if base <= 0:
         raise CalibrationMissing("champion calibration has no confirmed capacity; reproduction cannot run")
