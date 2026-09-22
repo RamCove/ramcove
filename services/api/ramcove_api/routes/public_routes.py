@@ -79,6 +79,22 @@ def question_banks(ctx: AppContext = Depends(get_ctx)) -> dict:
     return public.question_banks(ctx)
 
 
+@router.get("/baseline")
+def baseline(ctx: AppContext = Depends(get_ctx)) -> dict:
+    """The baseline pin and settings, and the current champion's patches in order."""
+    return public.baseline(ctx)
+
+
+@router.get("/champions/{version}/artifact")
+def champion_artifact(version: int, ctx: AppContext = Depends(get_ctx)) -> Response:
+    """A promoted champion's code: manifest.json and patch.diff in a tar.gz."""
+    return Response(
+        public.champion_artifact(ctx, version),
+        media_type="application/gzip",
+        headers={"content-disposition": f'attachment; filename="champion-v{version}.tar.gz"'},
+    )
+
+
 @router.get("/audit")
 def audit(cursor: str | None = None, ctx: AppContext = Depends(get_ctx)) -> dict:
     return public.audit_page(ctx, public_only=True, cursor=cursor)

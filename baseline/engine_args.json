@@ -1,0 +1,22 @@
+{
+  "schema": "ramcove.engine_args/1",
+  "profile": "ramcove-p1-h100sxm-qwen38-27b-fp8@1.0.0",
+  "status": "provisional: the Stage 1 tuning sweep on an H100 SXM replaces these values before paid submissions open",
+  "engine": {"repo": "vllm-project/vllm", "tag": "v0.29.0", "commit": "98dff2a81d747d1dba01a47f939f48c3526d4206"},
+  "model": {"repo": "Qwen/Qwen3.8-27B-FP8", "revision": "017b9c7af6b5689d5dd426a76e0bc077eb5ca20a"},
+  "args": {
+    "max-model-len": 32768,
+    "gpu-memory-utilization": 0.98,
+    "kv-cache-dtype": "auto",
+    "enable-prefix-caching": true,
+    "enable-chunked-prefill": true,
+    "max-num-seqs": 256,
+    "block-size": 16,
+    "seed": 0
+  },
+  "notes": [
+    "gpu-memory-utilization keeps the whole process under the profile ceiling: device memory minus 1.5 GiB.",
+    "Decoding is greedy (temperature 0) and non-thinking mode, as the profile fixes.",
+    "The tuned champion v0 is the best qualifying setting found by the sweep over memory utilization, cache data type, prefix caching, chunked prefill, block size, batch limits and capped offloading."
+  ]
+}

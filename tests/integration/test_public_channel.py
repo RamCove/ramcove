@@ -75,6 +75,7 @@ def test_the_public_door_refuses_sign_in_writes_and_workspaces(public, method, p
         "/v1/status",
         "/v1/queue?kind=admitted",
         "/v1/question-banks",
+        "/v1/baseline",
     ],
 )
 def test_the_pages_the_site_shows_are_readable_on_the_public_door(public, path):

@@ -12,6 +12,7 @@ from ramcove_protocol.reservation import can_issue_quote
 from ramcove_protocol.state import PAID_ACTIVE, TERMINAL, S
 from sqlalchemy import func, or_, select
 
+from ..config import ROOT
 from ..store.db import now, tx
 from ..store.schema import (
     appeals,
@@ -33,7 +34,7 @@ from ..store.schema import (
     workers,
 )
 from . import banks
-from .context import AppContext
+from .context import AppContext, ServiceError
 from .queue import current_champion
 
 STAGE_LABEL = {
@@ -828,3 +829,66 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
             "simulated": True,
             "generated_at": now(),
         }
+
+
+def champion_stack(conn, profile_id: str, version: int) -> list[dict]:
+    """The champion patches that make up a champion's stack, oldest first: each champion's code is a patch on
+    the champion it declared as its parent, down to the baseline (version 0, which has no patch)."""
+    chain: list[dict] = []
+    seen: set[int] = set()
+    while version and version not in seen:
+        seen.add(version)
+        row = conn.execute(
+            select(champions).where(champions.c.profile_id == profile_id, champions.c.version == version)
+        ).first()
+        if row is None or not row.artifact_sha256:
+            break
+        art = conn.execute(select(artifacts).where(artifacts.c.sha256 == row.artifact_sha256)).first()
+        chain.append(
+            {
+                "version": row.version,
+                "author": mask_hotkey(row.author_hotkey),
+                "artifact_sha256": row.artifact_sha256,
+                "method": (art.manifest or {}).get("method") if art else None,
+                "download": f"/v1/champions/{row.version}/artifact",
+            }
+        )
+        version = int((art.manifest or {}).get("parent_champion_version", 0)) if art else 0
+    return list(reversed(chain))
+
+
+def baseline(ctx: AppContext) -> dict:
+    """What a miner needs to build on the current champion: the baseline pin and settings, and the champion's
+    patches in order."""
+    path = ROOT / "baseline" / "engine_args.json"
+    with tx(ctx.engine) as conn:
+        profile = ctx.profile(conn)
+        champ = current_champion(conn, profile.profile_id)
+        return {
+            "engine": profile.engine.model_dump(),
+            "model": {"repo": profile.model.repo, "revision": profile.model.revision},
+            "engine_args": json.loads(path.read_text()) if path.exists() else None,
+            "fetch": "baseline/fetch.sh in the RamCove repository clones the engine at the pinned commit and "
+            "applies the champion's patches in order.",
+            "current_champion_version": champ.version,
+            "champion_stack": champion_stack(conn, profile.profile_id, champ.version),
+        }
+
+
+def champion_artifact(ctx: AppContext, version: int) -> bytes:
+    """A promoted champion's code is public: its signed artifact, a tar.gz with manifest.json and patch.diff."""
+    with tx(ctx.engine) as conn:
+        profile = ctx.profile(conn)
+        row = conn.execute(
+            select(champions).where(
+                champions.c.profile_id == profile.profile_id, champions.c.version == version
+            )
+        ).first()
+        if row is None:
+            raise ServiceError("not_found", f"there is no champion version {version}", 404)
+        if not row.artifact_sha256:
+            raise ServiceError(
+                "baseline", "version 0 is the unmodified baseline: fetch it with baseline/fetch.sh", 404
+            )
+        art = conn.execute(select(artifacts).where(artifacts.c.sha256 == row.artifact_sha256)).first()
+    return ctx.artifacts.get(art.storage_key)
