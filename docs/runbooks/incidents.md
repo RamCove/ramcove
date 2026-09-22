@@ -28,6 +28,8 @@
   console.
 - **Chain observation stale:** payments are not verified while the reader is behind. Do not hand-admit
   anything; fix the reader. The scanner resumes from its durable cursor.
-- **Price stale:** new quotes are refused automatically. Do not override the formula; publish the pause.
+- **Price stale:** quotes still go out at the flat fee, without a dollar figure. Fix the price reader.
+- **Question bank leaked or missing:** a week's bank reached someone outside the validators, or no bank was
+  issued. Pause paid admissions, rotate `RAMCOVE_BANK_SECRET` for future weeks, and publish the incident.
 - **Disagreeing validators:** promotion is held. Do not pick a side; schedule a third measurement and record
   the dispute.

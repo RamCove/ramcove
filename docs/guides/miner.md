@@ -8,7 +8,17 @@ become the champion and receive that profile's miner allocation until someone be
 
 Open the rules page (`/docs/rules`). It fixes everything that affects the number: the model repository
 and revision, the engine commit, the GPU, the candidate virtual machine, the context limit, the workload
-and every gate. Your change must build against that exact engine commit and touch only the allowed paths.
+and every gate. Your change must touch only the allowed paths.
+
+Build on the current champion, not on the bare engine:
+
+```
+uv run ramcove-miner champion-code --out champion/   # the champion's patches, checked against their hashes
+baseline/fetch.sh vllm champion/                     # vLLM at the pinned commit with those patches applied
+```
+
+While version 0 holds the crown there are no patches and `fetch.sh` gives you the baseline itself.
+`baseline/README.md` explains the baseline and its settings.
 
 ## What a submission contains
 
@@ -41,9 +51,10 @@ You sign two different things, and RamCove never asks for a seed phrase or a key
 ## What is free and what costs
 
 Free: format, size, signature, path, licence and duplicate checks, and the waiting list. If the evaluation
-queue is full (two weeks of booked work) you are not asked to pay. There are no rounds: submit any time.
+queue is full (two weeks of booked work) you are not asked to pay. There are no rounds: submit any time, as
+often as you like, with one active submission per hotkey.
 
-Paid: everything after your payment is finalized. The fee is consumed once screening or evaluation has run,
+Paid: everything after your payment is finalized. The fee is a flat 0.1 TAO. The fee is consumed once screening or evaluation has run,
 whatever the result — including a rejection caused by your code.
 
 Never charged: operator or validator failures, an expired quote, or withdrawal before any GPU work starts
@@ -65,13 +76,14 @@ submission that is still active holds its place until it finishes or its lease r
 
 ## What happens to your code
 
-1. **Screening** — an isolated build and a short correctness check. It can reject only for decisive
-   failures and never judges speed.
-2. **Evaluation** — quality first, then one capacity reading against the champion's fixed score: runs step
+1. **Screening** — an isolated build and a 10-minute correctness check with the week's screening
+   questions. It can reject only for decisive failures and never judges speed.
+2. **Evaluation** — quality first (the week's 4,000 bank questions, the same for every submission that
+   week), then one capacity reading against the champion's fixed score: runs step
    up a 3% grid from that score until one fails. The champion is not measured again for you; its score was
    recorded when it was crowned.
 3. **Winner checks** — only if you won: memory evidence, a short-request control, a multi-turn check that
-   uses the model's real answers, and a soak test, each once.
+   uses the model's real answers, and a 1-hour soak test, each once.
 4. **Review, only if flagged** — native code, third-party components, a failed scan or a dispute send a
    winner to people, who check it against published criteria. Otherwise promotion is automatic.
 

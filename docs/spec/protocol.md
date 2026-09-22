@@ -37,7 +37,7 @@ No candidate code is executed. Checks: archive size (20 MiB, 80 MiB unpacked, 2,
 (no absolute paths, no `..`, no symlinks, hard links or device nodes, no duplicate entries, bounded gzip
 output), required manifest fields, hotkey signature over the artifact hash, profile version, allowed and
 forbidden paths from the diff, declared licences, exact duplicates and cosmetic duplicates (normalized
-diff hash). Rate limit: 10 preflights per hotkey per day. One active submission per hotkey and per
+diff hash). No daily limit. One active submission per hotkey and per
 lineage. *Where: `ramcove_protocol.preflight`, `ramcove_api.services.intake`.*
 
 ### 2.2 Waiting list and reservation
@@ -78,10 +78,13 @@ screening job. *Where: `ramcove_api.services.payments`.*
 ### 2.5 Screening
 
 A bounded, paid stage in an isolated environment. It may reject only for decisive failures: a build
-failure reproduced on a second clean build, no engine start within 15 minutes, crashes or more than 5%
+failure reproduced on a second clean build, no engine start within 5 minutes, crashes or more than 5%
 errors, output-contract failures above 5%, peak GPU memory above the ceiling, or smoke accuracy more than
 15 points below the champion (a gap at least four standard errors wide on 200 items). **Speed and capacity
 are never judged here.** Every rejection publishes a machine-readable error report.
+
+Screening takes about 10 minutes of GPU time and asks the 200 screening questions of the week's question
+bank (section 2.8).
 
 ### 2.6 The champion's fixed score
 
@@ -98,12 +101,24 @@ reference); failing it ends the evaluation. Then one **reading** against the fix
 a 3% grid from that score until one fails, up to the top of the grid; the reading is the highest rate that
 passed. The replacement rule (section 4) decides, with a second reading only when the first is close to the
 margin. A winner then runs the winner checks once each: pooled band attainment over its passing runs,
-memory evidence, P-ctl, P-live at 90% of its capacity, and a soak at 90%.
+memory evidence (a tighter-budget reading that misses the margin gets one more), P-ctl, P-live at 90% of
+its capacity, and a 1-hour soak at 90%.
 
 A winner is promoted automatically unless an automatic check flags it: native code in the change,
 third-party components, or a check that reports a flag. Only a flagged winner opens a review, and the
 review records which criteria were flagged. After the bootstrap sunset a second validator reproduces the
 reading once before promotion. *Where: `ramcove_evaluator.pipeline`, `ramcove_api.services.queue`.*
+
+### 2.8 The owner's question bank
+
+The owner platform builds one secret bank per profile every 7 days (from 2026-09-21 00:00 UTC): 200
+screening questions, 4,000 quality questions and the traffic scripts of the capacity readings. Each week's
+seed is an HMAC of the owner's secret with the profile and the week number. The bank's fingerprint is
+recorded in the public audit log a day before the week starts; jobs in the week receive the week's seed,
+never the secret; the seed is published when the week ends, so anyone can rebuild the bank and check the
+fingerprint. The champion answers each bank once per worker, and every evaluation in the week compares the
+challenger's answers with those. Each reading's traffic mixes the bank's scripts with its own beacon seed.
+*Where: `ramcove_protocol.bank`, `ramcove_evaluator.bank`, `ramcove_api.services.banks`.*
 
 ## 3. Measurement
 
@@ -228,8 +243,8 @@ submission, a new fee and fresh tests; readings are never pooled across attempts
 Separate records, each idempotent: fee received, fee consumed, excess credit, credit issued and used,
 refund liability, refund sent and confirmed. Fees are consumed once screening or evaluation has run,
 whatever the result. Operator or validator failures are never charged, and never require a second payment.
-The fee is derived from a published formula over service cost, a recovery share and a price observation
-with a maximum age; stale prices refuse new quotes. *Where: `ramcove_protocol.fees`, `ramcove_api.services.accounting`.*
+The fee is a flat 0.1 TAO per paid submission. A recent price from the published source only adds the
+fee's value in US dollars; a stale price never blocks a quote. *Where: `ramcove_protocol.fees`, `ramcove_api.services.accounting`.*
 
 ## 9. Randomness and audit
 

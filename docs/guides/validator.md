@@ -40,6 +40,14 @@ known capacity, so the grid brackets the real value. That fixed score is what ev
 is compared with, and it is not measured again until the next champion or a new profile version. It is
 recorded per worker because physical GPUs differ slightly.
 
+## Questions
+
+Validators do not write or choose questions. Each job carries the current week's question-bank seed from
+the owner platform, never the owner's secret; every job in the week uses the same screening and quality
+questions, and each reading's traffic also mixes in its own beacon seed. The worker keeps the champion's
+answers to the week's bank with its fixed score, so the champion answers each bank once. Do not copy or
+share a week's bank: it stays secret until the week ends and the owner publishes its seed.
+
 ## Readings and reproduction
 
 A reading takes a seed from a beacon round fixed in advance and steps the challenger up a 3% grid from the

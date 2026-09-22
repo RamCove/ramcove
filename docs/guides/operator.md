@@ -54,9 +54,19 @@ by someone who was not part of the disputed decision, within the published windo
 
 ## Money
 
-Fee income, consumed fees, credits and refund liabilities are separate records. The fee is a published
-formula over service cost, a recovery share and a price observation with a maximum age; when the price is
-stale, new quotes are refused rather than guessed. Accepted quotes never change.
+Fee income, consumed fees, credits and refund liabilities are separate records. The fee is a flat 0.1 TAO
+per paid submission; a recent price from the published source only adds its value in US dollars, and a
+stale price never blocks a quote. Accepted quotes never change.
+
+## Question bank
+
+The owner platform issues a secret question bank every 7 days: screening questions, quality questions and
+traffic scripts. Each week's seed is derived from `RAMCOVE_BANK_SECRET`, which must live only on the
+controller host (demo, test and local runs use a labelled stand-in; any other environment issues no bank and
+runs no evaluation without it). The controller commits the next bank's fingerprint to the public audit log
+a day before its week and publishes the seed once the week ends (`GET /v1/question-banks`). Workers receive
+only the current week's seed. Never share the secret, and treat a suspected leak of a week's bank as an
+incident: rotate the secret for future weeks and publish what happened.
 
 ## What to tell people honestly
 

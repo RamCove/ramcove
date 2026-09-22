@@ -2,6 +2,17 @@
 
 Newest first. Commands are the ones actually run; results are what actually happened.
 
+## 2026-09-22 — owner question bank, flat fee, published champion code
+
+- Flat 0.1 TAO fee (the price only sets the dollar display), no daily preflight limit, 10-minute screening,
+  1-hour soak (#27). A second tighter-budget reading before a winner fails the memory check (#28).
+- The owner's question bank, rotated every 7 days: fingerprint committed a day ahead, the same questions for
+  every job in the week, seed published after; the champion answers each bank once per worker (#29).
+- `baseline/` and public downloads of the baseline pin and each champion's code; `ramcove-miner
+  champion-code` (#30). The site shows all of it (#31). `docs/adr/0010`.
+- Verified: `uv run pytest` 142 passed, 2 deselected; migrations 0005 and 0006 round-trip and `alembic check`
+  is clean; browser suite 14 passed against the isolated stack; `baseline/fetch.sh` checked out `98dff2a8`.
+
 ## 2026-09-22 — one evaluation against the champion's fixed score
 
 - The champion is measured once per worker when it is crowned and not again. Each challenger gets offline

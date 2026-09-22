@@ -15,6 +15,7 @@ interface.
 |---|---|
 | `packages/protocol` | Pure rules: lifecycle, replacement rule, promotion order, reservations, fees, weights, preflight |
 | `packages/evaluator` | Task generation, grading, open-loop load, gates, the champion's fixed score, capacity readings, memory evidence |
+| `baseline` | Champion version 0: the pinned engine, its settings, and scripts to fetch it and apply the champion's patches |
 | `packages/chain` | Payment verification, deterministic dev chain (simulation), read-only Bittensor adapter, drand scheduling |
 | `services/api` | FastAPI surface, authoritative PostgreSQL store, transactional services |
 | `services/controller` | Loop: chain observation, payment verification, expiries, settlement |
