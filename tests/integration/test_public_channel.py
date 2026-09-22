@@ -17,7 +17,7 @@ from ramcove_api.services import control
 from ramcove_api.services.control import DEMO_REVIEW_REASON
 from ramcove_api.store.db import tx
 from ramcove_api.store.schema import reviews, submissions
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from .helpers import ATTEMPTS, bring_workers_online, drain, make_ctx, pay_and_admit, state, submit_fixture
 
@@ -117,3 +117,24 @@ def test_the_stand_in_reviewer_is_off_by_default_and_labels_what_it_approves(ctx
             "ready_for_promotion",
             "promoted",
         }
+
+
+def test_the_waiting_list_is_shown_in_the_order_invitations_go_out(ctx):
+    """The page numbers the waiting list, so its order must be the order the controller invites in."""
+    from ramcove_api.services import public
+
+    for miner, fixture in (
+        ("miner-ada", "fragmentation-aware-allocator"),
+        ("miner-bao", "kv8-conversation-retention"),
+        ("miner-cyd", "native-paged-kv-kernel"),
+    ):
+        submit_fixture(ctx, miner, fixture)
+    with tx(ctx.engine) as conn:  # no worker is online, so they are all waiting
+        conn.execute(submissions.update().values(state="waitlisted", waitlisted_at=func.now()))
+        rows = conn.execute(
+            select(submissions.c.id)
+            .where(submissions.c.state == "waitlisted")
+            .order_by(submissions.c.waitlisted_at, submissions.c.id)
+        ).all()
+    waiting = public.queue_page(ctx, kind="waiting")["items"]
+    assert [i["submission_id"] for i in waiting] == [r.id for r in rows]

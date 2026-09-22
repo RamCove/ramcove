@@ -345,7 +345,7 @@ export default async function CompetitionPage() {
             <tr>
               <Td>new champion&apos;s score</Td>
               <Td className="num whitespace-nowrap">{centiHours(p.envelope.recalibration_on_promotion)}</Td>
-              <Td>once per promotion, from the reserve</Td>
+              <Td>once per promotion, on every worker, from the reserve</Td>
             </tr>
             <tr>
               <Td>champion&apos;s answers to a new bank</Td>
@@ -356,8 +356,9 @@ export default async function CompetitionPage() {
           <p className="mt-3 text-[12px] leading-relaxed text-muted">
             Fee: a flat {Number((p.fees.flat_fee_rao / 1e9).toFixed(4))} TAO per paid submission; the TAO price does not
             change it. The planning cost of one submission is about{" "}
-            {usd(p.fees.service_cost_usd_cents_per_admission)}. Dollar values use{" "}
-            <Mono>{p.fees.price_source}</Mono>.
+            {usd(p.fees.service_cost_usd_cents_per_admission)}. On a real network dollar values would use{" "}
+            <Mono>{p.fees.price_source}</Mono>; in this build the TAO price is a fixed simulated value and no
+            price is fetched.
           </p>
         </Card>
 

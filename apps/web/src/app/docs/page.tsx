@@ -67,56 +67,82 @@ const WORKFLOW: { name: string; cost: string; what: string; why: string }[] = [
   },
 ];
 
+/** Keyed by the outcome code the API actually writes, so a submission page can link straight here. */
 const FAILURES: [string, string, string][] = [
   [
-    "rejected in the free checks",
-    "Format, signature, path, licence or duplicate problem.",
+    "rejected_preflight",
+    "A free check failed: format, signature, path, licence or a duplicate patch.",
     "Fix the reported item and run the checks again. No fee was taken.",
   ],
   [
-    "screen build failure",
+    "screen_build_failure",
     "The patch did not build on two clean isolated builds.",
     "Build against the pinned engine commit locally first. The fee is consumed.",
   ],
   [
-    "screen gross accuracy",
-    "Smoke answers were far below the champion's.",
+    "screen_no_start",
+    "The engine did not start within five minutes.",
+    "Check your change against the pinned engine arguments. The fee is consumed.",
+  ],
+  [
+    "screen_memory_ceiling",
+    "Peak GPU memory passed the profile ceiling at low load.",
+    "Bring peak memory under the ceiling before resubmitting.",
+  ],
+  [
+    "screen_gross_accuracy",
+    "Smoke answers were far below the champion's on the same questions.",
     "Check that your change does not break correctness before resubmitting.",
   ],
   [
-    "quality failed",
+    "quality_failed",
     "Answers fell below the champion, the frozen reference or an absolute floor.",
     "Fix the accuracy loss first. Speed never makes up for wrong answers.",
   ],
   [
-    "margin not cleared",
-    "The gain over the champion's fixed score did not exceed the margin. For a close first reading, the average of the two readings did not.",
+    "margin_not_cleared",
+    "The gain over the champion's fixed score did not exceed the margin. For a close first reading, neither did the average of the two.",
     "A near-tie keeps the incumbent. Improve the method rather than resubmitting the same code.",
   ],
   [
-    "winner check failed",
+    "winner_check_failed",
     "The gain was there, but a context band, the memory evidence, the short-request control, the multi-turn check or the soak failed.",
     "The submission page names the check and what it measured. RamCove rewards memory-driven capacity; a pure speedup is out of scope.",
   ],
   [
-    "champion changed",
+    "champion_changed",
     "Another submission was crowned first, and over the new champion your measured gain is below the margin. Nothing was measured again.",
     "Build on the new champion and submit again.",
   ],
   [
-    "review rejected",
+    "not_reproduced",
+    "A second validator repeated the reading on its own worker and did not clear the margin.",
+    "Both readings are published on the submission page.",
+  ],
+  [
+    "review_rejected",
     "A person reviewed your flagged winner and a published criterion failed.",
     "The decision cites the criterion. You may appeal within 7 days.",
   ],
   [
-    "operator failure",
+    "registration_expired",
+    "The winning hotkey was not registered on the subnet within the grace period.",
+    "The submission page shows the deadline while it runs. Register the hotkey before it passes.",
+  ],
+  [
+    "operator_failure",
     "Infrastructure, quorum or deadline failure on our side.",
     "Your fee returns as a refund or credit. Nothing is charged twice.",
   ],
   [
-    "registration expired",
-    "The winning hotkey was not registered within the grace period.",
-    "Register the hotkey before the deadline shown on the submission.",
+    "quote_expired",
+    "The quote was not paid before it expired.",
+    "Ask for a new quote. Nothing was charged.",
+  ],
+  [
+    "late_payment",
+    "The payment was finalized after the quote had expired.",
+    "The payment returns as a refund or credit.",
   ],
 ];
 
@@ -226,7 +252,7 @@ export default function DocsPage() {
                 flat 0.1 TAO, the recipient, the expiry and the refund rules.
                 Nothing is paid until you confirm. If the queue is full you join
                 the free waiting list. There is no daily limit; you may have one
-                active submission per hotkey.
+                active submission per hotkey, and one per lineage name.
               </li>
               <li>
                 Your place in line is the finalized block and index of your
@@ -423,12 +449,16 @@ uv run ramcove-worker`}
 
         <Card
           title="Why did my submission fail?"
-          subtitle="Each outcome on the submission page links back to one of these."
+          subtitle="Each outcome on a submission page links to its row here."
         >
           <Table head={["Outcome", "What it means", "What to do"]}>
             {FAILURES.map(([code, meaning, action]) => (
-              <tr key={code}>
-                <Td className="font-medium">{code}</Td>
+              <tr
+                key={code}
+                id={`outcome-${code}`}
+                className="scroll-mt-24 target:bg-accent-quiet"
+              >
+                <Td className="font-mono text-[12.5px] font-medium">{code}</Td>
                 <Td className="text-muted">{meaning}</Td>
                 <Td className="text-muted">{action}</Td>
               </tr>

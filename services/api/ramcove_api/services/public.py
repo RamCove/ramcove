@@ -283,6 +283,11 @@ def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = Non
                         (submissions.c.admission_block == c[0]) & (submissions.c.admission_index > c[1]),
                     )
                 )
+        elif kind == "waiting":
+            # the order invitations actually go out in (control.invite_from_waiting_list), oldest first
+            q = q.order_by(submissions.c.waitlisted_at, submissions.c.id)
+            if c:
+                q = q.where(submissions.c.waitlisted_at > c[0])
         else:
             q = q.order_by(submissions.c.updated_at.desc(), submissions.c.id)
             if c:
@@ -327,7 +332,11 @@ def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = Non
         if more and rows:
             last = rows[-1]
             nxt = encode_cursor(
-                [last.admission_block, last.admission_index] if kind == "admitted" else [last.updated_at]
+                [last.admission_block, last.admission_index]
+                if kind == "admitted"
+                else [last.waitlisted_at]
+                if kind == "waiting"
+                else [last.updated_at]
             )
         return {
             "kind": kind,
@@ -410,6 +419,12 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
             "changed_paths": art.changed_paths if (privileged and art) else None,
             "artifact_sha256": r.artifact_sha256 if privileged else None,
             "blocking_submissions": blocking,
+            # a winner must have its hotkey registered before this, or the submission expires unpromoted
+            "registration_deadline": (
+                r.ready_since + timedelta(seconds=profile.deadlines.registration_grace_s)
+                if r.ready_since and r.state == S.READY_FOR_PROMOTION.value
+                else None
+            ),
             "timeline": [
                 {
                     "stage": j.stage,

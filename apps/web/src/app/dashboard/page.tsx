@@ -6,6 +6,7 @@ import {
   Notice,
   PageHeader,
   Pill,
+  SimulatedTag,
   StatePill,
   Table,
   Td,
