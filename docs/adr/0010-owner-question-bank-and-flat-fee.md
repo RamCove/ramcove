@@ -24,3 +24,8 @@ identical questions. During a week the validators hold its bank, so a dishonest 
 weekly rotation, the public reveal and the per-reading beacon seed limit a leak's value but do not prevent
 it. The owner's secret becomes a critical key (`RAMCOVE_BANK_SECRET`). At full utilization the flat fee
 covers about twice the planning cost; it no longer follows the TAO price.
+
+**Update, later on 2026-09-22.** The owner decided RamCove should not host or script a download of the
+engine: `baseline/` was removed and its settings moved to `config/engine_args/`. Miners download only the
+champion's patches (`GET /v1/champion-code`, `ramcove-miner champion-code`) and apply them to the engine at
+the pinned commit themselves.

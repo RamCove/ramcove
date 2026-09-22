@@ -79,10 +79,10 @@ def question_banks(ctx: AppContext = Depends(get_ctx)) -> dict:
     return public.question_banks(ctx)
 
 
-@router.get("/baseline")
-def baseline(ctx: AppContext = Depends(get_ctx)) -> dict:
-    """The baseline pin and settings, and the current champion's patches in order."""
-    return public.baseline(ctx)
+@router.get("/champion-code")
+def champion_code(ctx: AppContext = Depends(get_ctx)) -> dict:
+    """The current champion's patches in order, the engine commit they apply to, and the engine settings."""
+    return public.champion_code(ctx)
 
 
 @router.get("/champions/{version}/artifact")

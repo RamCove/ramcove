@@ -2,6 +2,12 @@
 
 Newest first. Commands are the ones actually run; results are what actually happened.
 
+## 2026-09-22 — no engine download
+
+- By owner decision RamCove no longer hosts or scripts the engine download: `baseline/` is gone, the v0
+  settings live in `config/engine_args/`, and `GET /v1/baseline` and `ramcove-miner baseline` are removed.
+  Miners download only the champion's patches (`GET /v1/champion-code`, `ramcove-miner champion-code`).
+
 ## 2026-09-22 — owner question bank, flat fee, published champion code
 
 - Flat 0.1 TAO fee (the price only sets the dollar display), no daily preflight limit, 10-minute screening,

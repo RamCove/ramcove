@@ -857,21 +857,19 @@ def champion_stack(conn, profile_id: str, version: int) -> list[dict]:
     return list(reversed(chain))
 
 
-def baseline(ctx: AppContext) -> dict:
-    """What a miner needs to build on the current champion: the baseline pin and settings, and the champion's
-    patches in order."""
-    path = ROOT / "baseline" / "engine_args.json"
+def champion_code(ctx: AppContext) -> dict:
+    """What a miner downloads to build on the champion: the champion's patches in order (a few kilobytes), the
+    engine commit they apply to, and the engine settings. RamCove does not host the engine itself."""
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
         champ = current_champion(conn, profile.profile_id)
+        path = ROOT / "config" / "engine_args" / f"{profile.profile_id}@{profile.version}.json"
         return {
             "engine": profile.engine.model_dump(),
             "model": {"repo": profile.model.repo, "revision": profile.model.revision},
             "engine_args": json.loads(path.read_text()) if path.exists() else None,
-            "fetch": "baseline/fetch.sh in the RamCove repository clones the engine at the pinned commit and "
-            "applies the champion's patches in order.",
             "current_champion_version": champ.version,
-            "champion_stack": champion_stack(conn, profile.profile_id, champ.version),
+            "patches": champion_stack(conn, profile.profile_id, champ.version),
         }
 
 
@@ -888,7 +886,7 @@ def champion_artifact(ctx: AppContext, version: int) -> bytes:
             raise ServiceError("not_found", f"there is no champion version {version}", 404)
         if not row.artifact_sha256:
             raise ServiceError(
-                "baseline", "version 0 is the unmodified baseline: fetch it with baseline/fetch.sh", 404
+                "baseline", "version 0 is the unmodified engine at the pinned commit; it has no patch", 404
             )
         art = conn.execute(select(artifacts).where(artifacts.c.sha256 == row.artifact_sha256)).first()
     return ctx.artifacts.get(art.storage_key)

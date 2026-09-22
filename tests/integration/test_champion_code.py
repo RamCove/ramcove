@@ -1,4 +1,4 @@
-"""The baseline and each promoted champion's code are public, so miners can build on the champion."""
+"""Each promoted champion's code is public, so miners can build on it. The engine itself is not hosted."""
 
 from __future__ import annotations
 
@@ -37,10 +37,11 @@ def promote_one(ctx) -> str:
 
 def test_while_the_baseline_holds_the_crown_there_is_nothing_to_apply(ctx):
     public = TestClient(create_app(ctx), base_url="https://testserver", headers=PUBLIC)
-    b = public.get("/v1/baseline").json()
+    b = public.get("/v1/champion-code").json()
     assert b["engine"]["commit"] == "98dff2a81d747d1dba01a47f939f48c3526d4206"
-    assert b["current_champion_version"] == 0 and b["champion_stack"] == []
+    assert b["current_champion_version"] == 0 and b["patches"] == []
     assert b["engine_args"]["status"].startswith("provisional")
+    assert public.get("/v1/baseline").status_code == 404  # RamCove does not host the engine
     r = public.get("/v1/champions/0/artifact")
     assert r.status_code == 404 and r.json()["error"]["code"] == "baseline"
 
@@ -49,11 +50,11 @@ def test_a_promoted_champions_code_is_public_and_the_miner_tool_writes_it(ctx, t
     promote_one(ctx)
     app = create_app(ctx)
     public = TestClient(app, base_url="https://testserver", headers=PUBLIC)
-    b = public.get("/v1/baseline").json()
-    assert b["current_champion_version"] == 1 and [c["version"] for c in b["champion_stack"]] == [1]
+    b = public.get("/v1/champion-code").json()
+    assert b["current_champion_version"] == 1 and [c["version"] for c in b["patches"]] == [1]
     r = public.get("/v1/champions/1/artifact")
     assert r.status_code == 200 and r.headers["content-type"] == "application/gzip"
-    assert hashlib.sha256(r.content).hexdigest() == b["champion_stack"][0]["artifact_sha256"]
+    assert hashlib.sha256(r.content).hexdigest() == b["patches"][0]["artifact_sha256"]
     with tarfile.open(fileobj=io.BytesIO(r.content), mode="r:gz") as tf:
         assert sorted(tf.getnames())[:2] == ["manifest.json", "patch.diff"]
     # the miner tool downloads the same code, checks its hash and writes the patch to apply
@@ -63,4 +64,4 @@ def test_a_promoted_champions_code_is_public_and_the_miner_tool_writes_it(ctx, t
     stack = json.loads((out / "stack.json").read_text())
     assert [p["file"] for p in stack["patches"]] == ["01-champion-v1.diff"]
     assert (out / "01-champion-v1.diff").read_text().startswith("diff --git a/vllm/v1/core/block_pool.py")
-    assert "baseline/fetch.sh vllm" in capsys.readouterr().out
+    assert "apply them in order to vllm-project/vllm at 98dff2a8" in capsys.readouterr().out

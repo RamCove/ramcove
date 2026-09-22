@@ -14,11 +14,11 @@ Build on the current champion, not on the bare engine:
 
 ```
 uv run ramcove-miner champion-code --out champion/   # the champion's patches, checked against their hashes
-baseline/fetch.sh vllm champion/                     # vLLM at the pinned commit with those patches applied
 ```
 
-While version 0 holds the crown there are no patches and `fetch.sh` gives you the baseline itself.
-`baseline/README.md` explains the baseline and its settings.
+The champion's code is only its patches, a few kilobytes: apply them in order (`git apply`) to the engine at
+the commit shown on the rules page, then make your change on top. RamCove does not host the engine itself.
+While version 0 holds the crown there are no patches: the champion is the unmodified engine.
 
 ## What a submission contains
 

@@ -5,7 +5,6 @@
     ramcove-miner submit   --artifact artifact.tar.gz --key-uri //Dev      # preflight, reserve, quote, pay
     ramcove-miner status   --submission sub_...
     ramcove-miner recover  --block N --index I
-    ramcove-miner baseline                                  # the engine pin and settings champion v0 uses
     ramcove-miner champion-code --out champion/             # the champion's patches, to build on
 
 The key URI form is for local development keys. A production signer is not included in this build, so
@@ -166,23 +165,6 @@ def cmd_recover(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_baseline(args: argparse.Namespace) -> int:
-    with _api(args.api) as client:
-        b = _check(client.get("/v1/baseline"))
-    e, m = b["engine"], b["model"]
-    print(f"engine   {e['repo']} {e['tag']} at {e['commit']}")
-    print(f"model    {m['repo']} at {m['revision']}")
-    print(f"paths    {', '.join(e['allowed_paths'])}")
-    if b.get("engine_args"):
-        print(f"settings {b['engine_args']['status']}")
-        for k, v in b["engine_args"]["args"].items():
-            print(f"  --{k} {v}")
-    print(
-        f"champion version {b['current_champion_version']}; patches on top of the baseline: {len(b['champion_stack'])}"
-    )
-    return 0
-
-
 def patch_from_artifact(data: bytes, max_bytes: int = 20 * 1024 * 1024) -> str:
     """Read only patch.diff from a champion's artifact, refusing anything but a regular file."""
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
@@ -196,9 +178,9 @@ def cmd_champion_code(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     with _api(args.api) as client:
-        b = _check(client.get("/v1/baseline"))
+        b = _check(client.get("/v1/champion-code"))
         written = []
-        for n, c in enumerate(b["champion_stack"], start=1):
+        for n, c in enumerate(b["patches"], start=1):
             r = client.get(c["download"])
             if r.status_code != 200:
                 raise CliError(f"could not download champion version {c['version']}: {r.status_code}")
@@ -209,18 +191,26 @@ def cmd_champion_code(args: argparse.Namespace) -> int:
             written.append({**c, "file": path.name})
     (out / "stack.json").write_text(
         json.dumps(
-            {"engine": b["engine"], "champion_version": b["current_champion_version"], "patches": written},
+            {
+                "engine": b["engine"],
+                "engine_args": b.get("engine_args"),
+                "champion_version": b["current_champion_version"],
+                "patches": written,
+            },
             indent=2,
         )
         + "\n"
     )
+    e = b["engine"]
     if not written:
         print(
-            f"champion version {b['current_champion_version']} is the baseline: there are no patches to apply"
+            f"champion version {b['current_champion_version']} is the unmodified engine "
+            f"({e['repo']} at {e['commit'][:8]}): there are no patches"
         )
     for w in written:
         print(f"wrote {out / w['file']}  (champion v{w['version']}, sha256 {w['artifact_sha256'][:12]}…)")
-    print(f"next: baseline/fetch.sh vllm {out}")
+    if written:
+        print(f"apply them in order to {e['repo']} at {e['commit'][:8]} (git apply), then build on top")
     return 0
 
 
@@ -257,9 +247,6 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--index", type=int, required=True)
     sp.add_argument("--key-uri", required=True)
     sp.set_defaults(fn=cmd_recover)
-
-    sp = sub.add_parser("baseline", help="show the engine pin and settings the baseline uses")
-    sp.set_defaults(fn=cmd_baseline)
 
     sp = sub.add_parser("champion-code", help="download the champion's patches to build on")
     sp.add_argument("--out", default="champion")

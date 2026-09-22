@@ -44,13 +44,13 @@ export default function DocsPage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
             <ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
               <li>
-                Download the current champion&apos;s code with <Mono>champion-code</Mono> and apply it to the
-                baseline engine with <Mono>baseline/fetch.sh</Mono>. Build your change on top, inside the allowed
-                paths shown in the{" "}
+                Download the current champion&apos;s code with <Mono>champion-code</Mono>: only its patches, a
+                few kilobytes. Apply them to the engine at the commit shown in the rules and build your change on
+                top, inside the allowed paths shown in the{" "}
                 <Link href="/docs/rules" className="text-accent hover:underline">
                   rules
                 </Link>
-                . While version 0 holds the crown, the baseline itself is the champion.
+                . While version 0 holds the crown there are no patches: the champion is the unmodified engine.
               </li>
               <li>
                 <Mono>pack</Mono> turns your patch and manifest into a reproducible artifact.
@@ -76,9 +76,8 @@ export default function DocsPage() {
               </li>
             </ol>
             <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-line bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-muted">
-{`# the champion's code, applied to the baseline engine
+{`# the champion's code: its patches, checked against their hashes
 uv run ramcove-miner champion-code --out champion/
-baseline/fetch.sh vllm champion/
 
 # build a reproducible artifact from your patch
 uv run ramcove-miner pack --patch patch.diff --manifest manifest.json
