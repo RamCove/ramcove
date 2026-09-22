@@ -30,9 +30,15 @@ type ProfileDetail = {
       length_ratio_vs_reference_bp: number;
     };
     latency: Record<string, number>;
-    envelope: { screen: number; evaluation: number; winner_checks: number; recalibration_on_promotion: number };
+    envelope: {
+      screen: number;
+      evaluation: number;
+      winner_checks: number;
+      recalibration_on_promotion: number;
+      champion_answers_per_bank: number;
+    };
     deadlines: Record<string, number>;
-    fees: { service_cost_usd_cents_per_admission: number; recovery_bp: number; price_source: string };
+    fees: { flat_fee_rao: number; service_cost_usd_cents_per_admission: number; price_source: string };
     bootstrap: { mode: string; min_independent_validators_for_mainnet: number; quorum_validators_after_sunset: number };
     measured: boolean;
     no_winner_writer_verified: boolean;
@@ -59,8 +65,24 @@ type ProfileDetail = {
   } | null;
 };
 
+type QuestionBanks = {
+  rule: { period_days: number; screening_long: number; screening_general: number; offline_long: number; offline_general: number };
+  banks: {
+    bank_id: string;
+    period_index: number;
+    starts_at: string;
+    ends_at: string;
+    commitment: string;
+    status: "current" | "upcoming" | "ended" | "revealed";
+    revealed_seed: string | null;
+  }[];
+};
+
 export default async function CompetitionPage() {
-  const data = await apiGetOrNull<ProfileDetail>("/v1/profile");
+  const [data, qb] = await Promise.all([
+    apiGetOrNull<ProfileDetail>("/v1/profile"),
+    apiGetOrNull<QuestionBanks>("/v1/question-banks"),
+  ]);
   if (!data) return <Empty title="Profile unavailable">Start the API and reload.</Empty>;
   const p = data.profile;
   const r = p.replacement;
@@ -154,6 +176,42 @@ export default async function CompetitionPage() {
             again and no new fee is charged. A person reviews a winner only when an automatic check flags it.{" "}
             {r.calibrated ? "" : "The margin, clear-win line and rate grid are uncalibrated until a noise study is published."}
           </p>
+        </Card>
+
+        <Card
+          title="Question bank"
+          subtitle={`The owner's secret questions, a new bank every ${qb?.rule.period_days ?? 7} days. Validators use them; they do not write them.`}
+        >
+          {qb && qb.banks.length > 0 ? (
+            <>
+              <Table head={["Week", "Starts", "Status", "Fingerprint"]}>
+                {qb.banks.slice(0, 4).map((b) => (
+                  <tr key={b.bank_id}>
+                    <Td className="num">{b.period_index}</Td>
+                    <Td className="num whitespace-nowrap">{when(b.starts_at).slice(0, 10)}</Td>
+                    <Td>
+                      <Pill tone={b.status === "current" ? "ok" : b.status === "revealed" ? "neutral" : "info"}>
+                        {b.status}
+                      </Pill>
+                    </Td>
+                    <Td>
+                      <Mono>{shortHash(b.commitment)}</Mono>
+                    </Td>
+                  </tr>
+                ))}
+              </Table>
+              <p className="mt-3 text-[12px] leading-relaxed text-muted">
+                Each bank holds {qb.rule.screening_long + qb.rule.screening_general} screening questions,{" "}
+                {(qb.rule.offline_long + qb.rule.offline_general).toLocaleString("en-US")} quality questions and
+                the traffic scripts for the capacity readings. Its fingerprint is published a day before its week
+                starts; when the week ends the seed is published, so anyone can rebuild the bank and check the
+                fingerprint. Every submission in a week answers the same questions, and each reading also mixes
+                in a random beacon round nobody knows in advance.
+              </p>
+            </>
+          ) : (
+            <Empty title="No bank published yet">The first bank is committed when the controller starts.</Empty>
+          )}
         </Card>
 
         <Card title="Fixed conditions" subtitle="Identical for the champion and every challenger.">
@@ -289,11 +347,17 @@ export default async function CompetitionPage() {
               <Td className="num whitespace-nowrap">{centiHours(p.envelope.recalibration_on_promotion)}</Td>
               <Td>once per promotion, from the reserve</Td>
             </tr>
+            <tr>
+              <Td>champion&apos;s answers to a new bank</Td>
+              <Td className="num whitespace-nowrap">{centiHours(p.envelope.champion_answers_per_bank)}</Td>
+              <Td>once per worker per week, from the reserve</Td>
+            </tr>
           </Table>
           <p className="mt-3 text-[12px] leading-relaxed text-muted">
-            Fee basis: {usd(p.fees.service_cost_usd_cents_per_admission)} service cost per admission,{" "}
-            {p.fees.recovery_bp / 100}% recovered from the miner, the rest subsidised by the operator. Price
-            source <Mono>{p.fees.price_source}</Mono>.
+            Fee: a flat {Number((p.fees.flat_fee_rao / 1e9).toFixed(4))} TAO per paid submission; the TAO price does not
+            change it. The planning cost of one submission is about{" "}
+            {usd(p.fees.service_cost_usd_cents_per_admission)}. Dollar values use{" "}
+            <Mono>{p.fees.price_source}</Mono>.
           </p>
         </Card>
 

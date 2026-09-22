@@ -44,7 +44,7 @@ type Overview = {
     reason: string;
     horizon_hours: number;
   };
-  fee: { price_usd_micros?: number; price_simulated?: boolean; service_cost_usd_cents?: number; recovery_bp?: number };
+  fee: { flat_fee_rao: number; flat_fee_tao: string; price_usd_micros: number | null; service_cost_usd_cents: number };
   chain: { finalized_number: number; finalized_hash: string; simulated: boolean; observed_at: string } | null;
   incidents: { id: string; severity: string; title: string; summary: string }[];
 };
@@ -534,9 +534,12 @@ function LiveBoard({ data }: { data: Overview }) {
                   ["Rule hash", <Mono key="r">{data.profile.rule_hash.slice(0, 16)}…</Mono>],
                   ["Bootstrap mode", data.profile.bootstrap_mode],
                   [
-                    "Fee basis",
-                    data.fee.service_cost_usd_cents
-                      ? `${usd(data.fee.service_cost_usd_cents)} service cost · ${(data.fee.recovery_bp ?? 0) / 100}% recovered`
+                    "Evaluation fee",
+                    data.fee?.flat_fee_tao
+                      ? `${Number(data.fee.flat_fee_tao)} TAO flat` +
+                        (data.fee.price_usd_micros
+                          ? ` · about ${usd(Math.floor((data.fee.flat_fee_rao * data.fee.price_usd_micros) / 1e13))}`
+                          : "")
                       : "—",
                   ],
                 ]}

@@ -44,11 +44,13 @@ export default function DocsPage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
             <ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
               <li>
-                Build your change against the pinned engine commit shown in the{" "}
+                Download the current champion&apos;s code with <Mono>champion-code</Mono> and apply it to the
+                baseline engine with <Mono>baseline/fetch.sh</Mono>. Build your change on top, inside the allowed
+                paths shown in the{" "}
                 <Link href="/docs/rules" className="text-accent hover:underline">
                   rules
                 </Link>
-                , inside the allowed paths.
+                . While version 0 holds the crown, the baseline itself is the champion.
               </li>
               <li>
                 <Mono>pack</Mono> turns your patch and manifest into a reproducible artifact.
@@ -57,13 +59,16 @@ export default function DocsPage() {
                 <Mono>preflight</Mono> runs the free checks. They never cost anything and never execute your code.
               </li>
               <li>
-                <Mono>submit</Mono> reserves capacity and shows the quote: amount, recipient, expiry and refund
-                rules. Nothing is paid until you confirm. Without capacity you join the free waiting list.
+                <Mono>submit</Mono> reserves capacity and shows the quote: a flat 0.1 TAO, the recipient, the expiry
+                and the refund rules. Nothing is paid until you confirm. If the queue is full you join the free
+                waiting list. There is no daily limit; you may have one active submission per hotkey.
               </li>
               <li>Your place in line is the finalized block and index of your payment.</li>
               <li>
-                Screening, then one evaluation against the champion&apos;s fixed score. A winner is promoted
-                automatically unless a check flags it for a person. Follow it with <Mono>status</Mono> or on the{" "}
+                Screening (10 minutes), then one evaluation against the champion&apos;s fixed score. The questions
+                come from the owner&apos;s question bank for the week, the same for every submission that week. A
+                winner is promoted automatically unless a check flags it for a person. Follow it with{" "}
+                <Mono>status</Mono> or on the{" "}
                 <Link href="/dashboard" className="text-accent hover:underline">
                   dashboard
                 </Link>
@@ -71,7 +76,11 @@ export default function DocsPage() {
               </li>
             </ol>
             <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-line bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-muted">
-{`# build a reproducible artifact
+{`# the champion's code, applied to the baseline engine
+uv run ramcove-miner champion-code --out champion/
+baseline/fetch.sh vllm champion/
+
+# build a reproducible artifact from your patch
 uv run ramcove-miner pack --patch patch.diff --manifest manifest.json
 
 # the free checks: no fee, your code is not run
@@ -172,6 +181,10 @@ uv run ramcove-worker`}
             <tr>
               <Td>KV cache</Td>
               <Td>The per-conversation working memory a model keeps on the GPU. It is what RamCove is about.</Td>
+            </tr>
+            <tr>
+              <Td>Question bank</Td>
+              <Td>The owner&apos;s secret questions for one week: screening, quality and the traffic scripts. Its fingerprint is published before the week starts and the bank itself after it ends.</Td>
             </tr>
             <tr>
               <Td>Fixed score</Td>
