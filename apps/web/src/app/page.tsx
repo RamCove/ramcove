@@ -180,7 +180,7 @@ function ChampionPanel({ data }: { data: Overview }) {
             {data.profile.title}
           </p>
         </div>
-        <SimulatedTag what={champion.capacity_measured ? "measured" : "simulated"} />
+        <SimulatedTag what={champion.capacity_measured ? "simulated score" : "estimate"} />
       </div>
 
       <div className="px-6 py-6">
@@ -199,7 +199,7 @@ function ChampionPanel({ data }: { data: Overview }) {
               champion.bound_gain_ppm ? "text-ok" : "text-faint",
             )}
           >
-            {champion.bound_gain_ppm ? `${gain(champion.bound_gain_ppm)} measured` : "baseline"}
+            {champion.bound_gain_ppm ? `${gain(champion.bound_gain_ppm)} in its evaluation` : "baseline"}
           </span>
         </div>
         <p className="mt-3 text-[14px] leading-relaxed text-muted">
@@ -581,8 +581,9 @@ function LiveBoard({ data }: { data: Overview }) {
           <div className="mt-6">
             {capacity.accepting_paid_submissions ? (
               <Notice tone="ok" title="Accepting paid submissions">
-                Each paid submission books {centiHours(capacity.envelope_per_admission_centi)}, the work of one
-                evaluation, until its result is known. Submit any time; there are no rounds.
+                Each paid submission books {centiHours(capacity.envelope_per_admission_centi)}: screening plus one
+                evaluation, until its result is known. A winner&apos;s extra checks come from the reserve. Submit any
+                time; there are no rounds.
               </Notice>
             ) : (
               <Notice tone="warn" title="Paid admissions are paused">

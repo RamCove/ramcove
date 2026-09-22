@@ -121,7 +121,7 @@ export default async function CompetitionPage() {
               label="Capacity"
               value={rps(data.champion.capacity_milli_rps)}
               tone="accent"
-              hint={data.champion.capacity_measured ? "measured" : "simulated calibration"}
+              hint={data.champion.capacity_measured ? "simulated, not an H100" : "estimate, not yet measured"}
             />
             <Stat label="Gain" value={gain(data.champion.bound_gain_ppm)} hint="over the previous champion" />
             <Stat label="Promoted" value={data.champion.promoted_at ? when(data.champion.promoted_at) : "—"} />
