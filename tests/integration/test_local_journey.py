@@ -111,6 +111,52 @@ def test_a_close_first_reading_gets_a_second_and_both_are_recorded(ctx, monkeypa
     )
 
 
+def test_after_the_sunset_a_second_validator_reproduces_the_winner(ctx):
+    """In mainnet mode a winner is promoted only after a validator with no shared operator repeats its reading."""
+    from ramcove_api.store.schema import jobs, profile_versions, workers
+    from ramcove_protocol.rules import ProfileVersion
+    from sqlalchemy import update
+
+    with tx(ctx.engine) as conn:  # publish the same profile in mainnet mode, as the sunset would
+        row = conn.execute(select(profile_versions).where(profile_versions.c.active)).first()
+        body = {**row.body, "bootstrap": {**row.body["bootstrap"], "mode": "mainnet"}, "measured": True}
+        mainnet = ProfileVersion.model_validate(body)
+        conn.execute(
+            update(profile_versions)
+            .where(profile_versions.c.rule_hash == row.rule_hash)
+            .values(body=mainnet.model_dump(mode="json", by_alias=True), rule_hash=mainnet.rule_hash())
+        )
+    everyone = ("w-op-1", "w-op-2", "w-shadow-1")
+    with tx(ctx.engine) as conn:  # the shadow validator's worker is off in the seeded demo
+        conn.execute(update(workers).where(workers.c.id == "w-shadow-1").values(enabled=True))
+    bring_workers_online(ctx, everyone)
+    outcomes = []
+    for variant in range(3):  # the simulated measurement is noisy; a miner would resubmit
+        sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
+        pay_and_admit(ctx, sub["submission_id"], "miner-ada")
+        drain(ctx, workers=everyone)
+        for _ in range(2):
+            control.tick(ctx)
+        w = state(ctx, sub["submission_id"])
+        outcomes.append((w.state, w.outcome_summary))
+        if w.state == "promoted":
+            break
+    assert outcomes[-1][0] == "promoted", outcomes
+    with tx(ctx.engine) as conn:
+        stages = [r.stage for r in conn.execute(select(jobs).where(jobs.c.submission_id == w.id))]
+        readers = {
+            r.worker
+            for r in conn.execute(
+                select(comparisons).where(
+                    comparisons.c.submission_id == w.id, comparisons.c.status == "measured"
+                )
+            )
+        }
+    assert "reproduce" in stages
+    # one reading from the operator's workers and one from the shadow validator's
+    assert "w-shadow-1" in readers and readers & {"w-op-1", "w-op-2"}, readers
+
+
 def winning_submission(ctx, miner: str, fixture: str, expected: str) -> dict:
     attempts, rejected = 0, []
     while attempts < 3:

@@ -21,8 +21,8 @@ import statistics
 from ramcove_evaluator.pipeline import (
     FULL_BUDGET_GIB,
     TIGHT_BUDGET_GIB,
-    _capacity,
     _memory_evidence,
+    _reading,
     calibrate,
 )
 from ramcove_miner.fixtures import FIXTURES, by_name
@@ -49,9 +49,8 @@ def main() -> None:
     print(f"Memory-evidence stability, {args.seeds} seeds per fixture, margin {margin_pct:.1f}%")
     print("Simulated serving model. Not a measurement of any GPU.\n")
 
-    # Reproduce exactly what the worker does: calibrate the champion from the same starting rate, then
-    # ask the pipeline's own _memory_evidence with the same arguments full_evaluation passes it. Running a
-    # separate capacity search here gave numbers that saturated at the grid ceiling and were not comparable.
+    # Reproduce exactly what the worker does: record the champion's fixed score, take the challenger's
+    # reading against it, then ask the pipeline's own _memory_evidence with the arguments evaluate passes.
     challengers = [f for f in sorted(FIXTURES, key=lambda f: f["name"]) if f["role"] == "challenger"]
     gains: dict[str, list[float]] = {f["name"]: [] for f in challengers}
     passes: dict[str, list[bool]] = {f["name"]: [] for f in challengers}
@@ -68,14 +67,10 @@ def main() -> None:
             continue
         for entry in challengers:
             params = entry["params"]
-            cap, _ = _capacity(params, base, profile, seed, FULL_BUDGET_GIB)
-            gain = cap.capacity_rps / base - 1 if cap.capacity_rps else -1.0
-            mem = _memory_evidence(
-                params, champion, base, gain, profile, seed, cal["tight_capacity_milli_rps"]
-            )
-            # None means the tight-budget search confirmed nothing; counted separately rather than
-            # folded in as a number, which is what the -100% readings used to be.
-            if mem["tight_budget_gain_ppm"] is None:
+            cap, _ = _reading(params, base, profile, f"{seed}:reading0", FULL_BUDGET_GIB)
+            mem, _ = _memory_evidence(params, cap.capacity_rps, profile, seed, cal)
+            # the champion's tighter-budget score was missing: counted separately, not as a number
+            if not mem.get("tight_measured"):
                 unmeasured[entry["name"]] += 1
             else:
                 gains[entry["name"]].append(mem["tight_budget_gain_ppm"] / 1e4)
