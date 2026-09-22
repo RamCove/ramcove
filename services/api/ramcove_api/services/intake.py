@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import Any
 
 from ramcove_chain.devchain import payment_call
 from ramcove_protocol.canonical import record_hash, signing_payload
-from ramcove_protocol.fees import StalePriceError, compute_fee
+from ramcove_protocol.fees import compute_fee
 from ramcove_protocol.money import format_tao
 from ramcove_protocol.preflight import run_preflight
 from ramcove_protocol.reservation import can_issue_quote
@@ -18,34 +17,12 @@ from sqlalchemy.exc import IntegrityError
 from ..signing import verify_sr25519
 from ..store import audit
 from ..store.db import advisory_lock, new_id, now, retry_on_contention, support_ref, tx
-from ..store.schema import artifacts, quotes, rate_counters, submissions
+from ..store.schema import artifacts, quotes, submissions
 from .context import AppContext, ServiceError, load_trusted_fixtures
-
-PREFLIGHT_PER_DAY = 10
 
 
 def artifact_signing_body(sha256: str, profile_id: str, version: str, hotkey: str) -> dict[str, Any]:
     return {"artifact_sha256": sha256, "profile_id": profile_id, "profile_version": version, "hotkey": hotkey}
-
-
-def _rate_limit(conn: Connection, bucket: str, limit: int, window: timedelta) -> None:
-    t = now()
-    row = conn.execute(
-        select(rate_counters).where(rate_counters.c.bucket == bucket).with_for_update()
-    ).first()
-    if row is None:
-        conn.execute(rate_counters.insert().values(bucket=bucket, count=1, window_start=t))
-        return
-    if t - row.window_start > window:
-        conn.execute(
-            update(rate_counters).where(rate_counters.c.bucket == bucket).values(count=1, window_start=t)
-        )
-        return
-    if row.count >= limit:
-        raise ServiceError(
-            "rate_limited", f"preflight is limited to {limit} checks per day for this hotkey", 429
-        )
-    conn.execute(update(rate_counters).where(rate_counters.c.bucket == bucket).values(count=row.count + 1))
 
 
 def _set_state(conn: Connection, sub_id: str, current: str, event: str, **values: Any) -> str:
@@ -70,7 +47,6 @@ def lock_submission(conn: Connection, sub_id: str):
 def preflight(ctx: AppContext, hotkey: str, data: bytes, signature_hex: str) -> dict[str, Any]:
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
-        _rate_limit(conn, f"preflight:{hotkey}", PREFLIGHT_PER_DAY, timedelta(days=1))
         known = set()
         for r in conn.execute(select(artifacts.c.sha256, artifacts.c.normalized_patch_sha256)):
             known.update({r.sha256, r.normalized_patch_sha256})
@@ -205,13 +181,9 @@ def reserve(ctx: AppContext, sub_id: str, hotkey: str, payer: str) -> dict[str, 
                 "capacity": check.__dict__,
                 "no_fee": True,
             }
-        price = ctx.latest_price(conn)
-        if price is None:
-            raise ServiceError("price_unavailable", "no price observation; new quotes are refused", 503)
-        try:
-            fee = compute_fee(profile.fees, price, now())
-        except StalePriceError as e:
-            raise ServiceError("price_stale", str(e), 503) from e
+        # the fee is a flat amount of TAO; a recent price only adds its value in US dollars
+        fee = compute_fee(profile.fees, ctx.latest_price(conn), now())
+        price = fee.price
         chain = ctx.chain(conn)
         head = chain.finalized_head()
         quote_id = new_id("q")
@@ -231,9 +203,9 @@ def reserve(ctx: AppContext, sub_id: str, hotkey: str, payer: str) -> dict[str, 
             "issued_block": head.number,
             "expires_block": head.number + profile.deadlines.quote_ttl_blocks,
             "remark": "ramcove:quote:" + quote_id,
-            "price_usd_micros": price.usd_micros_per_tao,
-            "price_observed_at": price.observed_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "price_simulated": price.simulated,
+            "price_usd_micros": price.usd_micros_per_tao if price else None,
+            "price_observed_at": price.observed_at.strftime("%Y-%m-%dT%H:%M:%SZ") if price else None,
+            "price_simulated": price.simulated if price else None,
         }
         signature = ctx.signer.sign("quote", body)
         conn.execute(
@@ -249,10 +221,9 @@ def reserve(ctx: AppContext, sub_id: str, hotkey: str, payer: str) -> dict[str, 
                 amount_rao=fee.fee_rao,
                 issued_block=head.number,
                 expires_block=body["expires_block"],
-                price_usd_micros=price.usd_micros_per_tao,
-                price_observed_at=price.observed_at,
-                price_simulated=price.simulated,
-                target_usd_cents=fee.target_usd_cents,
+                price_usd_micros=price.usd_micros_per_tao if price else None,
+                price_observed_at=price.observed_at if price else None,
+                price_simulated=price.simulated if price else None,
                 fee_usd_cents=fee.fee_usd_cents_at_price,
                 service_cost_usd_cents=fee.service_cost_usd_cents,
                 reserved_centi=check.requested_centi,
@@ -276,10 +247,8 @@ def reserve(ctx: AppContext, sub_id: str, hotkey: str, payer: str) -> dict[str, 
             "signer": ctx.signer.address,
             "display": {
                 "amount_tao": format_tao(fee.fee_rao),
-                "target_usd_cents": fee.target_usd_cents,
                 "fee_usd_cents_at_price": fee.fee_usd_cents_at_price,
                 "service_cost_usd_cents": fee.service_cost_usd_cents,
-                "subsidy_usd_cents": fee.subsidy_usd_cents,
                 "estimated_network_fee_rao": 166_251,
             },
         }

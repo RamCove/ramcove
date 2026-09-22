@@ -177,17 +177,14 @@ def overview(ctx: AppContext) -> dict:
                 "reason": check.reason,
                 "horizon_hours": plan.horizon_hours,
             },
-            "fee": (
-                {"amount_rao_estimate": None}
-                if not price
-                else {
-                    "price_usd_micros": price.usd_micros_per_tao,
-                    "price_simulated": price.simulated,
-                    "price_observed_at": price.observed_at,
-                    "service_cost_usd_cents": profile.fees.service_cost_usd_cents_per_admission,
-                    "recovery_bp": profile.fees.recovery_bp,
-                }
-            ),
+            "fee": {
+                "flat_fee_rao": profile.fees.flat_fee_rao,
+                "flat_fee_tao": format_tao(profile.fees.flat_fee_rao),
+                "service_cost_usd_cents": profile.fees.service_cost_usd_cents_per_admission,
+                "price_usd_micros": price.usd_micros_per_tao if price else None,
+                "price_simulated": price.simulated if price else None,
+                "price_observed_at": price.observed_at if price else None,
+            },
             "chain": None
             if not obs
             else {

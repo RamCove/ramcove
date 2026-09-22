@@ -757,7 +757,7 @@ def review_criteria() -> list[dict]:
             ("adaptivity", "No forbidden benchmark-recognition adaptivity"),
             ("security", "Security scans and fuzzing clean"),
             ("native_review", "Independent review of native code"),
-            ("soak", "6-hour soak at 90% of measured capacity without errors above the gate"),
+            ("soak", "1-hour soak at 90% of measured capacity without errors above the gate"),
             ("mechanism", "Declared memory mechanism confirmed in the code"),
         ]
     ]

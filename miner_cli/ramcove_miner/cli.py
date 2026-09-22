@@ -109,10 +109,9 @@ def cmd_submit(args: argparse.Namespace) -> int:
         q, d = res["quote"], res["display"]
         print(f"\nQuote {q['quote_id']}")
         print(f"  network   {q['network']}{' (simulated)' if meta['simulated_chain'] else ''}")
-        print(
-            f"  amount    {d['amount_tao']} TAO  (target {d['target_usd_cents'] / 100:.2f} USD, "
-            f"operator subsidy {d['subsidy_usd_cents'] / 100:.2f} USD)"
-        )
+        usd = d.get("fee_usd_cents_at_price")
+        worth = f"  (about {usd / 100:.2f} USD at the latest price)" if usd is not None else ""
+        print(f"  amount    {d['amount_tao']} TAO, a flat fee{worth}")
         print(f"  recipient {q['recipient']}")
         print(f"  expires   block {q['expires_block']}")
         print(f"  note      {q['remark']}")

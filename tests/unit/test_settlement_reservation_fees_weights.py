@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from ramcove_protocol.fees import PriceObservation, StalePriceError, compute_fee
+from ramcove_protocol.fees import PriceObservation, compute_fee
 from ramcove_protocol.money import RAO_PER_TAO
 from ramcove_protocol.reservation import CapacityPlan, can_issue_quote, remaining_envelope
 from ramcove_protocol.settlement import AdmissionKey, QueueEntry, decide_promotion
@@ -85,16 +85,16 @@ def test_booked_work_never_exceeds_the_two_week_queue(profile):
         committed += remaining_envelope(S.ADMITTED, env)
         admitted += 1
     # each admission books screening plus one evaluation; the reserve covers winners' extra checks
-    assert env.total() == 334
+    assert env.total() == 316
     assert committed <= plan.capacity_centi() < committed + env.total()
-    assert admitted == plan.capacity_centi() // env.total() == 160
+    assert admitted == plan.capacity_centi() // env.total() == 170
 
 
 def test_envelope_releases_as_outcomes_are_known(profile):
     env = profile.envelope
     seq = [S.ADMITTED, S.EVAL_QUEUED, S.IN_REVIEW, S.READY_FOR_PROMOTION, S.PROMOTED]
     values = [remaining_envelope(s, env) for s in seq]
-    assert values == [334, 299, 0, 0, 0]
+    assert values == [316, 299, 0, 0, 0]
 
 
 def test_no_quotes_when_paused_or_no_safe_workers(profile):
@@ -102,24 +102,23 @@ def test_no_quotes_when_paused_or_no_safe_workers(profile):
     assert not can_issue_quote(0, profile.envelope, CapacityPlan(0, 336), intake_paused=False).allowed
 
 
-def test_fee_formula_and_rounding(profile):
+def test_the_fee_is_a_flat_tenth_of_a_tao(profile):
     now = datetime(2026, 9, 17, 15, 40, tzinfo=UTC)
     price = PriceObservation("coingecko:bittensor:usd", 227_920_000, now - timedelta(minutes=4), False)
     f = compute_fee(profile.fees, price, now)
-    assert f.fee_rao == 40_000_000  # 0.04 TAO, rounded up to 0.01
-    assert f.target_usd_cents == 781  # half of the $15.63 planning cost per admission
-    assert f.fee_usd_cents_at_price == 911  # review R10: $9.11 at that price, not $7.54
-    assert f.fee_rao % profile.fees.round_step_rao == 0 and f.fee_rao < RAO_PER_TAO
+    assert f.fee_rao == RAO_PER_TAO // 10  # 0.1 TAO
+    assert f.fee_usd_cents_at_price == 2279  # $22.79 at $227.92, shown for information only
+    doubled = PriceObservation("coingecko:bittensor:usd", 455_840_000, now - timedelta(minutes=4), False)
+    assert compute_fee(profile.fees, doubled, now).fee_rao == f.fee_rao  # the price never moves the fee
 
 
-def test_stale_price_refuses_quotes(profile):
+def test_a_stale_or_foreign_price_only_hides_the_dollar_value(profile):
     now = datetime(2026, 9, 17, tzinfo=UTC)
-    with pytest.raises(StalePriceError):
-        compute_fee(
-            profile.fees,
-            PriceObservation("coingecko:bittensor:usd", 227_920_000, now - timedelta(hours=1), False),
-            now,
-        )
+    stale = PriceObservation("coingecko:bittensor:usd", 227_920_000, now - timedelta(hours=1), False)
+    foreign = PriceObservation("somewhere-else", 227_920_000, now, False)
+    for price in (stale, foreign, None):
+        f = compute_fee(profile.fees, price, now)
+        assert f.fee_rao == RAO_PER_TAO // 10 and f.fee_usd_cents_at_price is None and f.price is None
 
 
 def test_uid_reuse_never_redirects_reward():

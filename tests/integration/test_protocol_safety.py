@@ -205,14 +205,14 @@ def test_underpayment_is_rejected_and_opens_a_refund(ctx):
         assert r is not None and "underpaid" in r.reason
 
 
-def test_stale_price_refuses_new_quotes(ctx):
+def test_a_stale_price_does_not_block_the_flat_fee(ctx):
     allow_untrusted(ctx)
     sub_id, hotkey = unique_submission(ctx, 103)
     with tx(ctx.engine) as conn:
         conn.execute(update(price_observations).values(observed_at=now() - timedelta(hours=2)))
-    with pytest.raises(ServiceError) as e:
-        intake.reserve(ctx, sub_id, hotkey, hotkey)
-    assert e.value.code in ("price_stale", "price_unavailable")
+    q = intake.reserve(ctx, sub_id, hotkey, hotkey)
+    assert q["status"] == "quoted" and q["quote"]["amount_rao"] == 100_000_000
+    assert q["quote"]["price_usd_micros"] is None and q["display"]["fee_usd_cents_at_price"] is None
 
 
 def test_paused_intake_and_no_ready_worker_fail_closed(ctx):

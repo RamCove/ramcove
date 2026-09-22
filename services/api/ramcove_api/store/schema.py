@@ -198,11 +198,10 @@ quotes = Table(
     Column("amount_rao", BigInteger, nullable=False),
     Column("issued_block", BigInteger, nullable=False),
     Column("expires_block", BigInteger, nullable=False),
-    Column("price_usd_micros", BigInteger, nullable=False),
-    Column("price_observed_at", DateTime(timezone=True), nullable=False),
-    Column("price_simulated", Boolean, nullable=False),
-    Column("target_usd_cents", Integer, nullable=False),
-    Column("fee_usd_cents", Integer, nullable=False),
+    Column("price_usd_micros", BigInteger),
+    Column("price_observed_at", DateTime(timezone=True)),
+    Column("price_simulated", Boolean),
+    Column("fee_usd_cents", Integer),
     Column("service_cost_usd_cents", Integer, nullable=False),
     Column("reserved_centi", Integer, nullable=False),
     Column("status", String(16), nullable=False, server_default=text("'open'")),
@@ -584,14 +583,6 @@ devchain_registrations = Table(
     Column("uid", Integer, nullable=False),
     PrimaryKeyConstraint("netuid", "hotkey"),
     UniqueConstraint("netuid", "uid", name="uid"),
-)
-
-rate_counters = Table(
-    "rate_counters",
-    metadata,
-    Column("bucket", String(160), primary_key=True),
-    Column("count", Integer, nullable=False),
-    ts("window_start", False),
 )
 
 idempotency = Table(

@@ -99,9 +99,9 @@ class StageEnvelope(Frozen):
     (quality, up to two capacity readings and the GPU check). A winner's extra checks and the new champion's
     calibration draw on the published reserve instead of being booked in advance."""
 
-    screen: int = 35
+    screen: int = 17
     evaluation: int = 299
-    winner_checks: int = 830
+    winner_checks: int = 330
     recalibration_on_promotion: int = 576
 
     def total(self) -> int:
@@ -128,9 +128,10 @@ class Deadlines(Frozen):
 
 
 class FeePolicy(Frozen):
+    """A flat evaluation fee in TAO. The TAO price is used only to show the fee's value in US dollars."""
+
+    flat_fee_rao: int = Field(100_000_000, description="0.1 TAO per paid submission, whatever the TAO price")
     service_cost_usd_cents_per_admission: int = Field(1563, description="Planning estimate, not measured")
-    recovery_bp: int = 5000
-    round_step_rao: int = 10_000_000
     price_max_age_s: int = 15 * 60
     price_source: str = "coingecko:bittensor:usd"
 

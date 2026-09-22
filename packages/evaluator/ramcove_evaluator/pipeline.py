@@ -6,7 +6,7 @@ against the coarse ``SimulatedStack`` model. Every result carries ``simulated: t
 
 GPU time is accounted in centi-GPU-hours with the planning run lengths of Appendix B: one rate of a reading
 (engine start, warm-up, an 8-minute window, drain) is 0.36 h, the short-request control 0.31 h, the multi-turn
-run 0.56 h, the soak 6 h.
+run 0.56 h, the soak 1 h. Screening is 10 minutes of GPU time.
 """
 
 from __future__ import annotations
@@ -38,7 +38,8 @@ class CalibrationMissing(RuntimeError):
 REFERENCE = StackParams("ramcove-quality-reference-16bit", base_accuracy_bp=9100)
 OFFLINE_LONG, OFFLINE_GENERAL = 3200, 800  # the profile suite size (Section 7.6)
 FULL_BUDGET_GIB, TIGHT_BUDGET_GIB = 32.0, 24.0
-RUN_CENTI, CTL_CENTI, LIVE_CENTI, SOAK_CENTI = 36, 31, 56, 600  # a reading's rate, P-ctl, P-live, the soak
+RUN_CENTI, CTL_CENTI, LIVE_CENTI, SOAK_CENTI = 36, 31, 56, 100  # a reading's rate, P-ctl, P-live, the soak
+SCREEN_CENTI = 17  # engine start (at most 5 minutes), 200 questions sent in parallel, memory check
 QUALITY_CENTI, CHECK_CENTI = 150, 25  # the offline suite (both stacks answer), the GPU check and reset
 CALIBRATION_CENTI = (
     576  # the champion's fixed score on one worker: search and confirmation, tight budget, P-ctl
@@ -68,7 +69,7 @@ def screen(params: StackParams, champion: StackParams, profile: ProfileVersion, 
             "simulated": True,
             "explanation": {
                 "build_failure": "The patch did not build on two clean isolated builds.",
-                "no_start": "The engine did not start within 15 minutes.",
+                "no_start": "The engine did not start within 5 minutes.",
             }.get(params.screen_failure, params.screen_failure),
             "checks": ["isolated build"],
             "gpu_centi": 10,
@@ -93,12 +94,18 @@ def screen(params: StackParams, champion: StackParams, profile: ProfileVersion, 
             "stage": "screen",
             "decisive_failure": "gross_accuracy",
             "simulated": True,
-            "gpu_centi": 35,
+            "gpu_centi": SCREEN_CENTI,
             "explanation": f"Smoke accuracy is {gap_bp / 100:.1f} points below the champion (decisive limit 15).",
             "checks": checks,
         }
     checks.append("output contract and memory ceiling: ok (speed is not judged here)")
-    return {"stage": "screen", "decisive_failure": None, "simulated": True, "gpu_centi": 35, "checks": checks}
+    return {
+        "stage": "screen",
+        "decisive_failure": None,
+        "simulated": True,
+        "gpu_centi": SCREEN_CENTI,
+        "checks": checks,
+    }
 
 
 def _capacity(params: StackParams, base_rps: float, profile: ProfileVersion, seed: str, budget: float):
