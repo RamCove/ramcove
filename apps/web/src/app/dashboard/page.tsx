@@ -76,7 +76,18 @@ type Dashboard = {
     capacity_milli_rps: number | null;
     bound_gain_ppm: number | null;
     promoted_at: string | null;
+    measured_against_milli_rps: number | null;
+    measured_on_worker: string | null;
+    reading_milli_rps: number | null;
   };
+  fixed_scores: {
+    worker: string;
+    champion_version: number | null;
+    current: boolean;
+    fixed_score_milli_rps: number | null;
+    tight_fixed_score_milli_rps: number | null;
+    measured_at: string | null;
+  }[];
   counts: Record<Group, number>;
   total: number;
   items: {
@@ -265,6 +276,18 @@ export default async function DashboardPage({
               </dd>
             </div>
           </dl>
+          {champion.measured_against_milli_rps ? (
+            <p className="mt-4 text-[12px] leading-snug text-on-band/60">
+              Each worker measures capacity for itself, so these two numbers
+              have different baselines. The gain is{" "}
+              {rps(champion.reading_milli_rps)} against{" "}
+              {rps(champion.measured_against_milli_rps)}, the previous
+              champion&apos;s fixed score on{" "}
+              <span className="font-mono">{champion.measured_on_worker}</span>,
+              the worker that judged it. The capacity above is the first
+              worker&apos;s measurement of this champion.
+            </p>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-3 lg:grid-cols-5">

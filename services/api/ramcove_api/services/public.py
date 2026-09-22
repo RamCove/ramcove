@@ -188,6 +188,7 @@ def overview(ctx: AppContext) -> dict:
                 "capacity_milli_rps": champ.capacity_milli_rps,
                 "capacity_measured": champ.capacity_measured,
                 "bound_gain_ppm": champ.bound_gain_ppm,
+                **champion_measurement(conn, champ),
                 "explain": (
                     "No miner holds the crown yet: version 0 is the tuned baseline and earns "
                     "nothing. Until a miner wins, the miner allocation goes to the owner UID (burn)."
@@ -665,6 +666,7 @@ def status_page(ctx: AppContext) -> dict:
                 }
                 for w in ws
             ],
+            "fixed_scores": worker_fixed_scores(ws, current_champion(conn, profile.profile_id).version),
             "expired_leases_waiting_for_sweep": stuck,
             "chain": None
             if not obs
@@ -852,6 +854,47 @@ def workflow(profile) -> list[dict]:
     ]
 
 
+def champion_measurement(conn, champ) -> dict:
+    """Capacity is measured per worker, so two numbers on this site have different baselines: the champion's
+    capacity is one worker's measurement, and its gain was taken against the fixed score of the worker that
+    judged it. Say both, or a reader cannot reconcile them."""
+    out: dict = {"measured_against_milli_rps": None, "measured_on_worker": None, "reading_milli_rps": None}
+    if not champ or not champ.submission_id:
+        return out
+    row = conn.execute(
+        select(comparisons)
+        .where(comparisons.c.submission_id == champ.submission_id, comparisons.c.status == "measured")
+        .order_by(comparisons.c.created_at.desc())
+    ).first()
+    if row:
+        out.update(
+            measured_against_milli_rps=row.champion_milli_rps,
+            measured_on_worker=row.worker,
+            reading_milli_rps=row.challenger_milli_rps,
+        )
+    return out
+
+
+def worker_fixed_scores(ws, champion_version: int | None) -> list[dict]:
+    """Each worker's own fixed score for the champion it has calibrated. The spread between workers is real
+    and is why a gain is never taken against another worker's number."""
+    out = []
+    for w in ws:
+        cal = (w.readiness or {}).get("calibration") or {}
+        if cal.get("capacity_milli_rps"):
+            out.append(
+                {
+                    "worker": w.id,
+                    "champion_version": w.calibrated_champion_version,
+                    "current": w.calibrated_champion_version == champion_version,
+                    "fixed_score_milli_rps": cal.get("capacity_milli_rps"),
+                    "tight_fixed_score_milli_rps": cal.get("tight_capacity_milli_rps"),
+                    "measured_at": w.calibrated_at,
+                }
+            )
+    return sorted(out, key=lambda r: r["worker"])
+
+
 def dashboard_group(state: str) -> str:
     for group, states in DASHBOARD_GROUPS.items():
         if state in states:
@@ -975,7 +1018,11 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
                 "capacity_milli_rps": champ.capacity_milli_rps,
                 "bound_gain_ppm": champ.bound_gain_ppm,
                 "promoted_at": champ.promoted_at,
+                **champion_measurement(conn, champ),
             },
+            "fixed_scores": worker_fixed_scores(
+                conn.execute(select(workers)).all(), champ.version if champ else None
+            ),
             "counts": counts,
             "total": sum(counts.values()),
             "workflow": workflow(profile),
