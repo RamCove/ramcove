@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from ramcove_api.main import create_app
 from ramcove_miner import cli as miner_cli
 
-from .helpers import bring_workers_online, drain, make_ctx, pay_and_admit, state, submit_fixture
+from .helpers import ATTEMPTS, bring_workers_online, drain, make_ctx, pay_and_admit, state, submit_fixture
 
 pytestmark = pytest.mark.db
 
@@ -26,13 +26,13 @@ def ctx(tmp_path):
 
 def promote_one(ctx) -> str:
     bring_workers_online(ctx)
-    for variant in range(3):  # the simulated measurement is noisy; a miner would resubmit
+    for variant in range(ATTEMPTS):  # the simulated measurement is noisy; a miner would resubmit
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
         if state(ctx, sub["submission_id"]).state == "promoted":
             return sub["submission_id"]
-    raise AssertionError("no promotion in three attempts")
+    raise AssertionError(f"no promotion in {ATTEMPTS} attempts")
 
 
 def test_while_the_baseline_holds_the_crown_there_is_nothing_to_apply(ctx):

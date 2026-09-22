@@ -72,6 +72,12 @@ def submit_fixture(ctx, miner_key: str, fixture_name: str, parent_version: int =
     return intake.preflight(ctx, hk, data, sig)
 
 
+# How many times a test resubmits a stack that really is better. One evaluation of the simulated stack
+# rejects such a stack about half the time (docs/acceptance-matrix.md), so a test that submitted once, or
+# even three times, would fail on its own noise rather than on a defect.
+ATTEMPTS = 10
+
+
 def pay_and_admit(ctx, sub_id: str, miner_key: str) -> dict:
     hk, _ = hotkey(miner_key)
     q = intake.reserve(ctx, sub_id, hk, payer=hk)

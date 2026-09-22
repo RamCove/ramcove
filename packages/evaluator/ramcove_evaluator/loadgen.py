@@ -21,6 +21,12 @@ def rps_to_conversations_per_s(rps: float) -> float:
     return rps / MEAN_TURNS
 
 
+# Run lengths of Appendix B. A reading's rate is judged on an 8-minute window; the champion's confirmation
+# runs and P-live use 20 minutes; the short-request control 10; the soak an hour. Bursts last one minute.
+READING_WINDOW_S, CONFIRM_WINDOW_S, CTL_WINDOW_S, SOAK_WINDOW_S = 480.0, 1200.0, 600.0, 3600.0
+DRAIN_S, BURST_S = 90.0, 60.0
+
+
 def pmem_schedule(seed: str, rps: float, window_s: float, bursts: bool = True):
     """Prepared-history schedule: turn k at conversation start + earlier 8 s service allowances + think times,
     issued on time even if the previous turn is late (open loop)."""
@@ -32,9 +38,7 @@ def pmem_schedule(seed: str, rps: float, window_s: float, bursts: bool = True):
     ci = 0
     while t < window_s and ci < len(convs):
         rate = conv_rate * (
-            1.5
-            if bursts and (0.40 * window_s <= t < 0.45 * window_s or 0.70 * window_s <= t < 0.75 * window_s)
-            else 1.0
+            1.5 if bursts and (any(b <= t < b + BURST_S for b in (0.40 * window_s, 0.70 * window_s))) else 1.0
         )
         t += r.expovariate(rate)
         conv = convs[ci]
@@ -116,20 +120,18 @@ def per_run_gates(logs: list[RequestLog], gates: LatencyGates, ceiling_ok: bool)
         reasons.append(f"attainment {att / 100:.1f}% below {gates.attainment_bp / 100:.1f}%")
     if bad * 10_000 > gates.max_error_bp * offered:
         reasons.append(f"{bad} errored/rejected/timed-out requests exceed the limit")
-    done = sorted((x for x in logs if x.ttft_ms is not None), key=lambda x: x.scheduled_s)
+    done = sorted((x for x in logs if x.e2e_ms is not None), key=lambda x: x.scheduled_s)
     drift_ok = True
     if len(done) >= 8:
-        # Over-saturation shows as growing queueing delay: compare p90 time-to-first-token of the last quarter
-        # with the second quarter, ignoring differences below the base TTFT limit.
+        # Over-saturation shows as a queue that keeps growing: compare p90 end-to-end time of the last quarter
+        # with the second quarter (Section 7.7).
         quarter = len(done) // 4
-        q2 = sorted(x.ttft_ms for x in done[quarter : 2 * quarter])
-        q4 = sorted(x.ttft_ms for x in done[3 * quarter :])
+        q2 = sorted(x.e2e_ms for x in done[quarter : 2 * quarter])
+        q4 = sorted(x.e2e_ms for x in done[3 * quarter :])
         p90 = lambda xs: xs[min(len(xs) - 1, int(0.9 * len(xs)))]  # noqa: E731
-        drift_ok = p90(q4) <= gates.ttft_base_ms or p90(q4) * 10_000 <= gates.drift_q4_over_q2_bp * max(
-            1, p90(q2)
-        )
+        drift_ok = p90(q4) * 10_000 <= gates.drift_q4_over_q2_bp * max(1, p90(q2))
         if not drift_ok:
-            reasons.append("time to first token keeps growing: the queue is not stable")
+            reasons.append("end-to-end time keeps growing: the queue is not stable")
     if not ceiling_ok:
         reasons.append("GPU memory ceiling exceeded")
     return RunGates(not reasons, offered, q, bad, att, drift_ok, ceiling_ok, tuple(reasons))
@@ -155,8 +157,8 @@ def run_once(
     rps: float,
     gates: LatencyGates,
     budget_gib: float = 32.0,
-    window_s: float = 1800.0,
-    drain_s: float = 60.0,
+    window_s: float = READING_WINDOW_S,
+    drain_s: float = DRAIN_S,
     live: bool = False,
     ctl: bool = False,
 ) -> tuple[list[RequestLog], RunGates]:

@@ -8,6 +8,7 @@ from ramcove_api.store.schema import champions, comparisons, ledger, receipts, r
 from sqlalchemy import select
 
 from .helpers import (
+    ATTEMPTS,
     approve_review,
     bring_workers_online,
     drain,
@@ -88,7 +89,7 @@ def test_a_close_first_reading_gets_a_second_and_both_are_recorded(ctx, monkeypa
     monkeypatch.setattr(pipeline, "_reading", close_reading)
     bring_workers_online(ctx)
     measured = []
-    for variant in range(3):  # offline quality is noisy in the simulation; a miner would resubmit
+    for variant in range(ATTEMPTS):  # offline quality is noisy in the simulation; a miner would resubmit
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
@@ -131,7 +132,7 @@ def test_after_the_sunset_a_second_validator_reproduces_the_winner(ctx):
         conn.execute(update(workers).where(workers.c.id == "w-shadow-1").values(enabled=True))
     bring_workers_online(ctx, everyone)
     outcomes = []
-    for variant in range(3):  # the simulated measurement is noisy; a miner would resubmit
+    for variant in range(ATTEMPTS):  # the simulated measurement is noisy; a miner would resubmit
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx, workers=everyone)
@@ -159,7 +160,7 @@ def test_after_the_sunset_a_second_validator_reproduces_the_winner(ctx):
 
 def winning_submission(ctx, miner: str, fixture: str, expected: str) -> dict:
     attempts, rejected = 0, []
-    while attempts < 3:
+    while attempts < ATTEMPTS:
         attempts += 1
         sub = submit_fixture(ctx, miner, fixture, variant=attempts - 1)
         assert sub["ok"]

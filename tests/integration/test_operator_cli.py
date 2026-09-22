@@ -12,7 +12,7 @@ from ramcove_api import operator_cli
 from ramcove_api.main import create_app
 from ramcove_api.services import seed
 
-from .helpers import bring_workers_online, drain, make_ctx, pay_and_admit, state, submit_fixture
+from .helpers import ATTEMPTS, bring_workers_online, drain, make_ctx, pay_and_admit, state, submit_fixture
 
 pytestmark = pytest.mark.db
 
@@ -77,14 +77,14 @@ def test_a_reviewer_decides_a_promotion_from_the_command_line(ctx, run):
     bring_workers_online(ctx)
     # a native kernel is flagged for a person; the simulated evaluation is noisy, so resubmit as a miner would
     sub_id = None
-    for attempt in range(3):
+    for attempt in range(ATTEMPTS):
         sub = submit_fixture(ctx, "miner-ada", "native-paged-kv-kernel", variant=attempt)
         pay_and_admit(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
         if state(ctx, sub["submission_id"]).state == "in_review":
             sub_id = sub["submission_id"]
             break
-    assert sub_id, "no submission reached review in three attempts"
+    assert sub_id, f"no submission reached review in {ATTEMPTS} attempts"
     code, out, _ = run("reviewer-1", "reviews")
     assert code == 0 and sub_id in out and "flagged: native_review" in out
     review_id = next(line.split()[0] for line in out.splitlines() if sub_id in line)

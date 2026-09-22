@@ -31,7 +31,7 @@ from ramcove_protocol.scoring import (
 
 from .bank import Bank, pack_outcomes, unpack_outcomes
 from .capacity import confirmed_capacity, reading_capacity
-from .loadgen import pooled_gates, run_once
+from .loadgen import CONFIRM_WINDOW_S, CTL_WINDOW_S, SOAK_WINDOW_S, pooled_gates, run_once
 from .target import StackParams
 from .taskgen import POSITIONS, grade, seed_manifest
 
@@ -148,7 +148,16 @@ def _capacity(params: StackParams, base_rps: float, profile: ProfileVersion, see
     runs: dict[str, object] = {}
 
     def run(rate: float, label: str) -> bool:
-        logs, g = run_once(params, f"{seed}:{label}", rate, profile.latency, budget_gib=budget)
+        # the champion's score is confirmed on full 20-minute windows; the search itself uses reading windows
+        window = CONFIRM_WINDOW_S if label.startswith("confirm") else None
+        logs, g = run_once(
+            params,
+            f"{seed}:{label}",
+            rate,
+            profile.latency,
+            budget_gib=budget,
+            **({"window_s": window} if window else {}),
+        )
         runs[f"{label}@{rate:.4f}"] = logs
         return g.passed
 
@@ -178,7 +187,7 @@ def calibrate(champion: StackParams, profile: ProfileVersion, seed: str, base_rp
         champion, (cap.capacity_rps or base_rps) * 0.8, profile, seed + ":tight", TIGHT_BUDGET_GIB
     )
     ctl_rate = max(0.2, cap.capacity_rps * 2.0)
-    _, ctl = run_once(champion, seed + ":pctl", ctl_rate, profile.latency, ctl=True)
+    _, ctl = run_once(champion, seed + ":pctl", ctl_rate, profile.latency, ctl=True, window_s=CTL_WINDOW_S)
     return {
         "stage": "calibration",
         "simulated": True,
@@ -352,13 +361,17 @@ def evaluate(
         mem, mem_gpu = _memory_evidence(params, cap.capacity_rps, profile, seed, champion_calibration)
         base_ctl = champion_calibration.get("pctl") or {}
         ctl_rate = base_ctl.get("rate_milli_rps", int(base * 2000)) / 1000
-        _, ctl = run_once(params, seed + ":pctl", ctl_rate, profile.latency, ctl=True)
+        _, ctl = run_once(params, seed + ":pctl", ctl_rate, profile.latency, ctl=True, window_s=CTL_WINDOW_S)
         ctl_ok = ctl.attainment_bp >= base_ctl.get("attainment_bp", 0) - 200 and (
             ctl.errored_or_rejected <= base_ctl.get("errored_or_rejected", 0) + 2
         )
         live_rate = max(0.1, cap.capacity_rps * profile.plive_rate_bp / 10_000)
-        _, live = run_once(params, seed + ":plive", live_rate, profile.latency, live=True)
-        _, soak = run_once(params, seed + ":soak", cap.capacity_rps * 0.9, profile.latency, window_s=3600.0)
+        _, live = run_once(
+            params, seed + ":plive", live_rate, profile.latency, live=True, window_s=CONFIRM_WINDOW_S
+        )
+        _, soak = run_once(
+            params, seed + ":soak", cap.capacity_rps * 0.9, profile.latency, window_s=SOAK_WINDOW_S
+        )
         gpu += mem_gpu + CTL_CENTI + LIVE_CENTI + SOAK_CENTI
         gates = GateSet(
             offline_quality=True,

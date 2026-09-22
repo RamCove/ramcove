@@ -121,7 +121,7 @@ FIXTURES = [
 ]
 
 
-DEMO_VARIANTS = 6  # demo only: lets the local demonstration be re-run without weakening duplicate checks
+DEMO_VARIANTS = 12  # demo only: lets the local demonstration be re-run without weakening duplicate checks
 
 
 def variant_patch(fixture: dict, variant: int) -> str:
