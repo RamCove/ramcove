@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from ramcove_chain.beacon import DevBeacon, resolve_round
+from ramcove_chain.beacon import DevBeacon, resolve_round, schedule_round
 from ramcove_protocol.reservation import remaining_envelope
 from ramcove_protocol.scoring import Reading, gain_against_later_champion
 from ramcove_protocol.state import PAID_ACTIVE, S
@@ -209,7 +209,10 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
         chain = ctx.chain(conn)
         anchor = chain.finalized_head()
         beacon = DevBeacon()
-        scheduled = beacon.round_at(now()) + 1
+        # Section 8.9: a round far enough after the anchor that nobody can know it when the artifact and
+        # the payment are frozen. The dev beacon computes any round on demand; a real relay only serves a
+        # round once it exists, so a real deployment waits for it and resolve_round's fallback applies.
+        scheduled = schedule_round(beacon, now(), timedelta(seconds=profile.deadlines.beacon_min_delay_s))
         cid = new_id("cmp")
         res = resolve_round(beacon, scheduled, cid)
         conn.execute(
@@ -384,7 +387,14 @@ def complete(ctx: AppContext, worker_id: str, job_id: str, result: dict) -> dict
             readiness = dict(w.readiness)
             readiness["calibration"] = {
                 k: result[k]
-                for k in ("capacity_milli_rps", "tight_capacity_milli_rps", "flag", "pctl", "answers")
+                for k in (
+                    "capacity_milli_rps",
+                    "tight_capacity_milli_rps",
+                    "flag",
+                    "pctl",
+                    "answers",
+                    "under_load",
+                )
                 if k in result
             }
             conn.execute(

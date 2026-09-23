@@ -18,10 +18,11 @@ re-measured in every block and recalibrated weekly. The owner asked for a faster
 - A queued challenger runs against the champion current at its turn. A winner measured against an older
   champion is re-compared by arithmetic, `(1 + G) / (1 + G_new) − 1`; nothing is measured again. A rules
   change or a rollback re-runs the evaluation at the same key with no new fee.
-- Each paid submission books the expected work of one evaluation (3.34 GPU-hours); the two-week cap limits
+- Each paid submission books screening plus the expected work of one evaluation (2.41 GPU-hours,
+  updated from 3.34 when the run lengths were brought in line with Appendix B); the two-week cap limits
   the queue, and a queued paid submission is always evaluated.
 
-**Consequences.** An evaluation takes about 3 GPU-hours instead of about 9 plus 14 for confirmation, and the
+**Consequences.** An evaluation takes about 2.2 GPU-hours instead of about 9 plus 14 for confirmation, and the
 queue holds about twenty times more submissions per worker. The price is that every comparison on a worker
 leans on one measurement of the champion: a score that comes out high rejects every challenger on that
 worker until the next champion, and one that comes out low lets weaker challengers win. In the simulator

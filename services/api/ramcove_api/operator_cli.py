@@ -126,6 +126,12 @@ def cmd_incident(client: httpx.Client, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_exclude(client: httpx.Client, args: argparse.Namespace) -> int:
+    body = {"hotkey": args.hotkey, "excluded": args.action == "add", "reason": args.reason}
+    _print(_check(client.post("/v1/operator/exclusions", json=body)))
+    return 0
+
+
 def cmd_refund(client: httpx.Client, args: argparse.Namespace) -> int:
     _print(_check(client.post(f"/v1/operator/refunds/{args.id}/{args.action}")))
     return 0
@@ -201,6 +207,12 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("action", choices=["pause", "resume"])
     sp.add_argument("--reason", required=True)
     sp.set_defaults(fn=cmd_intake)
+
+    sp = sub.add_parser("exclude", help="exclude a hotkey from the competition, or reinstate it")
+    sp.add_argument("action", choices=["add", "remove"])
+    sp.add_argument("--hotkey", required=True)
+    sp.add_argument("--reason", required=True)
+    sp.set_defaults(fn=cmd_exclude)
 
     sp = sub.add_parser("incident", help="open or resolve a public incident")
     sp.add_argument("action", choices=["open", "resolve"])

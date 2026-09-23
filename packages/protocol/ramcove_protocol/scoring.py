@@ -184,6 +184,7 @@ class GateSet:
     offline_quality: bool
     capacity_reading: bool | None = None
     band_attainment: bool | None = None
+    accuracy_under_load: bool | None = None
     memory_evidence: bool | None = None
     short_request_control: bool | None = None
     live_conversation_check: bool | None = None

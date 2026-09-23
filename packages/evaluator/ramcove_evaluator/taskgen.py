@@ -51,9 +51,9 @@ def _band(r: random.Random) -> int:
     return len(BANDS) - 1
 
 
-def make_item(seed: str, idx: int, group: str | None = None) -> Item:
+def make_item(seed: str, idx: int, group: str | None = None, band: int | None = None) -> Item:
     r = _rng(seed, f"item:{idx}")
-    band = _band(r)
+    band = _band(r) if band is None else band
     lo, hi, _ = BANDS[band]
     kind = r.choice(["exact", "numeric", "set"])
     fact = r.randrange(10_000, 99_999)
@@ -75,7 +75,13 @@ def make_item(seed: str, idx: int, group: str | None = None) -> Item:
 
 
 def offline_suite(seed: str, n_long: int, n_general: int) -> list[Item]:
-    items = [make_item(seed, i, POSITIONS[i % 3]) for i in range(n_long)]
+    """The long-context items are stratified over the context bands as well as the positions: the quality
+    rule bounds accuracy per band (Section 8.6), and a band that follows the traffic weights would leave
+    the widest contexts with too few items to bound anything. The general items keep the traffic mix."""
+    per_band = n_long // len(BANDS)
+    items = [
+        make_item(seed, i, POSITIONS[i % 3], band=min(i // per_band, len(BANDS) - 1)) for i in range(n_long)
+    ]
     items += [make_item(seed, n_long + i, "general") for i in range(n_general)]
     return items
 

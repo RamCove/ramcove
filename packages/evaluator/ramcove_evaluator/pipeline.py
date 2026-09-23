@@ -31,7 +31,15 @@ from ramcove_protocol.scoring import (
 
 from .bank import Bank, pack_outcomes, unpack_outcomes
 from .capacity import confirmed_capacity, reading_capacity
-from .loadgen import CONFIRM_WINDOW_S, CTL_WINDOW_S, SOAK_WINDOW_S, pooled_gates, run_once
+from .loadgen import (
+    CONFIRM_WINDOW_S,
+    CTL_WINDOW_S,
+    SOAK_WINDOW_S,
+    accuracy_gate,
+    accuracy_under_load,
+    pooled_gates,
+    run_once,
+)
 from .progress import Reporter, send
 from .target import StackParams
 from .taskgen import POSITIONS, grade, seed_manifest
@@ -45,6 +53,7 @@ REFERENCE = StackParams("ramcove-quality-reference-16bit", base_accuracy_bp=9100
 FULL_BUDGET_GIB, TIGHT_BUDGET_GIB = 32.0, 24.0
 RUN_CENTI, CTL_CENTI, LIVE_CENTI, SOAK_CENTI = 36, 31, 56, 100  # a reading's rate, P-ctl, P-live, the soak
 SCREEN_CENTI = 17  # engine start (at most 5 minutes), 200 questions sent in parallel, memory check
+SCREEN_WINDOW_S = 120.0  # the smoke load that shows crashes, errors and a broken output contract
 QUALITY_CENTI, CHECK_CENTI = (
     75,
     25,
@@ -131,16 +140,25 @@ def screen(
             "checks": checks,
         }
     items = bank.screening
-    cand = sum(_outcomes(params, items, bank.answer_seed, on_progress, "screen_questions"))
+    cand_each = _outcomes(params, items, bank.answer_seed, on_progress, "screen_questions")
     cached = _cached_answers(calibration, bank)
-    champ = (
-        sum(unpack_outcomes(cached["screening"], len(items)))
+    champ_each = (
+        unpack_outcomes(cached["screening"], len(items))
         if cached
-        else sum(_outcomes(champion, items, bank.answer_seed))
+        else _outcomes(champion, items, bank.answer_seed)
     )
+    cand, champ = sum(cand_each), sum(champ_each)
     gap_bp = (champ - cand) * 10_000 // len(items)
-    checks.append(f"smoke accuracy: {cand}/{len(items)} (champion {champ}/{len(items)})")
-    if gap_bp > 1500:
+    # a paired gap on 200 items is noisy, so Section 7.2 rejects only a gap that is also four standard
+    # errors wide: the discordant pairs are what carry the information
+    worse = sum(1 for c, h in zip(cand_each, champ_each, strict=True) if h and not c)
+    better = sum(1 for c, h in zip(cand_each, champ_each, strict=True) if c and not h)
+    se_wide = (worse - better) >= 4 * ((worse + better) ** 0.5)
+    checks.append(
+        f"smoke accuracy: {cand}/{len(items)} (champion {champ}/{len(items)}; "
+        f"{worse} worse and {better} better of the pairs that differ)"
+    )
+    if gap_bp > 1500 and se_wide:
         return {
             "stage": "screen",
             "decisive_failure": "gross_accuracy",
@@ -149,7 +167,31 @@ def screen(
             "explanation": f"Smoke accuracy is {gap_bp / 100:.1f} points below the champion (decisive limit 15).",
             "checks": checks,
         }
-    checks.append("output contract and memory ceiling: ok (speed is not judged here)")
+    # the questions are sent as load, not only graded: this is where a crash, a flood of errors or a
+    # broken output contract shows up. Speed is still not judged.
+    smoke_rate = max(0.1, (calibration or {}).get("capacity_milli_rps", 500) / 1000 * 0.5)
+    logs, _ = run_once(params, f"{seed}:smoke", smoke_rate, profile.latency, window_s=SCREEN_WINDOW_S)
+    offered = max(1, len(logs))
+    bad = sum(1 for x in logs if x.status in ("errored", "rejected", "timed_out"))
+    finished = [x for x in logs if x.e2e_ms is not None]
+    broken = sum(1 for x in finished if not x.contract_ok)
+    for failure, count, total, what in (
+        ("errors", bad, offered, "errored, were rejected or timed out"),
+        ("output_contract", broken, max(1, len(finished)), "did not meet the output contract"),
+    ):
+        if count * 100 > 5 * total:
+            return {
+                "stage": "screen",
+                "decisive_failure": failure,
+                "simulated": True,
+                "gpu_centi": SCREEN_CENTI,
+                "explanation": f"{count} of {total} requests {what} (decisive limit 5%).",
+                "checks": checks,
+            }
+    checks.append(
+        f"under load: {offered - bad}/{offered} completed, {len(finished) - broken} met the output contract"
+    )
+    checks.append("memory ceiling: ok (speed is not judged here)")
     return {
         "stage": "screen",
         "decisive_failure": None,
@@ -179,16 +221,27 @@ def _capacity(params: StackParams, base_rps: float, profile: ProfileVersion, see
     return confirmed_capacity(base_rps, profile.replacement, run), runs
 
 
+def _confirmation_accuracy(runs: dict) -> dict:
+    """What the champion answered under load while its score was confirmed. A challenger's runs are set
+    against this, so neither side is graded on questions the other never saw (Section 8.6)."""
+    confirmed = [logs for label, logs in runs.items() if label.startswith("confirm")]
+    correct, offered = accuracy_under_load(confirmed)
+    return {"correct": correct, "offered": offered}
+
+
 def _fixed_score(champion: StackParams, start_rps: float, profile: ProfileVersion, seed: str, budget: float):
     """The champion's score is recorded once and every challenger is compared with it, so it must not come back
     empty. The grid reaches only about 22% below its starting rate; if nothing confirms, search again from a
     quarter lower, twice at most."""
+    runs: dict = {}
     for attempt in range(3):
         start = start_rps * 0.75**attempt
-        cap, _ = _capacity(champion, start, profile, seed + (f":retry{attempt}" if attempt else ""), budget)
+        cap, runs = _capacity(
+            champion, start, profile, seed + (f":retry{attempt}" if attempt else ""), budget
+        )
         if cap.capacity_rps:
             break
-    return cap
+    return cap, runs
 
 
 def calibrate(
@@ -204,10 +257,10 @@ def calibrate(
     current bank, which are refreshed when the bank rotates."""
     seed = f"{bank.traffic_seed}:{seed}"
     send(on_progress, "champion_score", rate_milli_rps=int(base_rps * 1000))
-    cap = _fixed_score(champion, base_rps, profile, seed, FULL_BUDGET_GIB)
+    cap, cap_runs = _fixed_score(champion, base_rps, profile, seed, FULL_BUDGET_GIB)
     send(on_progress, "champion_tight_score", rate_milli_rps=int((cap.capacity_rps or base_rps) * 800))
     # the smaller cache budget can only lower capacity, so search just below the full-budget score
-    tight = _fixed_score(
+    tight, _ = _fixed_score(
         champion, (cap.capacity_rps or base_rps) * 0.8, profile, seed + ":tight", TIGHT_BUDGET_GIB
     )
     ctl_rate = max(0.2, cap.capacity_rps * 2.0)
@@ -226,6 +279,7 @@ def calibrate(
             "errored_or_rejected": ctl.errored_or_rejected,
         },
         "answers": champion_answers(champion, bank, on_progress),
+        "under_load": _confirmation_accuracy(cap_runs),
         "gpu_centi": CALIBRATION_CENTI + CHAMPION_ANSWERS_CENTI,
     }
 
@@ -396,8 +450,10 @@ def evaluate(
         )
         gpu += RUN_CENTI * cap.runs
         readings.append(_reading_record(cap, base))
-        if cap.confirm_label:
-            reading_runs.append(runs[cap.confirm_label])
+        # Section 8.2 pools the bands "across the passing runs", so every run that passed counts, not
+        # only the highest one: a band that fails lower down is evidence too.
+        passed = [f"reading-run{i}" for i, (_, ok) in enumerate(cap.trace) if ok]
+        reading_runs.extend(runs[label] for label in passed if label in runs)
         decision = replacement_decision(
             [
                 Reading(f"r{i}", 0, r["challenger_milli_rps"], r["champion_milli_rps"], "")
@@ -433,14 +489,19 @@ def evaluate(
             params, seed + ":plive", live_rate, profile.latency, live=True, window_s=CONFIRM_WINDOW_S
         )
         send(on_progress, "soak", rate_milli_rps=int(cap.capacity_rps * 900), minutes=int(SOAK_WINDOW_S / 60))
-        _, soak = run_once(
+        soak_logs, soak = run_once(
             params, seed + ":soak", cap.capacity_rps * 0.9, profile.latency, window_s=SOAK_WINDOW_S
+        )
+        # the soak is what makes the accuracy sample large enough to bound: an 8-minute run is not
+        acc_ok, acc_reasons, acc_detail = accuracy_gate(
+            [*reading_runs, soak_logs], profile.quality, champion_calibration.get("under_load")
         )
         gpu += mem_gpu + CTL_CENTI + LIVE_CENTI + SOAK_CENTI
         gates = GateSet(
             offline_quality=True,
             capacity_reading=True,
             band_attainment=band_ok,
+            accuracy_under_load=acc_ok,
             memory_evidence=mem["passed"],
             short_request_control=ctl_ok,
             live_conversation_check=live.passed,
@@ -450,6 +511,7 @@ def evaluate(
         winner = not gates.failed()
         extra = {
             "band_attainment_reasons": band_reasons,
+            "accuracy_under_load": {**acc_detail, "passed": acc_ok, "reasons": acc_reasons},
             "memory_evidence": mem,
             "p_ctl": {
                 "passed": ctl_ok,

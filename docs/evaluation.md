@@ -71,13 +71,17 @@ number and index fix the order in which submissions are tested and promoted.
 ### 3. Screening — 10 minutes, 0.17 GPU-h
 
 An isolated build, an engine start within 5 minutes, **200 questions** from this week's owner bank
-(150 long-context, 50 general) and the memory ceiling at low load. Speed is not judged here. A smoke
-accuracy more than 15 points below the champion's on the same questions ends the submission; so does a
-build failure, a start failure or a ceiling breach. The fee is consumed.
+(150 long-context, 50 general) sent as load, and the memory ceiling. Speed is not judged here. A
+submission ends here on a build failure, a start failure, a ceiling breach, more than 5% of requests
+errored or timed out, more than 5% of answers that break the output contract, or a smoke accuracy more
+than 15 points below the champion's — and that last one only when the gap is also four standard errors
+wide, because 200 items cannot separate a small difference. The fee is consumed.
 
 ### 4. Question quality — 4,000 questions, 1.00 GPU-h
 
 The challenger answers the whole bank for this period: **3,200 long-context and 800 general** questions.
+The long-context items are spread evenly over the four context bands — 800 each — because the rule bounds
+accuracy per band, and the widest contexts would otherwise carry too few items to bound anything.
 Its answers are compared, question by question, with the champion's answers to the *same* questions
 (recorded once per worker per bank) and with a frozen reference implementation.
 
@@ -103,7 +107,9 @@ bursts, then up to 90 seconds of drain. A run passes when:
 - p90 end-to-end time in the last quarter is at most **1.40×** the second quarter's — a queue that keeps
   growing means the rate is past capacity;
 - after each of the two one-minute bursts, p90 end-to-end returns to **1.35×** the pre-burst level in the
-  quiet stretch that follows;
+  quiet stretch that follows. These two are ratios, so they apply only while that p90 is at least **half
+  of the requests' own limits**: a stack with memory to spare is so fast before a burst that a harmless
+  rise afterwards looks like a large ratio;
 - every request answers within its stall limit (no gap over 2 s between output tokens) and comes back
   whole; a truncated answer does not qualify, however fast it was;
 - nothing is still in flight when the drain ends;
@@ -132,7 +138,12 @@ Only a winning reading gets here. Each check answers a question the reading alon
 
 - **Pooled band attainment (90%)** — the reading could pass overall while failing long contexts. This
   pools every passing run and checks each context band separately.
-- **Memory evidence** — the same reading again at a **25% smaller cache budget** (24 GiB instead of 32),
+- **Accuracy under load** — the answers given while the load ran, pooled over the passing runs and the
+  soak, against what the champion answered during the three confirmation runs behind its fixed score. An
+  answer that never arrived counts as wrong, so dropping the hard questions does not help. The soak is
+  what makes this sample large enough to bound: an eight-minute run is not.
+- **Memory evidence** — the same reading again at a **25% smaller cache budget** (the profile's 40 GiB
+  cache drops to 30; the simulator in this repository works on its own scale of 32 and 24),
   against the champion's fixed score at that budget, plus external accounting of resident idle
   conversations. A gain that disappears when the cache shrinks was not a memory gain. A reading that
   misses the margin gets one more before it fails, because one noisy run must not decide a winner.

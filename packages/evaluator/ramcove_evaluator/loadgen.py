@@ -11,7 +11,8 @@ import hashlib
 import random
 from dataclasses import dataclass
 
-from ramcove_protocol.rules import LatencyGates
+from ramcove_protocol.rules import LatencyGates, QualityRule
+from ramcove_protocol.scoring import unpaired_lower_bound_bp
 
 from .target import RequestLog, StackParams, simulate_run
 from .taskgen import BANDS, MEAN_TURNS, conversations
@@ -115,6 +116,12 @@ def _p90(xs: list[int]) -> int:
     return sorted(xs)[min(len(xs) - 1, int(0.9 * len(xs)))]
 
 
+def _near_limit(xs: list[RequestLog], gates: LatencyGates) -> bool:
+    """Whether these requests' p90 end-to-end is a real share of their own limits. A queue that is growing
+    toward saturation is; one that merely moved from very fast to fast is not."""
+    return _p90([x.e2e_ms * 10_000 // max(1, x.e2e_limit_ms) for x in xs]) >= gates.stability_floor_bp
+
+
 def recovered_after_bursts(
     logs: list[RequestLog], gates: LatencyGates, bursts: tuple[float, ...], window_s: float
 ) -> bool:
@@ -125,12 +132,14 @@ def recovered_after_bursts(
     done = [x for x in logs if x.e2e_ms is not None]
     for i, b in enumerate(bursts):
         quiet_ends = bursts[i + 1] if i + 1 < len(bursts) else window_s
-        before = [x.e2e_ms for x in done if b - 90.0 <= x.scheduled_s < b]
-        after = [x.e2e_ms for x in done if b + BURST_S <= x.scheduled_s < quiet_ends]
+        before = [x for x in done if b - 90.0 <= x.scheduled_s < b]
+        after = [x for x in done if b + BURST_S <= x.scheduled_s < quiet_ends]
         if (
             len(before) >= 8
             and len(after) >= 8
-            and _p90(after) * 10_000 > gates.burst_recovery_bp * max(1, _p90(before))
+            and _p90([x.e2e_ms for x in after]) * 10_000
+            > gates.burst_recovery_bp * max(1, _p90([x.e2e_ms for x in before]))
+            and _near_limit(after, gates)
         ):
             return False
     return True
@@ -162,7 +171,9 @@ def per_run_gates(
         quarter = len(done) // 4
         q2 = sorted(x.e2e_ms for x in done[quarter : 2 * quarter])
         q4 = sorted(x.e2e_ms for x in done[3 * quarter :])
-        drift_ok = _p90(q4) * 10_000 <= gates.drift_q4_over_q2_bp * max(1, _p90(q2))
+        drift_ok = _p90(q4) * 10_000 <= gates.drift_q4_over_q2_bp * max(1, _p90(q2)) or not _near_limit(
+            done[3 * quarter :], gates
+        )
         if not drift_ok:
             reasons.append("end-to-end time keeps growing: the queue is not stable")
     recovered_ok = recovered_after_bursts(logs, gates, bursts, window_s)
@@ -177,6 +188,52 @@ def per_run_gates(
     return RunGates(
         not reasons, offered, q, bad, att, drift_ok, ceiling_ok, tuple(reasons), recovered_ok, drained_ok
     )
+
+
+def accuracy_under_load(runs: list[list[RequestLog]]) -> tuple[int, int]:
+    """Right answers over every request offered in these runs. An answer that never arrived is wrong, so
+    a stack cannot raise its accuracy by dropping the questions it would have failed (Section 8.6)."""
+    allogs = [x for r in runs for x in r]
+    return sum(1 for x in allogs if x.correct), len(allogs)
+
+
+def accuracy_gate(
+    runs: list[list[RequestLog]], quality: QualityRule, champion_under_load: dict | None
+) -> tuple[bool | None, list[str], dict]:
+    """Section 8.2: accuracy under load, non-inferior to the champion's. The champion's side comes from the
+    three confirmation runs behind its fixed score; the challenger's from its passing reading runs and its
+    hour-long soak, which is what makes the sample large enough to bound anything (Section 8.6).
+
+    A champion crowned before this was recorded has no baseline, and then the gate does not run rather
+    than failing everyone."""
+    if not champion_under_load or not champion_under_load.get("offered"):
+        return None, [], {"measured": False}
+    correct, offered = accuracy_under_load(runs)
+    if not offered:
+        return None, [], {"measured": False}
+    diff_bp, bound_bp = unpaired_lower_bound_bp(
+        correct, offered, champion_under_load["correct"], champion_under_load["offered"]
+    )
+    detail = {
+        "measured": True,
+        "candidate_correct": correct,
+        "candidate_offered": offered,
+        "champion_correct": champion_under_load["correct"],
+        "champion_offered": champion_under_load["offered"],
+        "difference_bp": diff_bp,
+        "lower_bound_bp": bound_bp,
+    }
+    ok = diff_bp >= -quality.vs_champion_margin_bp and bound_bp >= -quality.vs_champion_stratum_margin_bp
+    reasons = (
+        []
+        if ok
+        else [
+            f"accuracy under load {diff_bp / 100:+.2f} points against the champion (lower bound "
+            f"{bound_bp / 100:+.2f}); limits are {-quality.vs_champion_margin_bp / 100:.2f} and "
+            f"{-quality.vs_champion_stratum_margin_bp / 100:.2f}"
+        ]
+    )
+    return ok, reasons, detail
 
 
 def pooled_gates(runs: list[list[RequestLog]], gates: LatencyGates) -> tuple[bool, list[str]]:

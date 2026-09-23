@@ -44,8 +44,12 @@ def test_a_champion_says_which_score_its_gain_was_measured_against(ctx):
     d = public.dashboard(ctx)
     champ = d["champion"]
     with tx(ctx.engine) as conn:
+        # a close reading gets a second one, and a retried job can land on another worker, so several
+        # comparisons can exist: the decisive one is the last that was measured
         cmp_row = conn.execute(
-            select(comparisons).where(comparisons.c.submission_id == sub["submission_id"])
+            select(comparisons)
+            .where(comparisons.c.submission_id == sub["submission_id"], comparisons.c.status == "measured")
+            .order_by(comparisons.c.created_at.desc())
         ).first()
     # the gain is the reading over the fixed score of the worker that judged it, not over the number shown
     assert champ["measured_against_milli_rps"] == cmp_row.champion_milli_rps

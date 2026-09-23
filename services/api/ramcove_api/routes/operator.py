@@ -37,6 +37,12 @@ class PauseIn(BaseModel):
     reason: str = Field(min_length=5, max_length=500)
 
 
+class ExcludeIn(BaseModel):
+    hotkey: str = Field(min_length=40, max_length=48)
+    excluded: bool
+    reason: str = Field(min_length=5, max_length=500)
+
+
 class IncidentIn(BaseModel):
     severity: str = Field(pattern="^(info|minor|major|critical)$")
     title: str = Field(min_length=5, max_length=200)
@@ -207,6 +213,44 @@ def set_intake(
             public=True,
         )
     return {"paused": body.paused, "reason": body.reason}
+
+
+@router.post("/exclusions")
+def set_exclusion(
+    body: ExcludeIn, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
+) -> dict:
+    """Section 9.6: exclude a hotkey, or reinstate it. An excluded hotkey is refused in the free checks,
+    so it is never charged, and the decision is published in the audit log with its reason."""
+    with tx(ctx.engine) as conn:
+        current = dict((ctx.setting(conn, "excluded_hotkeys", {}) or {}).get("hotkeys") or {})
+        if body.excluded:
+            current[body.hotkey] = body.reason
+        else:
+            current.pop(body.hotkey, None)
+        value = {"hotkeys": current}
+        conn.execute(
+            insert(settings_t)
+            .values(key="excluded_hotkeys", value=value, updated_by=sess["hotkey"], reason=body.reason)
+            .on_conflict_do_update(
+                index_elements=["key"],
+                set_={
+                    "value": value,
+                    "updated_by": sess["hotkey"],
+                    "reason": body.reason,
+                    "updated_at": now(),
+                },
+            )
+        )
+        audit.append(
+            conn,
+            sess["hotkey"],
+            "hotkey_excluded" if body.excluded else "hotkey_reinstated",
+            "hotkey",
+            body.hotkey,
+            {"reason": body.reason},
+            public=True,
+        )
+    return {"hotkey": body.hotkey, "excluded": body.excluded, "reason": body.reason}
 
 
 @router.post("/incidents")

@@ -69,6 +69,13 @@ def preflight(ctx: AppContext, hotkey: str, data: bytes, signature_hex: str) -> 
         result = run_preflight(data, profile, known, signature_ok=sig_ok)
         if result.manifest and result.manifest.hotkey != hotkey:
             result.fail("hotkey_mismatch", "manifest hotkey differs from the signed-in hotkey")
+        # Section 9.6: an excluded hotkey is refused here, in the free checks, so it is never charged
+        excluded = ctx.setting(conn, "excluded_hotkeys", {}) or {}
+        if hotkey in (excluded.get("hotkeys") or {}):
+            result.fail(
+                "hotkey_excluded",
+                f"this hotkey is excluded from the competition: {excluded['hotkeys'][hotkey]}",
+            )
         public = {
             "ok": result.ok,
             "artifact_sha256": result.artifact_sha256,

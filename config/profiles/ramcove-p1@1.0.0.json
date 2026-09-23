@@ -65,7 +65,8 @@
   },
   "latency": {
     "drift_q4_over_q2_bp": 14000,
-    "burst_recovery_bp": 13500
+    "burst_recovery_bp": 13500,
+    "stability_floor_bp": 5000
   },
   "envelope": {},
   "deadlines": {},

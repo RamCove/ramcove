@@ -58,6 +58,7 @@ class RequestLog:
     recomputed_prefill_tokens: int
     max_gap_ms: int = 0
     contract_ok: bool = True
+    e2e_limit_ms: int = 0  # this request's own end-to-end limit, which grows with its prompt and answer
 
 
 @dataclass
@@ -234,6 +235,7 @@ def simulate_run(
                 lg.max_gap_ms = _ms(a["max_gap"])
                 # the task contract: an answer that comes back truncated does not qualify, however fast it was
                 lg.contract_ok = lg.output_tokens * 2 >= item.output_tokens
+                lg.e2e_limit_ms = int(e2e_limit)
                 ok = (
                     lg.ttft_ms <= ttft_limit
                     and lg.tpot_ms <= gates.tpot_mean_ms

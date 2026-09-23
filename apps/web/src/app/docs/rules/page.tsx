@@ -1,4 +1,16 @@
-import { Card, Empty, KeyValue, Mono, Notice, PageHeader, Pill, Stat, Table, Td, Term } from "@/components/ui";
+import {
+  Card,
+  Empty,
+  KeyValue,
+  Mono,
+  Notice,
+  PageHeader,
+  Pill,
+  Stat,
+  Table,
+  Td,
+  Term,
+} from "@/components/ui";
 import { DocsTabs } from "@/components/docs-tabs";
 import { apiGetOrNull } from "@/lib/server-api";
 import { centiHours, gain, rps, shortHash, usd, when } from "@/lib/format";
@@ -13,8 +25,20 @@ type ProfileDetail = {
     version: string;
     title: string;
     model: { repo: string; revision: string; license: string };
-    engine: { repo: string; tag: string; commit: string; allowed_paths: string[]; forbidden_paths: string[] };
-    hardware: { gpu: string; cpu_cores: number; vm_ram_gib: number; isolation: string; gpu_ceiling_margin_mib: number };
+    engine: {
+      repo: string;
+      tag: string;
+      commit: string;
+      allowed_paths: string[];
+      forbidden_paths: string[];
+    };
+    hardware: {
+      gpu: string;
+      cpu_cores: number;
+      vm_ram_gib: number;
+      isolation: string;
+      gpu_ceiling_margin_mib: number;
+    };
     workloads: string[];
     replacement: {
       delta_ppm: number;
@@ -25,6 +49,7 @@ type ProfileDetail = {
     quality: {
       reference_id: string;
       vs_champion_margin_bp: number;
+      vs_champion_stratum_margin_bp: number;
       vs_reference_margin_bp: number;
       absolute_min_accuracy_bp: Record<string, number>;
       length_ratio_vs_reference_bp: number;
@@ -38,8 +63,16 @@ type ProfileDetail = {
       champion_answers_per_bank: number;
     };
     deadlines: Record<string, number>;
-    fees: { flat_fee_rao: number; service_cost_usd_cents_per_admission: number; price_source: string };
-    bootstrap: { mode: string; min_independent_validators_for_mainnet: number; quorum_validators_after_sunset: number };
+    fees: {
+      flat_fee_rao: number;
+      service_cost_usd_cents_per_admission: number;
+      price_source: string;
+    };
+    bootstrap: {
+      mode: string;
+      min_independent_validators_for_mainnet: number;
+      quorum_validators_after_sunset: number;
+    };
     measured: boolean;
     no_winner_writer_verified: boolean;
   };
@@ -48,7 +81,10 @@ type ProfileDetail = {
     version: number;
     author: string | null;
     artifact_sha256: string | null;
-    attribution: { components?: { hotkey: string; lineage: string; method: string }[]; note?: string };
+    attribution: {
+      components?: { hotkey: string; lineage: string; method: string }[];
+      note?: string;
+    };
     status: string;
     capacity_milli_rps: number | null;
     capacity_measured: boolean;
@@ -56,7 +92,12 @@ type ProfileDetail = {
     bound_gain_ppm: number | null;
   };
   weight_plan: {
-    entries: { hotkey: string; uid: number; weight_u16: number; role: string }[];
+    entries: {
+      hotkey: string;
+      uid: number;
+      weight_u16: number;
+      role: string;
+    }[];
     no_winner: boolean;
     notes: string[];
     writer_enabled: boolean;
@@ -66,7 +107,13 @@ type ProfileDetail = {
 };
 
 type QuestionBanks = {
-  rule: { period_days: number; screening_long: number; screening_general: number; offline_long: number; offline_general: number };
+  rule: {
+    period_days: number;
+    screening_long: number;
+    screening_general: number;
+    offline_long: number;
+    offline_general: number;
+  };
   banks: {
     bank_id: string;
     period_index: number;
@@ -83,7 +130,8 @@ export default async function CompetitionPage() {
     apiGetOrNull<ProfileDetail>("/v1/profile"),
     apiGetOrNull<QuestionBanks>("/v1/question-banks"),
   ]);
-  if (!data) return <Empty title="Profile unavailable">Start the API and reload.</Empty>;
+  if (!data)
+    return <Empty title="Profile unavailable">Start the API and reload.</Empty>;
   const p = data.profile;
   const r = p.replacement;
   return (
@@ -101,49 +149,86 @@ export default async function CompetitionPage() {
           <Pill tone="neutral" title={data.rule_hash}>
             rule hash {shortHash(data.rule_hash)}
           </Pill>
-          <Pill tone={p.measured ? "ok" : "warn"}>{p.measured ? "calibrated on hardware" : "not calibrated on hardware"}</Pill>
+          <Pill tone={p.measured ? "ok" : "warn"}>
+            {p.measured
+              ? "calibrated on hardware"
+              : "not calibrated on hardware"}
+          </Pill>
           <Pill tone="neutral">bootstrap: {p.bootstrap.mode}</Pill>
         </div>
       </PageHeader>
 
       {!p.measured && (
         <Notice tone="warn" title="Nothing here is measured on a real GPU">
-          The thresholds, runtimes and costs come from the v0.2 whitepaper and its review. A Stage 1 noise
-          study must replace them before real submissions are accepted.
+          The thresholds, runtimes and costs come from the v0.2 whitepaper and
+          its review. A Stage 1 noise study must replace them before real
+          submissions are accepted.
         </Notice>
       )}
 
       <div className="grid items-start gap-5 lg:grid-cols-2">
-        <Card title="Current champion" subtitle="The complete stack that was actually tested.">
+        <Card
+          title="Current champion"
+          subtitle="The complete stack that was actually tested."
+        >
           <div className="grid grid-cols-2 gap-5">
             <Stat label="Version" value={`v${data.champion.version}`} />
             <Stat
               label="Capacity"
               value={rps(data.champion.capacity_milli_rps)}
               tone="accent"
-              hint={data.champion.capacity_measured ? "simulated, not an H100" : "estimate, not yet measured"}
+              hint={
+                data.champion.capacity_measured
+                  ? "simulated, not an H100"
+                  : "estimate, not yet measured"
+              }
             />
-            <Stat label="Gain" value={gain(data.champion.bound_gain_ppm)} hint="over the previous champion" />
-            <Stat label="Promoted" value={data.champion.promoted_at ? when(data.champion.promoted_at) : "—"} />
+            <Stat
+              label="Gain"
+              value={gain(data.champion.bound_gain_ppm)}
+              hint="over the previous champion"
+            />
+            <Stat
+              label="Promoted"
+              value={
+                data.champion.promoted_at
+                  ? when(data.champion.promoted_at)
+                  : "—"
+              }
+            />
           </div>
           <div className="mt-4">
             <KeyValue
               rows={[
                 ["Author", data.champion.author ?? "none (tuned baseline)"],
-                ["Artifact", data.champion.artifact_sha256 ? <Mono key="a">{shortHash(data.champion.artifact_sha256)}</Mono> : "—"],
+                [
+                  "Artifact",
+                  data.champion.artifact_sha256 ? (
+                    <Mono key="a">
+                      {shortHash(data.champion.artifact_sha256)}
+                    </Mono>
+                  ) : (
+                    "—"
+                  ),
+                ],
                 ["Status", data.champion.status],
               ]}
             />
             {data.champion.attribution?.note && (
-              <p className="mt-3 text-[12px] leading-relaxed text-muted">{data.champion.attribution.note}</p>
+              <p className="mt-3 text-[12px] leading-relaxed text-muted">
+                {data.champion.attribution.note}
+              </p>
             )}
             {(data.champion.attribution?.components ?? []).length > 0 && (
               <div className="mt-3">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">Attribution</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">
+                  Attribution
+                </h3>
                 <ul className="mt-1 space-y-1 text-[13px] text-muted">
                   {data.champion.attribution.components!.map((c) => (
                     <li key={c.hotkey}>
-                      <span className="text-text">{c.lineage}</span> · {c.method}
+                      <span className="text-text">{c.lineage}</span> ·{" "}
+                      {c.method}
                     </li>
                   ))}
                 </ul>
@@ -157,24 +242,38 @@ export default async function CompetitionPage() {
           subtitle="One rule, published in advance and frozen with the profile version."
         >
           <div className="rounded-[var(--radius-sm)] border border-line bg-surface-2 px-4 py-3 font-mono text-[12px] leading-relaxed text-muted">
-            G = capacity(challenger) / fixed score(champion) − 1<br />
-            G ≤ δ: the champion stays · G ≥ {gain(r.clear_win_ppm, 0)}: the challenger wins
+            G = capacity(challenger) / fixed score(champion) − 1<br />G ≤ δ: the
+            champion stays · G ≥ {gain(r.clear_win_ppm, 0)}: the challenger wins
             <br />
-            in between: one more reading; the average of the two must exceed δ<br />
+            in between: one more reading; the average of the two must exceed δ
+            <br />
             and a winner must pass every quality gate and winner check
           </div>
           <div className="mt-4 grid grid-cols-2 gap-5 sm:grid-cols-4">
             <Stat label="Margin δ" value={gain(r.delta_ppm, 0)} />
-            <Stat label="Clear win" value={gain(r.clear_win_ppm, 0)} hint="no second reading" />
+            <Stat
+              label="Clear win"
+              value={gain(r.clear_win_ppm, 0)}
+              hint="no second reading"
+            />
             <Stat label="Readings" value="1–2" hint="per evaluation" />
-            <Stat label="Rate grid" value={`${gain(r.grid_step_ppm, 0)}`} hint="step between rates" />
+            <Stat
+              label="Rate grid"
+              value={`${gain(r.grid_step_ppm, 0)}`}
+              hint="step between rates"
+            />
           </div>
           <p className="mt-4 text-[13px] leading-relaxed text-muted">
-            Ties keep the incumbent. The champion&apos;s score is measured once per worker, when it is crowned, and
-            never again. If another submission is crowned while a measured winner waits, the winner is set
-            against the new champion by arithmetic, (1 + G) / (1 + G<sub>new</sub>) − 1: nothing is measured
-            again and no new fee is charged. A person reviews a winner only when an automatic check flags it.{" "}
-            {r.calibrated ? "" : "The margin, clear-win line and rate grid are uncalibrated until a noise study is published."}
+            Ties keep the incumbent. The champion&apos;s score is measured once
+            per worker, when it is crowned, and never again. If another
+            submission is crowned while a measured winner waits, the winner is
+            set against the new champion by arithmetic, (1 + G) / (1 + G
+            <sub>new</sub>) − 1: nothing is measured again and no new fee is
+            charged. A person reviews a winner only when an automatic check
+            flags it.{" "}
+            {r.calibrated
+              ? ""
+              : "The margin, clear-win line and rate grid are uncalibrated until a noise study is published."}
           </p>
         </Card>
 
@@ -188,9 +287,19 @@ export default async function CompetitionPage() {
                 {qb.banks.slice(0, 4).map((b) => (
                   <tr key={b.bank_id}>
                     <Td className="num">{b.period_index}</Td>
-                    <Td className="num whitespace-nowrap">{when(b.starts_at).slice(0, 10)}</Td>
+                    <Td className="num whitespace-nowrap">
+                      {when(b.starts_at).slice(0, 10)}
+                    </Td>
                     <Td>
-                      <Pill tone={b.status === "current" ? "ok" : b.status === "revealed" ? "neutral" : "info"}>
+                      <Pill
+                        tone={
+                          b.status === "current"
+                            ? "ok"
+                            : b.status === "revealed"
+                              ? "neutral"
+                              : "info"
+                        }
+                      >
                         {b.status}
                       </Pill>
                     </Td>
@@ -201,29 +310,55 @@ export default async function CompetitionPage() {
                 ))}
               </Table>
               <p className="mt-3 text-[12px] leading-relaxed text-muted">
-                Each bank holds {qb.rule.screening_long + qb.rule.screening_general} screening questions,{" "}
-                {(qb.rule.offline_long + qb.rule.offline_general).toLocaleString("en-US")} quality questions and
-                the traffic scripts for the capacity readings. Its fingerprint is published a day before its week
-                starts; when the week ends the seed is published, so anyone can rebuild the bank and check the
-                fingerprint. Every submission in a week answers the same questions, and each reading also mixes
+                Each bank holds{" "}
+                {qb.rule.screening_long + qb.rule.screening_general} screening
+                questions,{" "}
+                {(
+                  qb.rule.offline_long + qb.rule.offline_general
+                ).toLocaleString("en-US")}{" "}
+                quality questions and the traffic scripts for the capacity
+                readings. Its fingerprint is published a day before its week
+                starts; when the week ends the seed is published, so anyone can
+                rebuild the bank and check the fingerprint. Every submission in
+                a week answers the same questions, and each reading also mixes
                 in a random beacon round nobody knows in advance.
               </p>
             </>
           ) : (
-            <Empty title="No bank published yet">The first bank is committed when the controller starts.</Empty>
+            <Empty title="No bank published yet">
+              The first bank is committed when the controller starts.
+            </Empty>
           )}
         </Card>
 
-        <Card title="Fixed conditions" subtitle="Identical for the champion and every challenger.">
+        <Card
+          title="Fixed conditions"
+          subtitle="Identical for the champion and every challenger."
+        >
           <KeyValue
             rows={[
               ["Model", <Mono key="m">{p.model.repo}</Mono>],
-              ["Model revision", <Mono key="mr">{shortHash(p.model.revision, 10)}</Mono>],
-              ["Engine", <Mono key="e">{`${p.engine.repo} ${p.engine.tag}`}</Mono>],
-              ["Engine commit", <Mono key="ec">{shortHash(p.engine.commit, 10)}</Mono>],
+              [
+                "Model revision",
+                <Mono key="mr">{shortHash(p.model.revision, 10)}</Mono>,
+              ],
+              [
+                "Engine",
+                <Mono key="e">{`${p.engine.repo} ${p.engine.tag}`}</Mono>,
+              ],
+              [
+                "Engine commit",
+                <Mono key="ec">{shortHash(p.engine.commit, 10)}</Mono>,
+              ],
               ["GPU", p.hardware.gpu],
-              ["Candidate VM", `${p.hardware.cpu_cores} cores · ${p.hardware.vm_ram_gib} GiB · no swap · no network`],
-              ["GPU ceiling", `device memory − ${p.hardware.gpu_ceiling_margin_mib} MiB, sampled at the driver`],
+              [
+                "Candidate VM",
+                `${p.hardware.cpu_cores} cores · ${p.hardware.vm_ram_gib} GiB · no swap · no network`,
+              ],
+              [
+                "GPU ceiling",
+                `device memory − ${p.hardware.gpu_ceiling_margin_mib} MiB, sampled at the driver`,
+              ],
               ["Isolation", p.hardware.isolation],
               ["Workloads", p.workloads.join(", ")],
               ["Model licence", p.model.license],
@@ -231,7 +366,9 @@ export default async function CompetitionPage() {
           />
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">Allowed paths</h3>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">
+                Allowed paths
+              </h3>
               <ul className="mt-1 space-y-0.5 font-mono text-[11px] text-muted">
                 {p.engine.allowed_paths.map((a) => (
                   <li key={a}>{a}</li>
@@ -239,7 +376,9 @@ export default async function CompetitionPage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">Forbidden paths</h3>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">
+                Forbidden paths
+              </h3>
               <ul className="mt-1 space-y-0.5 font-mono text-[11px] text-muted">
                 {p.engine.forbidden_paths.map((a) => (
                   <li key={a}>{a}</li>
@@ -257,18 +396,25 @@ export default async function CompetitionPage() {
           <Table head={["Gate", "Value", "What it protects"]}>
             <tr>
               <Td>
-                <Term term="TTFT" plain="Time until the first answer token reaches the user">
+                <Term
+                  term="TTFT"
+                  plain="Time until the first answer token reaches the user"
+                >
                   Time to first answer token
                 </Term>
               </Td>
               <Td className="num">
-                {p.latency.ttft_base_ms} ms + {p.latency.ttft_per_1k_prompt_ms} ms per 1k prompt tokens
+                {p.latency.ttft_base_ms} ms + {p.latency.ttft_per_1k_prompt_ms}{" "}
+                ms per 1k prompt tokens
               </Td>
               <Td>Users waiting before anything appears</Td>
             </tr>
             <tr>
               <Td>
-                <Term term="TPOT" plain="Mean time between output tokens once the answer has started">
+                <Term
+                  term="TPOT"
+                  plain="Mean time between output tokens once the answer has started"
+                >
                   Mean time per output token
                 </Term>
               </Td>
@@ -278,9 +424,20 @@ export default async function CompetitionPage() {
             <tr>
               <Td>Attainment</Td>
               <Td className="num">
-                {p.latency.attainment_bp / 100}% per run · {p.latency.band_attainment_bp / 100}% per context band
+                {p.latency.attainment_bp / 100}% per run ·{" "}
+                {p.latency.band_attainment_bp / 100}% per context band
               </Td>
               <Td>Long conversations pushed to the back</Td>
+            </tr>
+            <tr>
+              <Td>Response-time drift and burst recovery</Td>
+              <Td className="num">
+                last quarter ≤ {p.latency.drift_q4_over_q2_bp / 10000}× the
+                second · after a burst ≤{" "}
+                {(p.latency.burst_recovery_bp ?? 0) / 10000}× the level before
+                it
+              </Td>
+              <Td>A queue that never settles</Td>
             </tr>
             <tr>
               <Td>Errors, rejections, deadline misses</Td>
@@ -289,12 +446,27 @@ export default async function CompetitionPage() {
             </tr>
             <tr>
               <Td>Quality vs the champion</Td>
-              <Td className="num">lower bound above −{p.quality.vs_champion_margin_bp / 100} points</Td>
+              <Td className="num">
+                lower bound above −{p.quality.vs_champion_margin_bp / 100}{" "}
+                points
+              </Td>
               <Td>Trading accuracy for speed</Td>
             </tr>
             <tr>
+              <Td>Accuracy under load</Td>
+              <Td className="num">
+                point estimate above −{p.quality.vs_champion_margin_bp / 100}{" "}
+                points, lower bound above −
+                {p.quality.vs_champion_stratum_margin_bp / 100}
+              </Td>
+              <Td>Answering worse once the GPU is busy</Td>
+            </tr>
+            <tr>
               <Td>Quality vs the frozen reference</Td>
-              <Td className="num">lower bound above −{p.quality.vs_reference_margin_bp / 100} points</Td>
+              <Td className="num">
+                lower bound above −{p.quality.vs_reference_margin_bp / 100}{" "}
+                points
+              </Td>
               <Td>Small losses adding up across generations</Td>
             </tr>
             <tr>
@@ -308,7 +480,10 @@ export default async function CompetitionPage() {
             </tr>
             <tr>
               <Td>Answer length</Td>
-              <Td className="num">≥ {p.quality.length_ratio_vs_reference_bp / 100}% of the reference</Td>
+              <Td className="num">
+                ≥ {p.quality.length_ratio_vs_reference_bp / 100}% of the
+                reference
+              </Td>
               <Td>Shorter answers that score well</Td>
             </tr>
           </Table>
@@ -324,45 +499,62 @@ export default async function CompetitionPage() {
           <Table head={["Work", "GPU time", "Who uses it"]}>
             <tr>
               <Td>screening</Td>
-              <Td className="num whitespace-nowrap">{centiHours(p.envelope.screen)}</Td>
+              <Td className="num whitespace-nowrap">
+                {centiHours(p.envelope.screen)}
+              </Td>
               <Td>booked for every paid submission</Td>
             </tr>
             <tr>
               <Td>evaluation</Td>
-              <Td className="num whitespace-nowrap">{centiHours(p.envelope.evaluation)}</Td>
+              <Td className="num whitespace-nowrap">
+                {centiHours(p.envelope.evaluation)}
+              </Td>
               <Td>booked for every paid submission</Td>
             </tr>
             <tr>
               <Td className="font-semibold">booked per submission</Td>
-              <Td className="num whitespace-nowrap font-semibold">{centiHours(p.envelope.screen + p.envelope.evaluation)}</Td>
+              <Td className="num whitespace-nowrap font-semibold">
+                {centiHours(p.envelope.screen + p.envelope.evaluation)}
+              </Td>
               <Td>counts toward the two-week queue</Td>
             </tr>
             <tr>
               <Td>winner checks</Td>
-              <Td className="num whitespace-nowrap">{centiHours(p.envelope.winner_checks)}</Td>
+              <Td className="num whitespace-nowrap">
+                {centiHours(p.envelope.winner_checks)}
+              </Td>
               <Td>winners only, from the reserve</Td>
             </tr>
             <tr>
               <Td>new champion&apos;s score</Td>
-              <Td className="num whitespace-nowrap">{centiHours(p.envelope.recalibration_on_promotion)}</Td>
+              <Td className="num whitespace-nowrap">
+                {centiHours(p.envelope.recalibration_on_promotion)}
+              </Td>
               <Td>once per promotion, on every worker, from the reserve</Td>
             </tr>
             <tr>
               <Td>champion&apos;s answers to a new bank</Td>
-              <Td className="num whitespace-nowrap">{centiHours(p.envelope.champion_answers_per_bank)}</Td>
+              <Td className="num whitespace-nowrap">
+                {centiHours(p.envelope.champion_answers_per_bank)}
+              </Td>
               <Td>once per worker per week, from the reserve</Td>
             </tr>
           </Table>
           <p className="mt-3 text-[12px] leading-relaxed text-muted">
-            Fee: a flat {Number((p.fees.flat_fee_rao / 1e9).toFixed(4))} TAO per paid submission; the TAO price does not
-            change it. The planning cost of one submission is about{" "}
-            {usd(p.fees.service_cost_usd_cents_per_admission)}. On a real network dollar values would use{" "}
-            <Mono>{p.fees.price_source}</Mono>; in this build the TAO price is a fixed simulated value and no
-            price is fetched.
+            Fee: a flat {Number((p.fees.flat_fee_rao / 1e9).toFixed(4))} TAO per
+            paid submission; the TAO price does not change it. The planning cost
+            of one submission is about{" "}
+            {usd(p.fees.service_cost_usd_cents_per_admission)}. On a real
+            network dollar values would use <Mono>{p.fees.price_source}</Mono>;
+            in this build the TAO price is a fixed simulated value and no price
+            is fetched.
           </p>
         </Card>
 
-        <Card title="Proposed weight plan" subtitle="Deterministic from the approved champion. Never submitted in this build.">
+        <Card
+          title="Proposed weight plan"
+          subtitle="Deterministic from the approved champion. Never submitted in this build."
+        >
           {data.weight_plan ? (
             <>
               <Table head={["Hotkey", "UID", "Weight", "Role"]}>
@@ -372,17 +564,24 @@ export default async function CompetitionPage() {
                       <Mono>{shortHash(e.hotkey, 8)}</Mono>
                     </Td>
                     <Td className="num">{e.uid}</Td>
-                    <Td className="num">{((e.weight_u16 / 65535) * 100).toFixed(1)}%</Td>
+                    <Td className="num">
+                      {((e.weight_u16 / 65535) * 100).toFixed(1)}%
+                    </Td>
                     <Td>
-                      <Pill tone={e.role === "champion" ? "ok" : "warn"}>{e.role.replace(/_/g, " ")}</Pill>
+                      <Pill tone={e.role === "champion" ? "ok" : "warn"}>
+                        {e.role.replace(/_/g, " ")}
+                      </Pill>
                     </Td>
                   </tr>
                 ))}
               </Table>
               <div className="mt-3 space-y-2">
-                <Pill tone="sim">status: {data.weight_plan.status.replace(/_/g, " ")}</Pill>{" "}
+                <Pill tone="sim">
+                  status: {data.weight_plan.status.replace(/_/g, " ")}
+                </Pill>{" "}
                 <Pill tone={data.weight_plan.writer_enabled ? "ok" : "warn"}>
-                  writer {data.weight_plan.writer_enabled ? "enabled" : "disabled"}
+                  writer{" "}
+                  {data.weight_plan.writer_enabled ? "enabled" : "disabled"}
                 </Pill>
                 {data.weight_plan.notes.map((n) => (
                   <p key={n} className="text-[12px] leading-relaxed text-muted">
@@ -390,13 +589,16 @@ export default async function CompetitionPage() {
                   </p>
                 ))}
                 <p className="text-[12px] leading-relaxed text-muted">
-                  Chain consensus and realized emissions can differ from a recommended vector. The champion
-                  never receives the owner or validator shares.
+                  Chain consensus and realized emissions can differ from a
+                  recommended vector. The champion never receives the owner or
+                  validator shares.
                 </p>
               </div>
             </>
           ) : (
-            <Empty title="No weight plan yet">A plan is produced after the first promotion.</Empty>
+            <Empty title="No weight plan yet">
+              A plan is produced after the first promotion.
+            </Empty>
           )}
         </Card>
       </div>

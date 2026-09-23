@@ -98,6 +98,13 @@ class LatencyGates(Frozen):
         "below capacity; 1.40 fires in 1 and still catches half the runs at 1.5x capacity, where attainment "
         "catches the rest (docs/acceptance-matrix.md).",
     )
+    stability_floor_bp: int = Field(
+        5000,
+        description="Drift and burst recovery fail only when the later p90 end-to-end is also at least this "
+        "share of the requests' own limits. They are ratios, and a stack with memory to spare answers so fast "
+        "before a burst that a harmless absolute rise becomes a large ratio: without this floor a stack 30% "
+        "better than the champion failed as often as the champion did at every load (docs/acceptance-matrix.md).",
+    )
     burst_recovery_bp: int = Field(
         13500,
         description="After a burst, p90 end-to-end must return to this share of the pre-burst level. An "
@@ -137,6 +144,11 @@ class Deadlines(Frozen):
     review_s: int = 14 * 24 * 3600
     review_extension_s: int = 14 * 24 * 3600
     registration_grace_s: int = 14 * 24 * 3600
+    beacon_min_delay_s: int = Field(
+        1800,
+        description="A reading's beacon round must be at least this far after its anchor is finalized, so "
+        "nobody can know the traffic before the artifact and the payment are frozen (Section 8.9)",
+    )
     upload_hold_s: int = 72 * 3600
     credit_expiry_s: int = 180 * 24 * 3600
 

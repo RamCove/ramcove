@@ -85,8 +85,8 @@ ATTEMPTS = 10
 NOISE_OUTCOMES = {"margin_not_cleared", "capacity_reading"}
 
 
-def only_measurement_noise(outcomes: list[str | None]) -> bool:
-    return bool(outcomes) and all(o in NOISE_OUTCOMES for o in outcomes)
+def only_measurement_noise(outcomes: list[str | None], extra: set[str] | None = None) -> bool:
+    return bool(outcomes) and all(o in (NOISE_OUTCOMES | (extra or set())) for o in outcomes)
 
 
 def pay_and_admit(ctx, sub_id: str, miner_key: str) -> dict:
