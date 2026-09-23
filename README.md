@@ -11,9 +11,15 @@ check flags it.
 question quality, the capacity reading, the rule and the winner checks — with the number that decides each
 step and why each step exists.
 
-This repository is a **local development build**. Nothing here has been measured on an H100, no real tokens
-move, and mainnet writes are disabled. Every simulated component says so in the code, the API and the
-interface.
+This repository is the RamCove subnet: the miner tool, the validator's evaluation worker, and the owner's
+intake, queue, controller, API and website. It runs in two modes, chosen by configuration:
+
+- **Simulation mode** (`RAMCOVE_ENV=demo`), which the public demo at https://ramcove.vercel.app uses: a
+  deterministic dev chain, a simulated beacon and simulated GPU workers, so the whole competition can be
+  run end to end on one machine. Every number that comes from the simulation is labelled as such.
+- **Network mode** (`RAMCOVE_ENV=testnet`, then mainnet): the worker's VFIO provider runs candidates in a
+  hardware VM on a whole H100 SXM, and payments, weights and the audit anchor go to the chain. The steps
+  that switch it on are in [Launch](#launch).
 
 | Part | What it is |
 |---|---|
@@ -53,7 +59,7 @@ make dev       # API :8787, controller, two simulated workers, web app :3787
 ```
 
 Open http://localhost:3787 to follow the competition. To take part, use the command line with the
-published development keys (local build only):
+published development keys (simulation mode):
 
 ```bash
 uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri //RamCoveDemoMinerAda
@@ -87,15 +93,20 @@ uv run pytest -m chain_readonly     # read-only queries against the public Bitte
 - `docs/readiness-report.md` — what is implemented, simulated, externally verified or blocked
 - `docs/acceptance-matrix.md` — every claim with the command that produced it, and the measured numbers
 - `docs/threat-model.md`, `docs/integration-readiness.md`
-- `docs/adr/` — architecture decisions, including where this build deviates from the whitepaper and why
+- `docs/adr/` — architecture decisions, including where the implementation deviates from the whitepaper and why
 - `docs/guides/` — miner, validator and operator guides
 - `docs/runbooks/` — deployment, backup and recovery, refunds, rollback, incidents
 - `docs/screenshots/` — browser verification screenshots
 
-## What this build does not do
+## Launch
 
-- It does not measure a real GPU. The worker's simulated provider only evaluates trusted repository
-  fixtures; the VFIO virtual-machine provider probes the host and fails closed.
-- It does not write to any chain. Weight plans are produced and shown, never submitted.
-- It does not take real payments. The dev chain is deterministic and local.
-- It has no customer portal, no inference API and no registered subnet.
+Moving from simulation mode to the network is a sequence of steps, each with its own check in
+[`docs/integration-readiness.md`](docs/integration-readiness.md):
+
+1. **GPU measurement.** Enable the VFIO provider on validator hosts with a whole H100 SXM and run the Stage 1
+   calibration: the tuned baseline's score, the noise study that sets the margin, and the published run
+   times. Until then the worker's simulated provider evaluates the trusted repository fixtures.
+2. **Subnet registration** on testnet, then mainnet, which fixes the netuid the tools and the site use.
+3. **Payments and weights.** Point the controller at the network's finalized blocks for fee payments,
+   and switch weight plans from proposed to submitted through commit-reveal.
+4. **Customer releases** of the reference stack, on the quarterly cadence the whitepaper describes.

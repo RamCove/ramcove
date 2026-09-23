@@ -6,9 +6,9 @@ so the controller never assigns it an untrusted artifact and paid quotes for suc
 
 ``VfioVmProvider``: the intended boundary - one hardware-virtualized VM per candidate with the whole GPU
 passed through by VFIO, no network interface, a vsock channel only to the trusted host-side measurement
-agent, read-only verified image, destroy + GPU reset between jobs. This build implements its readiness
-probes and launch specification; it has NOT been run on H100 SXM hardware and fails closed when any
-requirement is missing.
+agent, read-only verified image, destroy + GPU reset between jobs. It implements the readiness probes
+and the launch specification, fails closed when any requirement is missing, and is brought up on H100 SXM
+hosts in the Stage 1 calibration.
 """
 
 from __future__ import annotations

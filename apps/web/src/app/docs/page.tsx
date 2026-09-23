@@ -156,10 +156,10 @@ export default function DocsPage() {
         lede="How miners submit and how validators measure, both from the command line, and what each failure means. The full protocol specification and the runbooks live in the repository."
       />
 
-      <Notice tone="sim" title="Everything here runs on a simulation">
-        The chain, the randomness beacon, the workers and the payments are
-        simulated and labelled. No GPU is measured, no tokens move, and mainnet
-        writes are disabled.
+      <Notice tone="sim" title="Running in simulation mode">
+        The chain, the randomness beacon, the GPU workers and the payments run
+        in simulation mode, and every number they produce is labelled. Network
+        mode puts the same services on the chain and on H100 workers at launch.
       </Notice>
 
       <Card
@@ -292,12 +292,12 @@ uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
             </pre>
           </div>
           <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
-            In this build <Mono>--key-uri</Mono> takes a development key and
-            works only on the simulated network; a wallet signer for a real
-            network is not included. The tool talks to the API given by{" "}
-            <Mono>--api</Mono> (default <Mono>http://127.0.0.1:8787</Mono>). The
-            hosted site does not take submissions from the internet yet, so run
-            the stack locally to try it.
+            In simulation mode <Mono>--key-uri</Mono> takes a development key;
+            at launch the tool signs with your wallet&apos;s hotkey instead. It
+            talks to the API given by <Mono>--api</Mono> (default{" "}
+            <Mono>http://127.0.0.1:8787</Mono>). Submissions go through the
+            command line, never the website; to try one end to end, run the
+            stack locally with <Mono>make dev</Mono>.
           </p>
         </Card>
 
@@ -355,10 +355,14 @@ uv run ramcove-worker`}
             </pre>
           </div>
           <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
-            In this build the VM provider runs its readiness checks and then
-            fails closed: real GPU execution is not implemented yet. The demo
-            workers use the simulated provider, which only replays trusted
-            fixtures, and weights are proposed but never set on a chain.
+            The VM provider is the network-mode path. It checks that the host
+            can isolate a whole H100 (VFIO passthrough, IOMMU groups, the
+            host-side measurement agent) and refuses to run anything if a check
+            fails; its GPU execution is completed and calibrated in Stage 1, the
+            first launch step. The demo&apos;s workers use the simulated
+            provider, which evaluates the trusted repository fixtures. Weight
+            plans are published as proposals and set through commit-reveal once
+            the subnet is registered.
           </p>
         </Card>
 
@@ -488,15 +492,15 @@ make reset      # wipe and reseed the demo data`}
 
         <Card
           title="Supported software package"
-          subtitle="What a customer would receive. Not sold in this build."
+          subtitle="What a customer receives."
         >
           <p className="text-[13px] leading-relaxed text-muted">
             Approved champions are merged into an open reference stack and
             released on a quarterly cadence after a soak test, as a validated
             build for one profile with a capacity test on the customer&apos;s
-            own hardware. RamCove does not route production requests to miners
-            and offers no inference API. There is no customer billing portal in
-            this build, and no customer, revenue or partnership exists.
+            own hardware. Customers run it inside their own perimeter: RamCove
+            improves the software they serve with, and does not route their
+            requests to miners.
           </p>
         </Card>
       </div>

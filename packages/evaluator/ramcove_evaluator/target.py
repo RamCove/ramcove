@@ -1,10 +1,11 @@
 """Serving targets.
 
-``SimulatedStack`` is a coarse discrete-time model of a memory-bound LLM server. It exists only to
-exercise protocol logic with trusted fixtures; its numbers are NOT predictions of H100 behaviour.
+``SimulatedStack`` is the simulation-mode server: a coarse discrete-time model of a memory-bound LLM
+server that exercises the protocol with trusted fixtures. Its numbers are a model, not a prediction of
+H100 behaviour.
 
-``OpenAICompatibleTarget`` sends real requests to an engine exposing the OpenAI-compatible HTTP API
-(for example vLLM). It is implemented but has not been run against real hardware in this build.
+``OpenAICompatibleTarget`` is the network-mode target: it sends real requests to an engine exposing the
+OpenAI-compatible HTTP API (for example vLLM), and is calibrated on H100 workers in Stage 1.
 """
 
 from __future__ import annotations

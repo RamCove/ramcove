@@ -5,8 +5,9 @@ finalized. The seed is sha256(round randomness || comparison id). Fallback: if a
 unavailable after ``max_wait_s``, use the next round (round + 1, then + 2 ...) up to
 ``max_fallback`` times, then void the reading with a published reason. No discretionary redraws.
 
-Honest limits: the dev beacon is a deterministic SIMULATION. The drand HTTP reader fetches rounds
-from public relays but this build does NOT verify drand BLS signatures (docs/adr/0006).
+The dev beacon is the simulation-mode beacon and is deterministic. The drand HTTP reader fetches rounds
+from public relays and accepts one when they agree; BLS signature verification is a launch step
+(docs/adr/0006).
 """
 
 from __future__ import annotations

@@ -78,8 +78,8 @@ Always run `nginx -t` on its own and reload only if it succeeds: the host serves
 door; the hosted site then shows that the API is unreachable. Removing `RAMCOVE_API_ORIGIN` from the Vercel
 project and redeploying switches it to the read-only snapshot instead.
 
-## What this is not
+## What the demo is
 
-A public demonstration of a simulation. The chain, the payments, the randomness and the GPU measurement
-are all simulated and labelled; no real tokens move. It is not a production deployment, has had no
-external security review, and runs on a single host with no redundancy.
+The RamCove subnet running in simulation mode for the public: the chain, the payments, the randomness and
+the GPU workers are simulated and every number they produce is labelled. It runs on a single host; the
+network deployment adds redundancy and the external security review listed in the readiness report.

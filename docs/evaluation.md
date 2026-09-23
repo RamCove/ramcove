@@ -6,7 +6,7 @@ disagree, the code in this repository is the one that runs.
 
 Every number below comes from the published profile (`config/profiles/…json`, served at `/v1/profile`)
 and from the evaluator (`packages/evaluator/ramcove_evaluator/`). The values quoted are the ones in the
-profile `ramcove-p1-h100sxm-qwen38-27b-fp8@1.0.0` that ships in this build.
+profile `ramcove-p1-h100sxm-qwen38-27b-fp8@1.0.0` that ships in this repository.
 
 ## The shape of it
 
@@ -190,10 +190,11 @@ and losing it changes nothing but the page. The vocabulary is in
 
 The reserve is 20% of each worker's week, published with the queue.
 
-## What is simulated in this build
+## Simulation mode and network mode
 
-No GPU is measured anywhere in this repository. `SimulatedStack` is a coarse model of a memory-bound
-server, and every number the demo shows comes from it. It exists to exercise the protocol, not to predict
-H100 behaviour: `docs/acceptance-matrix.md` records how often that simulation rejects a stack that really
-is better, and `docs/readiness-report.md` lists what must be measured on real hardware before any of this
-decides real money.
+In simulation mode — what the public demo runs — the GPU workers use `SimulatedStack`, a coarse model of a
+memory-bound server, and every number the demo shows comes from it. It exercises the whole protocol and is
+not a prediction of H100 behaviour: `docs/acceptance-matrix.md` records how the evaluation separates better
+stacks from worse ones in it. In network mode the worker's VFIO provider runs the same pipeline on a whole
+H100, and the Stage 1 calibration listed in `docs/readiness-report.md` sets the measured values before any
+of this decides real money.

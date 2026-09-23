@@ -25,8 +25,8 @@ test("a visitor understands the competition, with nothing to sign in to", async 
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Same GPU");
   await expect(page.getByText(/serve more useful AI requests/).first()).toBeVisible();
-  // no banner, but the site still says plainly that nothing real moves
-  await expect(page.getByText(/no real tokens move/).first()).toBeVisible();
+  // no banner, but every page says which mode it is running in
+  await expect(page.getByText(/running in simulation mode/i).first()).toBeVisible();
   // the site is read-only: miners use the command line and validators run their own software
   await expect(page.getByRole("button", { name: /sign in/i })).toHaveCount(0);
   const header = page.getByRole("banner");

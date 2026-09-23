@@ -1,7 +1,8 @@
 # Runbook: deployment
 
-**This build has never been deployed.** Public deployment, production databases and GPU rentals need
-separate authorization. What follows is the procedure to review before asking for it.
+The public demo runs in simulation mode on one host (see `public-demo.md`). This runbook is the network
+deployment. Public deployment, production databases and GPU rentals each need separate authorization;
+what follows is the procedure to review before asking for it.
 
 ## Components
 

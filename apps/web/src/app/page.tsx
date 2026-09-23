@@ -768,9 +768,9 @@ function LiveBoard({ data }: { data: Overview }) {
               />
             </div>
             <p className="mt-6 text-[13px] leading-relaxed text-muted">
-              Weight plans are proposed only. Nothing is submitted to a chain in
-              this build, and the champion never receives owner or validator
-              emissions.
+              Weight plans are published as proposals in simulation mode and set
+              through commit-reveal in network mode. The champion receives the
+              miner allocation only, never owner or validator emissions.
             </p>
           </div>
         </div>
@@ -933,25 +933,25 @@ function Audiences() {
 
 function WhatIsReal() {
   const working = [
-    "Competition rules, queue order and promotion barrier",
+    "Competition rules, queue order and the promotion barrier",
     "Payment verification, receipts, refunds and the audit chain",
-    "Race-safe accounting on a real PostgreSQL database",
-    "Read-only parsing of live Bittensor blocks",
+    "Race-safe accounting on PostgreSQL",
+    "Reading finalized Bittensor blocks",
   ];
-  const notYet = [
-    "GPU measurement is a labelled simulation",
-    "The chain, beacon and payments are a local dev chain",
-    "No real isolation backend; workers accept trusted fixtures only",
-    "Thresholds are provisional until a real noise study",
+  const launch = [
+    "GPU workers: the simulated provider here, H100 VMs at launch",
+    "Chain, beacon and payments: the dev chain here, the network at launch",
+    "Workers evaluate the trusted repository fixtures in simulation mode",
+    "Thresholds are provisional until the Stage 1 calibration",
   ];
   return (
     <Section
       index="06"
-      label="Honest status"
+      label="Status"
       title={
         <>
-          What is real today,{" "}
-          <span className="display-accent">and what is not.</span>
+          Running in simulation mode,{" "}
+          <span className="display-accent">ready for launch steps.</span>
         </>
       }
       band
@@ -962,11 +962,11 @@ function WhatIsReal() {
       }
     >
       <div className="grid gap-5 md:grid-cols-2">
-        <StatusList title="Working in this build" tone="ok" items={working} />
+        <StatusList title="Running now" tone="ok" items={working} />
         <StatusList
-          title="Simulated or still ahead"
+          title="Simulation mode, and what launch switches on"
           tone="sim"
-          items={notYet}
+          items={launch}
         />
       </div>
     </Section>

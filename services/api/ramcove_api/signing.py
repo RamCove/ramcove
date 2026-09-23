@@ -1,8 +1,8 @@
 """Service signing for quotes and receipts (sr25519 via substrate-interface).
 
 Demo/local modes derive a deterministic *demo* key that is published in this repository and has no
-value on any network. Any other mode requires an external signer, which this build does not provide,
-so issuing signed records fails closed there.
+value on any network. Network mode signs with an external signer configured at deployment; without one,
+issuing signed records fails closed.
 """
 
 from __future__ import annotations

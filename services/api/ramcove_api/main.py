@@ -35,8 +35,8 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
     app = FastAPI(
         title="RamCove API",
         version="0.1.0",
-        description="Local development build of the RamCove subnet platform. Chain, beacon, workers and "
-        "payments are simulated and labelled.",
+        description="The RamCove subnet's intake, queue and public API. In simulation mode the chain, beacon, "
+        "GPU workers and payments are simulated, and every number they produce is labelled.",
         openapi_tags=[
             {"name": "public"},
             {"name": "miner"},

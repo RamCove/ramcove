@@ -136,7 +136,7 @@ def execute_refund_demo(ctx: AppContext, refund_id: str, operator: str) -> dict:
     """SIMULATION: send an approved refund on the dev chain. Real refunds require a separately authorized signer."""
     if not ctx.settings.simulated_chain:
         raise ServiceError(
-            "disabled", "refund transfers need an authorized signer, which this build does not include", 403
+            "disabled", "refund transfers need the authorized signer configured for network mode", 403
         )
     with tx(ctx.engine) as conn:
         r = conn.execute(select(refunds).where(refunds.c.id == refund_id).with_for_update()).first()

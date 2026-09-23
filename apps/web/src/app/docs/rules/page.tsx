@@ -170,10 +170,10 @@ export default async function CompetitionPage() {
       </PageHeader>
 
       {!p.measured && (
-        <Notice tone="warn" title="Nothing here is measured on a real GPU">
-          The thresholds, runtimes and costs come from the v0.2 whitepaper and
-          its review. A Stage 1 noise study must replace them before real
-          submissions are accepted.
+        <Notice tone="warn" title="Provisional values, set before launch">
+          The thresholds, runtimes and costs come from the v0.2 whitepaper. The
+          Stage 1 calibration on H100 workers replaces them with measured values
+          before paid submissions open on the network.
         </Notice>
       )}
 
@@ -575,16 +575,15 @@ export default async function CompetitionPage() {
             Fee: a flat {Number((p.fees.flat_fee_rao / 1e9).toFixed(4))} TAO per
             paid submission; the TAO price does not change it. The planning cost
             of one submission is about{" "}
-            {usd(p.fees.service_cost_usd_cents_per_admission)}. On a real
-            network dollar values would use <Mono>{p.fees.price_source}</Mono>;
-            in this build the TAO price is a fixed simulated value and no price
-            is fetched.
+            {usd(p.fees.service_cost_usd_cents_per_admission)}. Dollar values
+            use <Mono>{p.fees.price_source}</Mono> in network mode; in
+            simulation mode the TAO price is a fixed simulated value.
           </p>
         </Card>
 
         <Card
           title="Proposed weight plan"
-          subtitle="Deterministic from the approved champion. Never submitted in this build."
+          subtitle="Deterministic from the approved champion. Published as a proposal in simulation mode, set through commit-reveal in network mode."
         >
           {data.weight_plan ? (
             <>

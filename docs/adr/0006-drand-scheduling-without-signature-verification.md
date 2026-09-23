@@ -9,6 +9,6 @@ seed is `sha256(round randomness || comparison id)`. Missing rounds roll forward
 reading is published with its reason and its exposed tests are never reused. The public quicknet parameters
 (3-second period, genesis 1692803367) were read from drand's own API on 2026-09-17.
 
-**Gap.** This build does not verify drand's BLS signatures; it compares answers from several relays and
-treats disagreement as unavailable. A production deployment must verify the signature against the chain's
-public key. Recorded in the integration-readiness checklist.
+**Launch step.** Rounds are accepted when several relays agree, and disagreement is treated as
+unavailable. Verifying drand's BLS signature against the chain's public key is added before the network
+deployment; it is on the integration-readiness checklist.
