@@ -7,7 +7,11 @@
     "repo": "Qwen/Qwen3.8-27B-FP8",
     "revision": "017b9c7af6b5689d5dd426a76e0bc077eb5ca20a",
     "license": "Apache-2.0",
-    "shard_sha256": []
+    "shard_sha256": [],
+    "mode": "non-thinking",
+    "input": "text",
+    "max_model_len": 32768,
+    "decoding": "greedy"
   },
   "engine": {
     "repo": "vllm-project/vllm",
@@ -24,7 +28,11 @@
       "vllm/model_executor/models/**",
       "vllm/entrypoints/**",
       "tests/**"
-    ]
+    ],
+    "torch": "2.13.0",
+    "cuda": "13.0.3",
+    "python_lock_sha256": null,
+    "args_sha256": "491bd646c47cfb75927e863b052eb4a60c8d99fa16e75e7036dcba95392771e0"
   },
   "hardware": {
     "gpu": "NVIDIA H100 SXM 80GB (whole device, no MIG)",
@@ -34,7 +42,11 @@
     "swap": false,
     "network": "none",
     "gpu_ceiling_margin_mib": 1536,
-    "isolation": "hardware VM with VFIO whole-GPU passthrough; trusted host-side measurement"
+    "isolation": "hardware VM with VFIO whole-GPU passthrough; trusted host-side measurement",
+    "driver": null,
+    "firmware": null,
+    "power_limit": "SXM default, checked every run",
+    "tight_ceiling_share_bp": 2500
   },
   "workloads": [
     "P-mem-v1",
@@ -84,5 +96,9 @@
     "mode": "local"
   },
   "measured": false,
-  "no_winner_writer_verified": false
+  "no_winner_writer_verified": false,
+  "evaluator": {
+    "version": "0.1.0",
+    "weights_version_key": 100
+  }
 }

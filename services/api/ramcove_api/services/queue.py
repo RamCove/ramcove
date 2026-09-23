@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from ramcove_chain.beacon import DevBeacon, resolve_round, schedule_round
+from ramcove_chain.beacon import QUICKNET_PERIOD_S, DevBeacon, resolve_round, schedule_round
 from ramcove_protocol.reservation import remaining_envelope
 from ramcove_protocol.scoring import Reading, gain_against_later_champion
 from ramcove_protocol.state import PAID_ACTIVE, S
@@ -240,9 +240,16 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
             cid,
             {"anchor_block": anchor.number, "beacon_round": res.used_round, "simulated_beacon": True},
         )
-        payload.update(comparison_id=cid, seed=res.seed or payload["seed"])
+        second = resolve_round(beacon, _second_round(res.used_round or scheduled, profile), f"{cid}:reading1")
+        payload.update(comparison_id=cid, seed=res.seed or payload["seed"], second_seed=second.seed)
     audit.append(conn, worker_id, "job_leased", "job", job.id, {"stage": job.stage})
     return payload
+
+
+def _second_round(first_round: int, profile) -> int:
+    """The beacon round a second reading uses: a fixed, published distance after the first reading's, so
+    both are known in advance to be in the future and neither can be chosen."""
+    return first_round + profile.deadlines.second_reading_delay_s // QUICKNET_PERIOD_S
 
 
 def _store_report(
@@ -568,7 +575,7 @@ def automatic_flags(conn: Connection, sub, result: dict) -> list[str]:
     return sorted(set(flags))
 
 
-def _record_readings(conn: Connection, job, readings: list[dict], cmp_id: str | None) -> None:
+def _record_readings(conn: Connection, job, readings: list[dict], cmp_id: str | None, profile) -> None:
     cmp_row = conn.execute(select(comparisons).where(comparisons.c.id == cmp_id)).first() if cmp_id else None
     if cmp_row is None or cmp_row.job_id != job.id or cmp_row.status != "scheduled":
         raise ServiceError("bad_comparison", "result does not match the scheduled measurement", 409)
@@ -591,9 +598,11 @@ def _record_readings(conn: Connection, job, readings: list[dict], cmp_id: str | 
                     validator=cmp_row.validator,
                     worker=cmp_row.worker,
                     anchor_block=cmp_row.anchor_block,
-                    beacon_round=cmp_row.beacon_round,
+                    beacon_round=_second_round(cmp_row.beacon_round, profile),
                     beacon_simulated=cmp_row.beacon_simulated,
-                    seed=f"{cmp_row.seed}:reading{n}",
+                    seed=resolve_round(
+                        DevBeacon(), _second_round(cmp_row.beacon_round, profile), f"{cmp_row.id}:reading1"
+                    ).seed,
                     **values,
                 )
             )
@@ -711,7 +720,7 @@ def _complete_evaluation(
     conn: Connection, ctx: AppContext, job, sub, profile, champ, worker_id: str, result: dict
 ) -> None:
     readings = result.get("readings") or []
-    _record_readings(conn, job, readings, result.get("comparison_id"))
+    _record_readings(conn, job, readings, result.get("comparison_id"), profile)
     _store_answers(conn, job, worker_id, result)
     _store_report(conn, ctx, job, worker_id, "full", result, _public_full(result))
     first = readings[0] if readings else None
@@ -783,7 +792,7 @@ def _complete_reproduction(
     conn: Connection, ctx: AppContext, job, sub, profile, champ, worker_id: str, result: dict
 ) -> None:
     readings = result.get("readings") or []
-    _record_readings(conn, job, readings, result.get("comparison_id"))
+    _record_readings(conn, job, readings, result.get("comparison_id"), profile)
     _store_report(
         conn,
         ctx,

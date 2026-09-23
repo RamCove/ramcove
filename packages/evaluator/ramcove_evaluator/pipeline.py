@@ -395,6 +395,7 @@ def evaluate(
     champion_calibration: dict,
     bank: Bank,
     on_progress: Reporter | None = None,
+    second_seed: str | None = None,
 ) -> dict:
     """One evaluation: quality on fresh questions, then one capacity reading against the champion's fixed
     score (a second only when the first lands between the margin and the clear-win line), then, for a winner,
@@ -432,7 +433,12 @@ def evaluate(
     }
     if fresh_answers:
         result["champion_answers"] = fresh_answers
-    seed = f"{bank.traffic_seed}:{seed}"  # the bank's traffic scripts, varied by this evaluation's drand seed
+    # the bank's traffic scripts, varied by each reading's own drand round
+    reading_seeds = [
+        f"{bank.traffic_seed}:{seed}:reading0",
+        f"{bank.traffic_seed}:{second_seed}" if second_seed else f"{bank.traffic_seed}:{seed}:reading1",
+    ]
+    seed = f"{bank.traffic_seed}:{seed}"
     if not qv.passed:
         result.update(
             winner=False,
@@ -446,7 +452,7 @@ def evaluate(
     readings, reading_runs, decision, cap = [], [], None, None
     for n in range(2):
         cap, runs = _reading(
-            params, base, profile, f"{seed}:reading{n}", FULL_BUDGET_GIB, on_progress, reading=n + 1
+            params, base, profile, reading_seeds[n], FULL_BUDGET_GIB, on_progress, reading=n + 1
         )
         gpu += RUN_CENTI * cap.runs
         readings.append(_reading_record(cap, base))

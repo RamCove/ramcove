@@ -54,7 +54,8 @@ def execute(
             return {"infra_failure": "worker has no valid champion calibration"}
         if stage in ("full", "reproduce"):
             run = pipeline.evaluate if stage == "full" else pipeline.reproduce
-            out = run(candidate, champion, profile, payload["seed"], calibration, bank, on_progress)
+            extra = {"second_seed": payload.get("second_seed")} if stage == "full" else {}
+            out = run(candidate, champion, profile, payload["seed"], calibration, bank, on_progress, **extra)
             out["comparison_id"] = payload["comparison_id"]
             return out
         return {"infra_failure": f"unknown stage {stage}"}

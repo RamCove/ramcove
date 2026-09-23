@@ -106,7 +106,11 @@ def test_a_close_first_reading_gets_a_second_and_both_are_recorded(ctx, monkeypa
         if measured:
             break
     assert len(measured) == 2, measured
-    assert measured[1].seed == f"{measured[0].seed}:reading1"
+    # the second reading has its own beacon round, a published distance after the first, so its traffic
+    # could not be known when the first reading started
+    delay_rounds = 7200 // 3
+    assert measured[1].beacon_round == measured[0].beacon_round + delay_rounds
+    assert measured[1].seed != measured[0].seed and len(measured[1].seed) == 64
     w = state(ctx, sub["submission_id"])
     assert 50_000 < w.first_gain_ppm < 90_000 and w.bound_gain_ppm > 50_000, (
         w.first_gain_ppm,

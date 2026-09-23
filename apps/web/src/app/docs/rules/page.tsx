@@ -24,13 +24,24 @@ type ProfileDetail = {
     profile_id: string;
     version: string;
     title: string;
-    model: { repo: string; revision: string; license: string };
+    model: {
+      repo: string;
+      revision: string;
+      license: string;
+      mode?: string;
+      max_model_len?: number;
+      decoding?: string;
+    };
+    evaluator?: { version: string; weights_version_key: number };
     engine: {
       repo: string;
       tag: string;
       commit: string;
       allowed_paths: string[];
       forbidden_paths: string[];
+      torch?: string | null;
+      cuda?: string | null;
+      args_sha256?: string | null;
     };
     hardware: {
       gpu: string;
@@ -350,6 +361,20 @@ export default async function CompetitionPage() {
                 "Engine commit",
                 <Mono key="ec">{shortHash(p.engine.commit, 10)}</Mono>,
               ],
+              [
+                "Serving",
+                `${p.model.mode ?? "non-thinking"} · ${p.model.decoding ?? "greedy"} decoding · up to ${(
+                  p.model.max_model_len ?? 32768
+                ).toLocaleString("en-US")} tokens`,
+              ],
+              [
+                "Tuned baseline arguments",
+                p.engine.args_sha256 ? (
+                  <Mono key="ea">{shortHash(p.engine.args_sha256, 10)}</Mono>
+                ) : (
+                  "not pinned yet"
+                ),
+              ],
               ["GPU", p.hardware.gpu],
               [
                 "Candidate VM",
@@ -362,6 +387,12 @@ export default async function CompetitionPage() {
               ["Isolation", p.hardware.isolation],
               ["Workloads", p.workloads.join(", ")],
               ["Model licence", p.model.license],
+              [
+                "Evaluator",
+                p.evaluator
+                  ? `version ${p.evaluator.version} · weights key ${p.evaluator.weights_version_key}`
+                  : "—",
+              ],
             ]}
           />
           <div className="mt-4 grid gap-3 sm:grid-cols-2">

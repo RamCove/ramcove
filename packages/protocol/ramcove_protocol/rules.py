@@ -25,6 +25,11 @@ class ModelPin(Frozen):
     revision: str
     license: str
     shard_sha256: list[str] = Field(default_factory=list, description="Empty until verified by download")
+    # how the model is served is part of the contract: a stack may not change what the answers are
+    mode: Literal["non-thinking"] = "non-thinking"
+    input: Literal["text"] = "text"
+    max_model_len: int = 32768
+    decoding: Literal["greedy"] = "greedy"
 
 
 class EnginePin(Frozen):
@@ -34,6 +39,12 @@ class EnginePin(Frozen):
     image_digest: str | None = None
     allowed_paths: list[str]
     forbidden_paths: list[str]
+    torch: str | None = None
+    cuda: str | None = None
+    python_lock_sha256: str | None = Field(None, description="Empty until the build image is pinned")
+    args_sha256: str | None = Field(
+        None, description="Hash of the tuned baseline's engine arguments (config/engine_args/…json)"
+    )
 
 
 class HardwarePin(Frozen):
@@ -45,6 +56,17 @@ class HardwarePin(Frozen):
     network: Literal["none"] = "none"
     gpu_ceiling_margin_mib: int
     isolation: str
+    driver: str | None = Field(None, description="Pinned before paid submissions open")
+    firmware: str | None = Field(None, description="Pinned before paid submissions open")
+    power_limit: str = "SXM default, checked every run"
+    tight_ceiling_share_bp: int = Field(
+        2500, description="The memory-evidence budget: the ceiling less this share of the champion's cache"
+    )
+
+
+class EvaluatorPin(Frozen):
+    version: str
+    weights_version_key: int
 
 
 class ReplacementRule(Frozen):
@@ -144,6 +166,11 @@ class Deadlines(Frozen):
     review_s: int = 14 * 24 * 3600
     review_extension_s: int = 14 * 24 * 3600
     registration_grace_s: int = 14 * 24 * 3600
+    second_reading_delay_s: int = Field(
+        7200,
+        description="A second reading's beacon round is this long after the first reading's, so its traffic "
+        "is fresh and cannot be known when the first reading starts (Section 9.2)",
+    )
     beacon_min_delay_s: int = Field(
         1800,
         description="A reading's beacon round must be at least this far after its anchor is finalized, so "
@@ -202,6 +229,9 @@ class ProfileVersion(Frozen):
     fees: FeePolicy
     bootstrap: Bootstrap
     question_bank: QuestionBankRule = Field(default_factory=QuestionBankRule)
+    evaluator: EvaluatorPin = Field(
+        default_factory=lambda: EvaluatorPin(version="0.1.0", weights_version_key=100)
+    )
     plive_rate_bp: int = Field(
         9000, description="P-live runs at this share of confirmed capacity (provisional)"
     )
