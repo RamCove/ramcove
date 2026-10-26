@@ -89,19 +89,13 @@ uv run pytest -m chain_readonly     # read-only queries against the public Bitte
 
 - `docs/evaluation.md` — the whole evaluation workflow, step by step, and why each step is there
 - `docs/spec/protocol.md` — the corrected protocol, rule by rule
-- `docs/requirements-matrix.md` — whitepaper and review requirements mapped to code, tests and status
-- `docs/readiness-report.md` — what is implemented, simulated, externally verified or blocked
-- `docs/acceptance-matrix.md` — every claim with the command that produced it, and the measured numbers
-- `docs/threat-model.md`, `docs/integration-readiness.md`
 - `docs/adr/` — architecture decisions, including where the implementation deviates from the whitepaper and why
 - `docs/guides/` — miner, validator and operator guides
 - `docs/runbooks/` — deployment, backup and recovery, refunds, rollback, incidents
-- `docs/screenshots/` — browser verification screenshots
 
 ## Launch
 
-Moving from simulation mode to the network is a sequence of steps, each with its own check in
-[`docs/integration-readiness.md`](docs/integration-readiness.md):
+Moving from simulation mode to the network is a sequence of steps:
 
 1. **GPU measurement.** Enable the VFIO provider on validator hosts with a whole H100 SXM and run the Stage 1
    calibration: the tuned baseline's score, the noise study that sets the margin, and the published run

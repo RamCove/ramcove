@@ -73,13 +73,13 @@ def submit_fixture(ctx, miner_key: str, fixture_name: str, parent_version: int =
 
 
 # How many times a test resubmits a stack that really is better. One evaluation of the simulated stack
-# rejects such a stack about half the time (docs/acceptance-matrix.md), so a test that submitted once, or
+# rejects such a stack about half the time, so a test that submitted once, or
 # even three times, would fail on its own noise rather than on a defect.
 ATTEMPTS = 10
 
 # Outcomes that mean the measurement was unlucky, not that the code is wrong: the margin was not cleared,
 # or no rate on the grid passed. A worker whose champion fixed score came out high rejects every challenger
-# on it (docs/readiness-report.md), and no number of resubmissions helps, so a test says so rather than
+# on it, and no number of resubmissions helps, so a test says so rather than
 # failing as if the code had broken. Any other outcome — a failed build, quality, or winner check — is a
 # real result and must fail the test.
 NOISE_OUTCOMES = {"margin_not_cleared", "capacity_reading"}

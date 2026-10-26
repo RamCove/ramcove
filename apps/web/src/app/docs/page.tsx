@@ -483,10 +483,9 @@ make test-all   # unit and database-backed tests
 make reset      # wipe and reseed the demo data`}
           </pre>
           <p className="mt-3 text-[13px] leading-relaxed text-muted">
-            The repository holds the corrected protocol specification, the
-            requirements and acceptance matrix, architecture decisions, the
-            threat model, the integration-readiness checklist and the runbooks
-            for deployment, backup, recovery, refunds, rollback and incidents.
+            The repository holds the corrected protocol specification,
+            architecture decisions and the runbooks for deployment, backup,
+            recovery, refunds, rollback and incidents.
           </p>
         </Card>
 

@@ -1,6 +1,6 @@
 /**
  * Browser verification: visits every surface, records console errors, checks for horizontal page
- * overflow, and writes screenshots to docs/screenshots.
+ * overflow, and writes screenshots to test-results/screenshots.
  *
  *   node screenshots.mjs [baseUrl] [outDir]
  */
@@ -8,7 +8,7 @@ import { chromium } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 
 const base = process.argv[2] ?? "http://127.0.0.1:3787";
-const out = process.argv[3] ?? "../../docs/screenshots";
+const out = process.argv[3] ?? "test-results/screenshots";
 await mkdir(out, { recursive: true });
 
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, tablet: { width: 768, height: 1024 }, phone: { width: 390, height: 844 } };

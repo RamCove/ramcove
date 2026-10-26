@@ -26,6 +26,6 @@ re-measured in every block and recalibrated weekly. The owner asked for a faster
 queue holds about twenty times more submissions per worker. The price is that every comparison on a worker
 leans on one measurement of the champion: a score that comes out high rejects every challenger on that
 worker until the next champion, and one that comes out low lets weaker challengers win. In the simulator
-this noise is large (`docs/acceptance-matrix.md`, rows 12 and 13); on real hardware the Stage 1 study must
+this noise is large; on real hardware the Stage 1 study must
 show that the fixed score and a single reading are measured within about 2% before paid submissions open.
 Readings are never cut short, because arithmetic re-comparison needs uncapped gains.

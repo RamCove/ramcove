@@ -11,4 +11,4 @@ reading is published with its reason and its exposed tests are never reused. The
 
 **Launch step.** Rounds are accepted when several relays agree, and disagreement is treated as
 unavailable. Verifying drand's BLS signature against the chain's public key is added before the network
-deployment; it is on the integration-readiness checklist.
+deployment.

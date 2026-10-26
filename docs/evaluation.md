@@ -194,7 +194,5 @@ The reserve is 20% of each worker's week, published with the queue.
 
 In simulation mode — what the public demo runs — the GPU workers use `SimulatedStack`, a coarse model of a
 memory-bound server, and every number the demo shows comes from it. It exercises the whole protocol and is
-not a prediction of H100 behaviour: `docs/acceptance-matrix.md` records how the evaluation separates better
-stacks from worse ones in it. In network mode the worker's VFIO provider runs the same pipeline on a whole
-H100, and the Stage 1 calibration listed in `docs/readiness-report.md` sets the measured values before any
-of this decides real money.
+not a prediction of H100 behaviour. In network mode the worker's VFIO provider runs the same pipeline on a
+whole H100, and the Stage 1 calibration sets the measured values before any of this decides real money.

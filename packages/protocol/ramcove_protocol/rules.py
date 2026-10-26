@@ -118,21 +118,21 @@ class LatencyGates(Frozen):
         description="p90 end-to-end in the last quarter over the second quarter. An 8-minute window leaves "
         "about 60 requests per quarter, and at 1.25 the band fires on sample noise in 3 runs in 20 well "
         "below capacity; 1.40 fires in 1 and still catches half the runs at 1.5x capacity, where attainment "
-        "catches the rest (docs/acceptance-matrix.md).",
+        "catches the rest.",
     )
     stability_floor_bp: int = Field(
         5000,
         description="Drift and burst recovery fail only when the later p90 end-to-end is also at least this "
         "share of the requests' own limits. They are ratios, and a stack with memory to spare answers so fast "
         "before a burst that a harmless absolute rise becomes a large ratio: without this floor a stack 30% "
-        "better than the champion failed as often as the champion did at every load (docs/acceptance-matrix.md).",
+        "better than the champion failed as often as the champion did at every load.",
     )
     burst_recovery_bp: int = Field(
         13500,
         description="After a burst, p90 end-to-end must return to this share of the pre-burst level. An "
         "8-minute window leaves about 30 requests on each side of the comparison, and at 1.20 that band "
         "fires on sample noise in one run in five well below capacity; at 1.35 it fires in one in twenty "
-        "and still catches every run at 1.5x capacity (docs/acceptance-matrix.md).",
+        "and still catches every run at 1.5x capacity.",
     )
 
 

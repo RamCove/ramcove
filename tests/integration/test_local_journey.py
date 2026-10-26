@@ -39,7 +39,7 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
     assert f.state == "not_promoted" and f.fee_outcome == "consumed", (f.state, f.outcome_summary)
 
     # One evaluation is a set of pass/fail readings over a noisy simulated measurement, so a stack that
-    # really is better is sometimes rejected: see docs/acceptance-matrix.md for how often. A miner would pay
+    # really is better is sometimes rejected. A miner would pay
     # and resubmit, so the test does the same rather than gambling on one attempt. The point of this test is
     # that the journey works end to end, not that one run of the evaluator is lucky.
     win = winning_submission(ctx, "miner-ada", "fragmentation-aware-allocator", "promoted")
@@ -151,7 +151,7 @@ def test_after_the_sunset_a_second_validator_reproduces_the_winner(ctx):
             break
     if w.state != "promoted" and only_measurement_noise([o[1] for o in outcomes], extra={"not_reproduced"}):
         # three workers each measure the champion for themselves; one that came out high rejects every
-        # challenger it sees, and resubmitting cannot help (docs/readiness-report.md)
+        # challenger it sees, and resubmitting cannot help
         pytest.skip(f"a worker's champion score rejected every attempt: {[(o[0], o[1]) for o in outcomes]}")
     assert outcomes[-1][0] == "promoted", outcomes
     with tx(ctx.engine) as conn:
