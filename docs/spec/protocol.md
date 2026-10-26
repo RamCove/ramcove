@@ -210,9 +210,11 @@ submission, a new fee and fresh tests; readings are never pooled across attempts
 
 ## 6. Champion, weights and registration (review R5, R6)
 
-- One eligible champion per profile receives that profile's whole miner allocation. There are no
-  runner-up, maintenance or tie-splitting pools, and the champion never receives owner or validator
-  emissions.
+- King of the hill (ADR 0011). Each profile keeps a queue of five kings; King #1 is the current champion.
+  A challenger that beats King #1 becomes the new King #1, every king moves down one place, and King #5
+  leaves the queue. Each slot earns 20% of the profile's miner allocation. A king that is suspended, retired,
+  excluded or not registered keeps its place and its share burns; a rolled-back king leaves the queue and the
+  kings below it move up. Kings never receive owner or validator emissions.
 - The champion is **the complete stack that was actually tested**, with attribution for the components it
   contains. A later champion may supersede earlier components; the code does not claim that all historical
   patches accumulate.
@@ -222,8 +224,9 @@ submission, a new fee and fresh tests; readings are never pooled across attempts
   incumbent stays.
 - Rewards follow the hotkey, resolved to a UID at each weight publication, so a reused UID number never
   redirects a reward.
-- With no eligible champion the allocation is proposed for the owner UID, which the chain burns. The
-  writer stays disabled until that mechanism is verified on a testnet.
+- The share of an empty or ineligible king slot is proposed for the owner UID, which the chain burns; with
+  only the tuned baseline, the whole allocation burns. The writer stays disabled until that mechanism is
+  verified on a testnet.
 *Where: `ramcove_protocol.weights`, `ramcove_api.services.settlement`.*
 
 ## 7. Verification and bootstrap (review R8)

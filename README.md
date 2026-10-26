@@ -3,9 +3,9 @@
 RamCove is a Bittensor subnet that pays for independently verified software improvements which
 let one fixed GPU serve more useful AI requests, by using its memory better. Miners submit reviewable
 code. Validators build it in controlled environments and measure *qualified serving capacity* against the
-current champion's fixed score, once per submission. One champion per profile holds that profile's miner
-allocation until a challenger proves a real improvement; a person reviews a winner only when an automatic
-check flags it.
+current champion's fixed score, once per submission. Each profile runs king of the hill: a challenger that
+proves a real improvement becomes King #1, and the five most recent kings each earn 20% of that profile's miner
+allocation until they fall out of the queue. A person reviews a winner only when an automatic check flags it.
 
 **[How a submission is evaluated](docs/evaluation.md)** walks the whole path — free checks, screening,
 question quality, the capacity reading, the rule and the winner checks — with the number that decides each

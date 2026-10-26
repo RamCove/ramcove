@@ -18,8 +18,9 @@ Use this when a promoted champion turns out to be unsafe or wrong.
 What that does: the current champion becomes `rolled_back` and keeps its evidence; the previous champion's
 stack becomes current under a **new** version number; every waiting winner is evaluated again against it,
 keeping its admission key and charging no new fee (a rollback is the one case where arithmetic
-re-comparison does not apply); workers record the restored champion's fixed score once; weight goes to no
-winner until a challenger qualifies, and the chain burns that share.
+re-comparison does not apply); workers record the restored champion's fixed score once. The rolled-back king
+leaves the king queue and the kings below it move up one place, so the restored champion is King #1 again;
+the share of any slot left empty is burned until challengers qualify.
 
 4. Tell the affected miners on their submission pages — the reason for the new evaluation is already published there.
 5. Resume admissions only when a worker is safe-and-ready and the evaluator version is pinned.

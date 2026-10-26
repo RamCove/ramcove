@@ -2,7 +2,8 @@
 
 You submit a code change to a pinned serving engine. RamCove measures how much more qualified work one fixed
 GPU serves with your change than with the current champion, in one evaluation. If the gain is enough, you
-become the champion and receive that profile's miner allocation until someone beats you.
+become King #1. Each of the five kings earns 20% of that profile's miner allocation: when someone beats King #1
+you move down one place, and after five newer kings you leave the queue.
 
 ## Before you write code
 
