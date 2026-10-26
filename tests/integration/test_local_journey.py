@@ -53,6 +53,16 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
         assert (
             plan.body["entries"][0]["hotkey"] == w.hotkey and plan.body["status"] == "proposed_not_submitted"
         )
+        # king of the hill: the first winner is King #1 and earns one slot (20%); four empty slots burn
+        kings = plan.body["kings"]
+        assert [(k["slot"], k["hotkey"], k["paid"]) for k in kings[:2]] == [
+            (1, w.hotkey, True),
+            (2, None, False),
+        ]
+        assert {e["role"]: e["weight_u16"] for e in plan.body["entries"]} == {
+            "king": 65_535 // 5,
+            "burn": 65_535 * 4 // 5,
+        }
         kinds = [r.kind for r in conn.execute(select(ledger))]
         paid = 1 + win["attempts"]  # the losing challenger plus every attempt by the winner
         assert kinds.count("fee_received") == paid and kinds.count("fee_consumed") == paid

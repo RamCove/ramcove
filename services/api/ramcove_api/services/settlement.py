@@ -10,7 +10,7 @@ from datetime import timedelta
 from ramcove_protocol.scoring import gain_against_later_champion
 from ramcove_protocol.settlement import AdmissionKey, QueueEntry, decide_promotion
 from ramcove_protocol.state import AWAITING_PROMOTION, S
-from ramcove_protocol.weights import ChampionState, UidSnapshot, build_weight_plan
+from ramcove_protocol.weights import KingState, UidSnapshot, build_weight_plan
 from sqlalchemy import Connection, select, update
 
 from ..store import audit
@@ -29,6 +29,7 @@ from .queue import (
     _consume_fee,
     _lose,
     current_champion,
+    king_queue,
     promoted_gains_since,
     requeue_evaluation,
     transition,
@@ -249,15 +250,19 @@ def publish_weight_plan(conn: Connection, ctx: AppContext, profile_id: str) -> d
             profile_versions.c.active, profile_versions.c.profile_id == profile_id
         )
     ).scalar()
-    state = ChampionState(
-        profile_id,
-        champ.version,
-        champ.author_hotkey,
-        eligible=champ.status == "current",
-        suspended=champ.status == "suspended",
-    )
+    excluded = set((ctx.setting(conn, "excluded_hotkeys", {}) or {}).get("hotkeys") or {})
+    kings = [
+        KingState(
+            profile_id,
+            slot,
+            k.version,
+            k.author_hotkey,
+            eligible=k.status in ("current", "superseded") and k.author_hotkey not in excluded,
+        )
+        for slot, k in enumerate(king_queue(conn, profile_id), start=1)
+    ]
     plan = build_weight_plan(
-        [state],
+        kings,
         {profile_id: 10_000},
         UidSnapshot(block, ctx.settings.netuid, uids, ctx.owner_hotkey),
         no_winner_mechanism_verified=bool(body_profile.get("no_winner_writer_verified")),
@@ -268,6 +273,7 @@ def publish_weight_plan(conn: Connection, ctx: AppContext, profile_id: str) -> d
         "netuid": plan.netuid,
         "champion_version": champ.version,
         "entries": [e.__dict__ for e in plan.entries],
+        "kings": [k.__dict__ for k in plan.kings],
         "no_winner": plan.no_winner,
         "notes": list(plan.notes),
         "writer_enabled": plan.writer_enabled and ctx.settings.chain_writes_enabled,
@@ -291,7 +297,11 @@ def publish_weight_plan(conn: Connection, ctx: AppContext, profile_id: str) -> d
         "weight_plan_proposed",
         "weight_plan",
         pid,
-        {"champion_version": champ.version, "no_winner": plan.no_winner},
+        {
+            "champion_version": champ.version,
+            "kings_paid": sum(1 for k in plan.kings if k.paid),
+            "no_winner": plan.no_winner,
+        },
         public=True,
     )
     return body

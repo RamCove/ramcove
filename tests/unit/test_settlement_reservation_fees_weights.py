@@ -6,7 +6,7 @@ from ramcove_protocol.money import RAO_PER_TAO
 from ramcove_protocol.reservation import CapacityPlan, can_issue_quote, remaining_envelope
 from ramcove_protocol.settlement import AdmissionKey, QueueEntry, decide_promotion
 from ramcove_protocol.state import TERMINAL, S, TransitionError, fee_outcome, next_state
-from ramcove_protocol.weights import ChampionState, UidSnapshot, build_weight_plan
+from ramcove_protocol.weights import U16_MAX, KingState, UidSnapshot, build_weight_plan
 
 RH = "rulehash"
 
@@ -121,17 +121,89 @@ def test_a_stale_or_foreign_price_only_hides_the_dollar_value(profile):
         assert f.fee_rao == RAO_PER_TAO // 10 and f.fee_usd_cents_at_price is None and f.price is None
 
 
+def king(slot, hotkey, version=None, eligible=True, profile="p1"):
+    return KingState(profile, slot, version if version is not None else 10 - slot, hotkey, eligible)
+
+
+def by_role(plan):
+    return {(e.hotkey, e.role): e.weight_u16 for e in plan.entries}
+
+
 def test_uid_reuse_never_redirects_reward():
-    champ = ChampionState("p1", 3, "5HotkeyChampion", eligible=True, suspended=False)
-    # champion deregistered; another hotkey now holds UID 7
+    # King #1 deregistered; another hotkey now holds its old UID 7
     snap = UidSnapshot(500, 99, {"5SomeoneElse": 7, "5Owner": 0}, "5Owner")
-    plan = build_weight_plan([champ], {"p1": 10_000}, snap, no_winner_mechanism_verified=False)
+    plan = build_weight_plan(
+        [king(1, "5HotkeyChampion")], {"p1": 10_000}, snap, no_winner_mechanism_verified=False
+    )
     assert all(e.hotkey != "5SomeoneElse" for e in plan.entries)
+    assert plan.kings[0].reason == "not_registered" and not plan.kings[0].paid
     assert plan.no_winner and not plan.writer_enabled
 
 
-def test_eligible_champion_gets_all_miner_weight():
-    snap = UidSnapshot(500, 99, {"5Champ": 12, "5Owner": 0}, "5Owner")
-    plan = build_weight_plan([ChampionState("p1", 1, "5Champ", True, False)], {"p1": 10_000}, snap, False)
-    assert [(e.uid, e.weight_u16, e.role) for e in plan.entries] == [(12, 65535, "champion")]
-    assert plan.writer_enabled
+def test_no_king_burns_the_whole_miner_allocation():
+    snap = UidSnapshot(500, 99, {"5Owner": 0}, "5Owner")
+    plan = build_weight_plan([], {"p1": 10_000}, snap, no_winner_mechanism_verified=True)
+    assert [(e.uid, e.weight_u16, e.role) for e in plan.entries] == [(0, U16_MAX, "burn")]
+    assert plan.no_winner and [k.reason for k in plan.kings] == ["empty"] * 5
+
+
+def test_first_king_earns_one_fifth_and_four_empty_slots_burn():
+    snap = UidSnapshot(500, 99, {"5King1": 12, "5Owner": 0}, "5Owner")
+    plan = build_weight_plan([king(1, "5King1")], {"p1": 10_000}, snap, False)
+    assert by_role(plan) == {("5King1", "king"): U16_MAX // 5, ("5Owner", "burn"): U16_MAX * 4 // 5}
+    assert [(k.slot, k.share_bp, k.paid) for k in plan.kings] == [
+        (1, 2000, True),
+        (2, 2000, False),
+        (3, 2000, False),
+        (4, 2000, False),
+        (5, 2000, False),
+    ]
+    assert not plan.no_winner and not plan.writer_enabled  # a burn needs the verified mechanism
+
+
+def test_five_kings_share_equally_and_nothing_burns():
+    hotkeys = [f"5King{i}" for i in range(1, 6)]
+    snap = UidSnapshot(500, 99, {hk: 10 + i for i, hk in enumerate(hotkeys)} | {"5Owner": 0}, "5Owner")
+    plan = build_weight_plan(
+        [king(i, hk) for i, hk in enumerate(hotkeys, start=1)], {"p1": 10_000}, snap, False
+    )
+    assert {e.hotkey: e.weight_u16 for e in plan.entries} == {hk: U16_MAX // 5 for hk in hotkeys}
+    assert all(e.role == "king" for e in plan.entries) and plan.writer_enabled
+
+
+def test_an_ineligible_king_keeps_its_place_and_its_share_burns():
+    snap = UidSnapshot(500, 99, {"5King1": 12, "5King2": 13, "5King3": 14, "5Owner": 0}, "5Owner")
+    kings = [king(1, "5King1"), king(2, "5King2", eligible=False), king(3, "5King3")]
+    plan = build_weight_plan(kings, {"p1": 10_000}, snap, True)
+    assert [(k.slot, k.hotkey, k.reason) for k in plan.kings[:3]] == [
+        (1, "5King1", "paid"),
+        (2, "5King2", "ineligible"),
+        (3, "5King3", "paid"),
+    ]
+    assert by_role(plan)[("5Owner", "burn")] == U16_MAX * 3 // 5
+
+
+def test_one_hotkey_holding_two_slots_earns_both():
+    snap = UidSnapshot(500, 99, {"5Twice": 12, "5Other": 13, "5Owner": 0}, "5Owner")
+    plan = build_weight_plan(
+        [king(1, "5Twice"), king(2, "5Other"), king(3, "5Twice")], {"p1": 10_000}, snap, True
+    )
+    assert by_role(plan)[("5Twice", "king")] == 4000 * U16_MAX // 10_000
+
+
+def test_each_profile_pays_its_own_kings_from_its_own_share():
+    snap = UidSnapshot(500, 99, {"5A": 12, "5B": 13, "5Owner": 0}, "5Owner")
+    plan = build_weight_plan(
+        [king(1, "5A", profile="p1"), king(1, "5B", profile="p2")], {"p1": 6000, "p2": 4000}, snap, True
+    )
+    w = by_role(plan)
+    assert w[("5A", "king")] == 1200 * U16_MAX // 10_000 and w[("5B", "king")] == 800 * U16_MAX // 10_000
+    assert w[("5Owner", "burn")] == 8000 * U16_MAX // 10_000
+
+
+def test_slots_are_checked():
+    snap = UidSnapshot(500, 99, {"5A": 12, "5Owner": 0}, "5Owner")
+    with pytest.raises(ValueError):
+        build_weight_plan([king(6, "5A")], {"p1": 10_000}, snap, True)
+    with pytest.raises(ValueError):
+        build_weight_plan([king(1, "5A"), king(1, "5A")], {"p1": 10_000}, snap, True)

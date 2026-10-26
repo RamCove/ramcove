@@ -16,6 +16,7 @@ from ramcove_chain.beacon import QUICKNET_PERIOD_S, DevBeacon, resolve_round, sc
 from ramcove_protocol.reservation import remaining_envelope
 from ramcove_protocol.scoring import Reading, gain_against_later_champion
 from ramcove_protocol.state import PAID_ACTIVE, S
+from ramcove_protocol.weights import select_kings
 from sqlalchemy import Connection, select, update
 
 from ..store import audit
@@ -57,6 +58,13 @@ def current_champion(conn: Connection, profile_id: str):
     return conn.execute(
         select(champions).where(champions.c.profile_id == profile_id, champions.c.version == v)
     ).first()
+
+
+def king_queue(conn: Connection, profile_id: str) -> list:
+    """King of the hill (Section 9.1): the current champion and the kings it displaced, King #1 first."""
+    current = current_champion(conn, profile_id)
+    records = conn.execute(select(champions).where(champions.c.profile_id == profile_id)).all()
+    return select_kings(records, current.version)
 
 
 def _set_reserved(conn: Connection, ctx: AppContext, sub_id: str) -> None:

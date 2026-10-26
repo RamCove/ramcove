@@ -10,6 +10,7 @@ from typing import Any
 from ramcove_protocol.money import format_tao
 from ramcove_protocol.reservation import can_issue_quote
 from ramcove_protocol.state import PAID_ACTIVE, TERMINAL, S
+from ramcove_protocol.weights import KING_SLOTS
 from sqlalchemy import func, or_, select
 
 from ..config import ROOT
@@ -35,7 +36,7 @@ from ..store.schema import (
 )
 from . import banks
 from .context import AppContext, ServiceError
-from .queue import current_champion
+from .queue import current_champion, king_queue
 
 
 def progress_label(p: dict | None) -> str | None:
@@ -142,6 +143,25 @@ def overview(ctx: AppContext) -> dict:
             conn.execute(select(submissions.c.state, func.count()).group_by(submissions.c.state)).all()
         )
         obs = conn.execute(select(chain_observations)).first()
+        excluded = set((ctx.setting(conn, "excluded_hotkeys", {}) or {}).get("hotkeys") or {})
+        queue = king_queue(conn, profile.profile_id)
+        share_bp = 10_000 // KING_SLOTS
+        kings = []
+        for slot in range(1, KING_SLOTS + 1):
+            k = queue[slot - 1] if slot <= len(queue) else None
+            kings.append(
+                {
+                    "slot": slot,
+                    "version": k.version if k else None,
+                    "author": mask_hotkey(k.author_hotkey) if k else None,
+                    "status": k.status if k else "empty",
+                    "share_bp": share_bp,
+                    "eligible": k is not None
+                    and k.status in ("current", "superseded")
+                    and k.author_hotkey not in excluded,
+                    "promoted_at": k.promoted_at if k else None,
+                }
+            )
         history = [
             {
                 "version": c.version,
@@ -193,10 +213,13 @@ def overview(ctx: AppContext) -> dict:
                     "No miner holds the crown yet: version 0 is the tuned baseline and earns "
                     "nothing. Until a miner wins, the miner allocation goes to the owner UID (burn)."
                     if champ.submission_id is None
-                    else "The champion's author receives this profile's whole miner allocation while "
-                    "it stays eligible."
+                    else "King of the hill: the champion is King #1. Each of the five king slots earns 20% "
+                    "of this profile's miner allocation while its king stays eligible; an empty slot's share "
+                    "goes to the owner UID (burn)."
                 ),
             },
+            "kings": kings,
+            "king_slots": KING_SLOTS,
             "champion_history": history,
             "queue": {
                 "counts_by_state": counts,
