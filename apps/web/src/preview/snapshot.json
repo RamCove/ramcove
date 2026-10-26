@@ -29,7 +29,7 @@
     "capacity_milli_rps": 733,
     "capacity_measured": true,
     "bound_gain_ppm": 383505,
-    "explain": "The champion's author receives this profile's whole miner allocation while it stays eligible."
+    "explain": "King of the hill: the champion is King #1. Each of the five king slots earns 20% of this profile's miner allocation while its king stays eligible; an empty slot's share goes to the owner UID (burn)."
    },
    "champion_history": [
     {
@@ -385,23 +385,79 @@
     "bound_gain_ppm": 383505
    },
    "weight_plan": {
-    "notes": [],
+    "notes": [
+     "the share of empty or unpaid king slots is proposed for the owner UID; burn behaviour must be verified on the target runtime",
+     "weight writer disabled: no-winner mechanism not yet verified on testnet"
+    ],
     "netuid": 0,
-    "schema": "ramcove.weight_plan/1",
+    "schema": "ramcove.weight_plan/2",
     "status": "proposed_not_submitted",
     "entries": [
      {
       "uid": 1,
-      "role": "champion",
+      "role": "king",
       "hotkey": "5DhXsnMWCKUHbLxgDdmkKWnLQDn6WmrxMFtcrLCwmT41iRSj",
-      "weight_u16": 65535
+      "weight_u16": 13107
+     },
+     {
+      "uid": 0,
+      "role": "burn",
+      "hotkey": "5FCN9JKsZscnekEshYUS4iBE3imVAZxi9RRErnrHS7RRtqiD",
+      "weight_u16": 52428
      }
     ],
     "no_winner": false,
     "simulated": true,
     "snapshot_block": 17,
     "writer_enabled": false,
-    "champion_version": 1
+    "champion_version": 1,
+    "kings": [
+     {
+      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
+      "slot": 1,
+      "champion_version": 1,
+      "hotkey": "5DhXsnMWCKUHbLxgDdmkKWnLQDn6WmrxMFtcrLCwmT41iRSj",
+      "share_bp": 2000,
+      "paid": true,
+      "reason": "paid"
+     },
+     {
+      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
+      "slot": 2,
+      "champion_version": null,
+      "hotkey": null,
+      "share_bp": 2000,
+      "paid": false,
+      "reason": "empty"
+     },
+     {
+      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
+      "slot": 3,
+      "champion_version": null,
+      "hotkey": null,
+      "share_bp": 2000,
+      "paid": false,
+      "reason": "empty"
+     },
+     {
+      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
+      "slot": 4,
+      "champion_version": null,
+      "hotkey": null,
+      "share_bp": 2000,
+      "paid": false,
+      "reason": "empty"
+     },
+     {
+      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
+      "slot": 5,
+      "champion_version": null,
+      "hotkey": null,
+      "share_bp": 2000,
+      "paid": false,
+      "reason": "empty"
+     }
+    ]
    },
    "values_are": "provisional planning values from the v0.2 whitepaper; none is measured on H100"
   },

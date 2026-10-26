@@ -198,8 +198,8 @@ function Hero({ data, margin }: { data: Overview; margin: string }) {
             label="of GPU time booked per paid submission"
           />
           <HeroStat
-            value="100%"
-            label="of the miner allocation goes to the champion"
+            value="5"
+            label="kings share the miner allocation, 20% each"
           />
         </dl>
       </div>
@@ -279,13 +279,15 @@ function ChampionPanel({ data }: { data: Overview }) {
           {champion.is_baseline ? (
             <>
               No miner holds the crown yet. Version 0 is the tuned baseline and
-              earns nothing.
+              earns nothing; all five king slots are empty, so the miner
+              allocation is burned.
             </>
           ) : (
             <>
               Held by{" "}
               <span className="font-mono text-text">{champion.author}</span>,
-              who receives the miner allocation until someone proves better.
+              King #1. Each of the five kings earns 20% of the miner
+              allocation until it falls out of the queue.
             </>
           )}
         </p>
@@ -508,8 +510,8 @@ function HowItWorks({ margin }: { margin: string }) {
     [
       "05",
       "Crowned",
-      `If the gain clears the ${margin} margin, the challenger becomes champion and the weights follow.`,
-      "Winner takes all",
+      `If the gain clears the ${margin} margin, the challenger becomes King #1, the other kings move down one place, and the weights follow.`,
+      "King of the hill",
     ],
   ];
   return (
@@ -567,9 +569,9 @@ function Principles({
       detail: `gain > ${margin}`,
     },
     {
-      title: "One champion, one allocation",
-      body: "The champion takes the whole miner allocation until someone proves better. There is no daily winner and no dilution; with no miner champion, the allocation is burned.",
-      detail: "winner takes all",
+      title: "Five kings, 20% each",
+      body: "The challenger that beats King #1 becomes the new King #1, every king moves down one place, and King #5 leaves the queue. Each of the five slots earns 20% of the miner allocation; an empty slot's share is burned.",
+      detail: "king of the hill",
     },
     {
       title: "Everything is on the record",
@@ -769,7 +771,7 @@ function LiveBoard({ data }: { data: Overview }) {
             </div>
             <p className="mt-6 text-[13px] leading-relaxed text-muted">
               Weight plans are published as proposals in simulation mode and set
-              through commit-reveal in network mode. The champion receives the
+              through commit-reveal in network mode. The kings receive the
               miner allocation only, never owner or validator emissions.
             </p>
           </div>

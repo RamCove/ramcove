@@ -583,7 +583,7 @@ export default async function CompetitionPage() {
 
         <Card
           title="Proposed weight plan"
-          subtitle="Deterministic from the approved champion. Published as a proposal in simulation mode, set through commit-reveal in network mode."
+          subtitle="Deterministic from the king queue: each of the five kings earns 20% of the miner allocation, and the share of an empty or ineligible slot goes to the owner UID to be burned. Published as a proposal in simulation mode, set through commit-reveal in network mode."
         >
           {data.weight_plan ? (
             <>
@@ -598,7 +598,7 @@ export default async function CompetitionPage() {
                       {((e.weight_u16 / 65535) * 100).toFixed(1)}%
                     </Td>
                     <Td>
-                      <Pill tone={e.role === "champion" ? "ok" : "warn"}>
+                      <Pill tone={e.role === "king" ? "ok" : "warn"}>
                         {e.role.replace(/_/g, " ")}
                       </Pill>
                     </Td>

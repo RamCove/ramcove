@@ -63,6 +63,10 @@ def test_public_pages_do_not_require_a_session(client):
     assert meta["simulated_chain"] and not meta["chain_writes_enabled"]
     ov = client.get("/v1/overview").json()
     assert ov["champion"]["version"] == 0 and ov["champion"]["is_baseline"]
+    # king of the hill: only the baseline, so all five king slots are empty and their shares burn
+    assert [(k["slot"], k["status"], k["share_bp"], k["eligible"]) for k in ov["kings"]] == [
+        (slot, "empty", 2000, False) for slot in range(1, 6)
+    ]
 
 
 def test_preflight_requires_authentication(client):

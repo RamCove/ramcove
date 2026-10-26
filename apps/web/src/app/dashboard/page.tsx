@@ -81,6 +81,16 @@ type Dashboard = {
     measured_on_worker: string | null;
     reading_milli_rps: number | null;
   };
+  // the recorded preview snapshot may predate the king queue
+  kings?: {
+    slot: number;
+    version: number | null;
+    author: string | null;
+    status: string;
+    share_bp: number;
+    eligible: boolean;
+    promoted_at: string | null;
+  }[];
   fixed_scores: {
     worker: string;
     champion_version: number | null;
@@ -124,6 +134,7 @@ type Dashboard = {
     rejected: number;
     best_bound_gain_ppm: number | null;
     is_champion: boolean;
+    king_slots?: number[];
   }[];
 };
 
@@ -218,6 +229,7 @@ export default async function DashboardPage({
     ? data.items.filter((i) => i.group === filter)
     : data.items;
   const { champion } = data;
+  const kings = data.kings ?? [];
   const running = data.running ?? [];
   // the recorded preview snapshot may predate these fields
   const steps = data.workflow ?? [];
@@ -238,7 +250,7 @@ export default async function DashboardPage({
         >
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-on-band/60">
-              Current champion
+              King #1 · current champion
             </p>
             <p className="font-display mt-3 text-[34px] leading-none">
               Version {champion.version}
@@ -248,7 +260,7 @@ export default async function DashboardPage({
             </p>
             <p className="mt-3 text-[14px] text-on-band/70">
               {champion.is_baseline ? (
-                "No miner holds the crown yet. The allocation is burned until one does."
+                "No miner holds the crown yet. All five king slots are empty, so the allocation is burned until one does."
               ) : (
                 <>
                   Held by{" "}
@@ -336,6 +348,46 @@ export default async function DashboardPage({
           })}
         </div>
       </section>
+
+      {kings.length > 0 ? (
+        <Card
+          eyebrow="King of the hill"
+          title="Five kings, 20% each"
+          subtitle="The challenger that beats King #1 becomes the new King #1, every king moves down one place, and King #5 leaves the queue. The share of an empty or ineligible slot is burned."
+        >
+          <Table head={["Slot", "King", "Version", "Share", "Status"]} minWidth={420}>
+            {kings.map((k) => (
+              <tr key={k.slot}>
+                <Td className="whitespace-nowrap font-mono text-[13px]">
+                  King #{k.slot}
+                </Td>
+                <Td>
+                  {k.author ? (
+                    <Mono>{k.author}</Mono>
+                  ) : (
+                    <span className="text-muted">empty</span>
+                  )}
+                </Td>
+                <Td className="num font-mono text-[13px]">
+                  {k.version ?? "—"}
+                </Td>
+                <Td className="num font-mono text-[13px]">
+                  {(k.share_bp / 100).toFixed(0)}%
+                </Td>
+                <Td>
+                  <Pill tone={k.eligible ? "ok" : "warn"}>
+                    {k.eligible
+                      ? "earns"
+                      : k.author
+                        ? "ineligible · burned"
+                        : "empty · burned"}
+                  </Pill>
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        </Card>
+      ) : null}
 
       <section
         id="workflow"
@@ -675,11 +727,11 @@ export default async function DashboardPage({
                   <Td className="whitespace-nowrap">
                     <span className="inline-flex items-center gap-2">
                       <Mono>{m.hotkey ?? "—"}</Mono>
-                      {m.is_champion && (
-                        <Pill tone="ok" dot>
-                          champion
+                      {(m.king_slots ?? (m.is_champion ? [1] : [])).map((s) => (
+                        <Pill key={s} tone="ok" dot>
+                          king #{s}
                         </Pill>
-                      )}
+                      ))}
                     </span>
                   </Td>
                   <Td className="num font-mono text-[13px]">{m.submissions}</Td>

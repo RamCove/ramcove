@@ -143,25 +143,7 @@ def overview(ctx: AppContext) -> dict:
             conn.execute(select(submissions.c.state, func.count()).group_by(submissions.c.state)).all()
         )
         obs = conn.execute(select(chain_observations)).first()
-        excluded = set((ctx.setting(conn, "excluded_hotkeys", {}) or {}).get("hotkeys") or {})
-        queue = king_queue(conn, profile.profile_id)
-        share_bp = 10_000 // KING_SLOTS
-        kings = []
-        for slot in range(1, KING_SLOTS + 1):
-            k = queue[slot - 1] if slot <= len(queue) else None
-            kings.append(
-                {
-                    "slot": slot,
-                    "version": k.version if k else None,
-                    "author": mask_hotkey(k.author_hotkey) if k else None,
-                    "status": k.status if k else "empty",
-                    "share_bp": share_bp,
-                    "eligible": k is not None
-                    and k.status in ("current", "superseded")
-                    and k.author_hotkey not in excluded,
-                    "promoted_at": k.promoted_at if k else None,
-                }
-            )
+        kings, _ = king_slots_view(conn, ctx, profile.profile_id)
         history = [
             {
                 "version": c.version,
@@ -892,6 +874,34 @@ def workflow(profile) -> list[dict]:
     ]
 
 
+def king_slots_view(conn, ctx: AppContext, profile_id: str) -> tuple[list[dict], dict[int, str]]:
+    """King of the hill, for public display: the five slots, who holds each (masked), its share of the miner
+    allocation and whether it is paid. Also returns the full hotkey per occupied slot, for internal use."""
+    excluded = set((ctx.setting(conn, "excluded_hotkeys", {}) or {}).get("hotkeys") or {})
+    queue = king_queue(conn, profile_id)
+    share_bp = 10_000 // KING_SLOTS
+    view: list[dict] = []
+    holders: dict[int, str] = {}
+    for slot in range(1, KING_SLOTS + 1):
+        k = queue[slot - 1] if slot <= len(queue) else None
+        if k is not None:
+            holders[slot] = k.author_hotkey
+        view.append(
+            {
+                "slot": slot,
+                "version": k.version if k else None,
+                "author": mask_hotkey(k.author_hotkey) if k else None,
+                "status": k.status if k else "empty",
+                "share_bp": share_bp,
+                "eligible": k is not None
+                and k.status in ("current", "superseded")
+                and k.author_hotkey not in excluded,
+                "promoted_at": k.promoted_at if k else None,
+            }
+        )
+    return view, holders
+
+
 def champion_measurement(conn, champ) -> dict:
     """Capacity is measured per worker, so two numbers on this site have different baselines: the champion's
     capacity is one worker's measurement, and its gain was taken against the fixed score of the worker that
@@ -1039,10 +1049,12 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
                 best = m["best_bound_gain_ppm"]
                 m["best_bound_gain_ppm"] = r.bound_gain_ppm if best is None else max(best, r.bound_gain_ppm)
         champ_hotkey = champ.author_hotkey if champ else None
+        kings, holders = king_slots_view(conn, ctx, profile.profile_id)
+        slots_of = {hk: sorted(s for s, h in holders.items() if h == hk) for hk in set(holders.values())}
         leaderboard = sorted(
             miners.items(),
             key=lambda kv: (
-                kv[0] != champ_hotkey,
+                min(slots_of.get(kv[0]) or [KING_SLOTS + 1]),
                 -kv[1]["promoted"],
                 -(kv[1]["best_bound_gain_ppm"] or -(10**9)),
             ),
@@ -1058,6 +1070,8 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
                 "promoted_at": champ.promoted_at,
                 **champion_measurement(conn, champ),
             },
+            "kings": kings,
+            "king_slots": KING_SLOTS,
             "fixed_scores": worker_fixed_scores(
                 conn.execute(select(workers)).all(), champ.version if champ else None
             ),
@@ -1069,7 +1083,10 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
             ],
             "items": items,
             "rejection_reasons": sorted(reasons.values(), key=lambda e: -e["count"]),
-            "miners": [{**m, "is_champion": hk == champ_hotkey} for hk, m in leaderboard][:20],
+            "miners": [
+                {**m, "is_champion": hk == champ_hotkey, "king_slots": slots_of.get(hk, [])}
+                for hk, m in leaderboard
+            ][:20],
             "simulated": True,
             "generated_at": now(),
         }
