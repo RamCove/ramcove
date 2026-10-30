@@ -40,14 +40,30 @@ demo; its recorded reason says it was automatic. Decide within that window to re
 |---|---|---|
 | API, controller, workers, local site | this repository on the host | systemd units in `infra/systemd/` |
 | PostgreSQL | docker compose `infra/docker-compose.yml` | docker, `restart: unless-stopped` |
-| nginx site | `infra/nginx/ramcove-api.conf` → `/etc/nginx/sites-available/ramcove-api` | nginx, on the host's existing IP certificate |
+| nginx site | `infra/nginx/ramcove-api.conf` → `/etc/nginx/sites-available/ramcove-api` | nginx, on the host's Let's Encrypt IP certificate |
 | Settings | `/etc/ramcove/ramcove.env` (from `infra/ramcove.env.example`) | root only |
 | Proxy key | `/etc/ramcove/proxy.key` and `/etc/nginx/ramcove/proxy-key.conf` | root only, never in git |
 | Hosted web app | Vercel team `analyzify360`, project `ramcove` | Vercel |
 
-Vercel project environment (production): `RAMCOVE_API_ORIGIN=https://169.58.173.136:8788`,
+Vercel project environment (production): `RAMCOVE_API_ORIGIN=https://158.220.118.14:8788`,
 `RAMCOVE_PROXY_KEY` (sensitive), `RAMCOVE_PUBLIC_ORIGIN=https://ramcove.vercel.app`. Without
 `RAMCOVE_API_ORIGIN` the hosted site falls back to the read-only snapshot preview.
+
+## The IP certificate
+
+Vercel verifies the backend's certificate, so port 8788 needs a publicly trusted certificate for the host's
+IP address. Let's Encrypt issues IP certificates only with its short-lived profile (about six days), which
+needs Certbot 5 or newer, installed from the Snap Store (`snap install --classic certbot`). nginx's default
+site serves the HTTP challenge from `/var/www/html` on port 80:
+
+```bash
+sudo certbot certonly --non-interactive --agree-tos --register-unsafely-without-email \
+  --webroot -w /var/www/html --ip-address <host IP> --required-profile shortlived \
+  --deploy-hook "systemctl reload nginx"
+```
+
+Certbot's timer (`snap.certbot.renew.timer`) renews it automatically and reloads nginx. Keep port 80 open
+for the renewals.
 
 ## Everyday operations
 
