@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 
 from ..services import auth as auth_svc
-from ..services import public
+from ..services import public, weight_documents
 from ..services.context import AppContext, ServiceError
+from ..store.db import tx
 from .deps import SESSION_COOKIE, get_ctx, require_role, session
 
 router = APIRouter(prefix="/v1", tags=["public"])
@@ -93,6 +94,24 @@ def champion_artifact(version: int, ctx: AppContext = Depends(get_ctx)) -> Respo
         media_type="application/gzip",
         headers={"content-disposition": f'attachment; filename="champion-v{version}.tar.gz"'},
     )
+
+
+@router.get("/weights/latest", tags=["validators"])
+def weights_latest(ctx: AppContext = Depends(get_ctx)) -> dict:
+    """The owner's signed weight result. Validators check the signature against the pinned signer, map the
+    hotkeys to UIDs from their own chain reads, and submit the weights. It is renewed every tempo."""
+    with tx(ctx.engine) as conn:
+        signed = weight_documents.latest_signed(conn, ctx)
+    if signed is None:
+        raise ServiceError("no_weight_document", "no signed weight result has been issued yet", 503)
+    return signed
+
+
+@router.get("/weights/signer", tags=["validators"])
+def weights_signer(ctx: AppContext = Depends(get_ctx)) -> dict:
+    """The key that signs weight results. Validators pin it in their own configuration and must not
+    accept a signer they only learned from this response."""
+    return {"address": ctx.signer.address, "scheme": "sr25519", "network": ctx.settings.network}
 
 
 @router.get("/audit")

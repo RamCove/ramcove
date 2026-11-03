@@ -25,6 +25,7 @@ from .context import WORKER_HEARTBEAT_FRESH_S, AppContext
 from .payments import expire_quotes, scan_finalized
 from .queue import expire_leases
 from .settlement import settle
+from .weight_documents import ensure_weight_document
 
 
 def invite_waitlist(conn, ctx: AppContext, profile_id: str) -> int:
@@ -124,6 +125,10 @@ def tick(ctx: AppContext, produce_block: bool = True) -> dict:
             out["invited"] += invite_waitlist(conn, ctx, pid)
         with tx(ctx.engine) as conn:
             out.setdefault("settlement", []).extend(settle(conn, ctx, pid))
+        with tx(ctx.engine) as conn:
+            # sign a fresh weight result for validators when the plan changed or the last one nears expiry
+            if ensure_weight_document(conn, ctx, pid) is not None:
+                out["weight_documents"] = out.get("weight_documents", 0) + 1
     with tx(ctx.engine) as conn:
         out["refunds_confirmed"] = confirm_sent_refunds(conn, ctx)
     out["auto_reviewed"] = auto_review(ctx)
