@@ -1,7 +1,7 @@
 """The public door: what visitors to the hosted site can and cannot do.
 
 Requests from the public reverse proxy carry x-ramcove-channel: public, set by the proxy. The hosted site
-only reads: miners submit with the command line and validators run their own workers. So on that door
+only reads: miners submit with the command line and validators run ramcove-validator. So on that door
 every write is refused, and so are sign-in, personal data, the demo controls and every role's workspace.
 """
 

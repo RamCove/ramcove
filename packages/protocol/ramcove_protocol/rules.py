@@ -189,11 +189,16 @@ class FeePolicy(Frozen):
     price_source: str = "coingecko:bittensor:usd"
 
 
-class Bootstrap(Frozen):
+class Deployment(Frozen):
+    """Where this profile version runs. Evaluation is owner-operated: other validators set weights from the
+    owner's signed results (``ramcove_protocol.weight_document``) and run no evaluation."""
+
     mode: Literal["local", "testnet_operator", "mainnet"]
-    min_independent_validators_for_mainnet: int = 3
-    max_stake_share_bp: int = 3333
-    quorum_validators_after_sunset: int = 2
+    reproduce_winners: bool = Field(
+        False,
+        description="Repeat a winner's reading once on a worker of another evaluation group before promotion. "
+        "Off by default; turning it on needs a second evaluation group.",
+    )
 
 
 class QuestionBankRule(Frozen):
@@ -227,7 +232,7 @@ class ProfileVersion(Frozen):
     envelope: StageEnvelope
     deadlines: Deadlines
     fees: FeePolicy
-    bootstrap: Bootstrap
+    deployment: Deployment
     question_bank: QuestionBankRule = Field(default_factory=QuestionBankRule)
     evaluator: EvaluatorPin = Field(
         default_factory=lambda: EvaluatorPin(version="0.1.0", weights_version_key=100)
@@ -246,7 +251,7 @@ class ProfileVersion(Frozen):
 
     @model_validator(mode="after")
     def _consistency(self) -> ProfileVersion:
-        if self.bootstrap.mode == "mainnet" and not self.measured:
+        if self.deployment.mode == "mainnet" and not self.measured:
             raise ValueError("mainnet profile versions require measured calibration")
         return self
 

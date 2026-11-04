@@ -29,7 +29,8 @@ type Overview = {
     title: string;
     rule_hash: string;
     measured: boolean;
-    bootstrap_mode: string;
+    deployment_mode?: string;
+    bootstrap_mode?: string; // older snapshots
   };
   champion: {
     version: number;
@@ -448,14 +449,15 @@ function Idea() {
             </p>
             <p>
               RamCove turns finding those changes into an open competition.
-              Anyone can submit a patch to a pinned inference engine. Validators
-              build it in isolation, measure how many{" "}
+              Anyone can submit a patch to a pinned inference engine. The
+              owner-operated validator builds it in isolation, measures how many{" "}
               <Term
                 term="qualified requests"
                 plain="Requests answered correctly, fast enough and without errors, at a steady rate"
               />{" "}
-              per second it sustains, and compare it with the champion under
-              identical conditions.
+              per second it sustains, and compares it with the champion under
+              identical conditions. Every validator sets its weights from the
+              owner&apos;s signed result.
             </p>
             <p>
               Each competition runs on a{" "}
@@ -744,7 +746,10 @@ function LiveBoard({ data }: { data: Overview }) {
                     "Rule hash",
                     <Mono key="r">{data.profile.rule_hash.slice(0, 16)}…</Mono>,
                   ],
-                  ["Bootstrap mode", data.profile.bootstrap_mode],
+                  [
+                    "Deployment mode",
+                    data.profile.deployment_mode ?? data.profile.bootstrap_mode,
+                  ],
                   [
                     "Evaluation fee",
                     data.fee?.flat_fee_tao ? (
@@ -864,11 +869,11 @@ function Audiences() {
     },
     {
       who: "For validators",
-      title: "Measure fairly. Sign what you saw.",
+      title: "Set weights from signed results.",
       points: [
-        "Run evaluations on isolated workers that fail closed when unsafe",
-        "Every challenger is measured against the champion's fixed score on the same hardware",
-        "Every report is signed and lands in the audit chain",
+        "Run ramcove-validator on a CPU machine; no H100 needed",
+        "It checks the owner's signed weight result against the pinned key and the chain",
+        "It fails closed: without a valid result it submits nothing",
       ],
       href: "/docs#validators",
       cta: "Read the validator guide",
@@ -1032,7 +1037,7 @@ function Closing() {
           Help one GPU <span className="display-accent">serve more.</span>
         </h2>
         <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-on-band/70">
-          The free checks cost nothing. Pack a patch, see what the validators
+          The free checks cost nothing. Pack a patch, see what the evaluation
           will see, and decide whether to compete.
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">

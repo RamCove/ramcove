@@ -632,7 +632,7 @@ def _win(
         compared_champion_version=champ.version,
         compared_rule_hash=profile.rule_hash(),
     )
-    if via == "evaluation" and profile.bootstrap.mode == "mainnet":
+    if via == "evaluation" and profile.deployment.reproduce_winners:
         transition(conn, ctx, sub.id, "eval_win_reproduce", **common)
         conn.execute(
             jobs.insert().values(
@@ -826,7 +826,7 @@ def _complete_reproduction(
             sub,
             "reproduce_fail",
             "not_reproduced",
-            f"An independent validator measured {gain / 1e4:.1f}% over the champion's score, which does not "
+            f"A worker of the second evaluation group measured {gain / 1e4:.1f}% over the champion's score, which does not "
             f"exceed the {profile.replacement.delta_ppm / 1e4:.0f}% margin.",
         )
 

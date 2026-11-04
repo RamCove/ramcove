@@ -43,8 +43,8 @@ evaluator changes at least seven days ahead and raise the weights version.
 
 ## Review
 
-Only a flagged winner is reviewed: native code, third-party components, a failed scan, a disagreement with
-the shadow validator, a dispute or a customer's release requirement. Every other winner is promoted
+Only a flagged winner is reviewed: native code, third-party components, a failed scan, a dispute or a
+customer's release requirement. Every other winner is promoted
 automatically. Review uses published criteria, and the review record marks which criteria were flagged. A
 rejection must cite a failed criterion and explain the evidence. Reviewers list open reviews, with the
 flags that sent each one, with `ramcove-operator reviews` and decide with
@@ -70,6 +70,8 @@ incident: rotate the secret for future weeks and publish what happened.
 
 ## What to tell people honestly
 
-During bootstrap you are the only scoring validator, so your measurements decide promotions. Say so, keep
-the shadow validator's reports published, and treat the independent-validator gate as a launch requirement,
-not an aspiration.
+Evaluation is owner-operated: your workers' measurements decide promotions, and other validators set weights
+from your signed results with `ramcove-validator` rather than checking performance themselves. Say so, and
+keep every replay input published (signed reports, the audit log, the question banks once their week ends)
+so anyone can recompute the arithmetic. The controller renews the signed weight result every tempo; if it
+stops, validators stop submitting rather than invent weights.

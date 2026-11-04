@@ -27,7 +27,7 @@ test("a visitor understands the competition, with nothing to sign in to", async 
   await expect(page.getByText(/serve more useful AI requests/).first()).toBeVisible();
   // no banner, but every page says which mode it is running in
   await expect(page.getByText(/running in simulation mode/i).first()).toBeVisible();
-  // the site is read-only: miners use the command line and validators run their own software
+  // the site is read-only: miners use the command line and validators run ramcove-validator
   await expect(page.getByRole("button", { name: /sign in/i })).toHaveCount(0);
   const header = page.getByRole("banner");
   await expect(header.getByRole("link", { name: "Submit" })).toHaveCount(0);

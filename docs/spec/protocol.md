@@ -13,7 +13,7 @@ study on real hardware replaces them.
 A profile fixes everything that affects a raw capacity number: model repository and revision, engine
 repository, tag and commit, image digests, driver and firmware, the single H100 SXM, the candidate VM
 (16 cores, 64 GiB, no swap, no network), context limit, decoding, workloads, gates, the replacement rule,
-deadlines, the fee formula and the bootstrap mode. Different hardware is a different profile; scores never
+deadlines, the fee formula and the deployment mode. Different hardware is a different profile; scores never
 share a leaderboard. *Where: `ramcove_protocol.rules`.*
 
 ## 2. Submission lifecycle
@@ -25,7 +25,7 @@ again, except that an upheld appeal reopens a rejected review.
 preflight_passed → waitlisted ⇄ invited → quoted → admitted → screening → eval_queued → evaluating
   → ready_for_promotion → promoted
   (a flagged winner: evaluating → in_review → ready_for_promotion)
-  (after the sunset: evaluating → reproduce_queued → reproducing → [in_review →] ready_for_promotion)
+  (only if the profile sets reproduce_winners: evaluating → reproduce_queued → reproducing → [in_review →] ready_for_promotion)
 ```
 
 Exits: `rejected_preflight`, `rejected_screen`, `not_promoted`, `review_rejected`, `expired_quote`,
@@ -106,8 +106,8 @@ its capacity, and a 1-hour soak at 90%.
 
 A winner is promoted automatically unless an automatic check flags it: native code in the change,
 third-party components, or a check that reports a flag. Only a flagged winner opens a review, and the
-review records which criteria were flagged. After the bootstrap sunset a second validator reproduces the
-reading once before promotion. *Where: `ramcove_evaluator.pipeline`, `ramcove_api.services.queue`.*
+review records which criteria were flagged. A profile can set `reproduce_winners`, which has a worker of
+another evaluation group repeat the reading once before promotion; it is off by default. *Where: `ramcove_evaluator.pipeline`, `ramcove_api.services.queue`.*
 
 ### 2.8 The owner's question bank
 
@@ -229,17 +229,23 @@ submission, a new fee and fresh tests; readings are never pooled across attempts
   verified on a testnet.
 *Where: `ramcove_protocol.weights`, `ramcove_api.services.settlement`.*
 
-## 7. Verification and bootstrap (review R8)
+## 7. Evaluation and weights
 
-- Workers owned by one validator are **parallel**, not independent. The interface says so.
-- Bootstrap: the operator is the only scoring validator, and every worker keeps its own fixed score of the
-  champion. This is a trust assumption, not verification.
-- After the sunset: a second scoring validator with a different operator reproduces each winner's reading
-  on its own worker, with reports committed before they are revealed; a missing validator is omitted rather
-  than counted; disagreement beyond the published noise band holds promotion.
-- Signatures and commitments prove authorship and integrity, never honest measurement.
-- Mainnet readiness keeps the whitepaper's Stage 5 gate: three independent scoring validators, none above
-  one third of scoring stake.
+- Evaluation is owner-operated. The owner's workers evaluate every submission, and every worker keeps its
+  own fixed score of the champion. Workers run by one party are **parallel**, not independent.
+- Every tempo the controller signs a weight document from the latest weight plan: the share of the miner
+  allocation per hotkey, the burn hotkey, the chain and netuid, and a validity window of two tempos.
+  `GET /v1/weights/latest` serves it to anyone. *Where: `ramcove_protocol.weight_document`,
+  `ramcove_api.services.weight_documents`.*
+- Every validator, the owner's included, submits weights with `ramcove-validator`. It checks the signature
+  against the owner key pinned per network, the chain, netuid and window, and that the burn goes to the
+  subnet owner. It maps hotkeys to UIDs from its own chain read and submits; anything missing or wrong means
+  no submission. Validators other than the owner rely on the owner's scores and do not re-run evaluations.
+  *Where: `ramcove_validator`.*
+- Signatures prove authorship and integrity, never honest measurement. The replay inputs are published so
+  the arithmetic can be recomputed by anyone.
+- A profile can set `reproduce_winners` to have a worker of another evaluation group repeat a winner's reading
+  before promotion; it is off by default.
 
 ## 8. Money
 

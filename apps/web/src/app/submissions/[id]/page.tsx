@@ -114,7 +114,7 @@ type View = {
 const STAGE_TITLE: Record<string, string> = {
   screen: "Screening",
   full: "Evaluation",
-  reproduce: "Independent reproduction",
+  reproduce: "Reproduction by a second group",
   calibration: "Champion calibration",
   soak: "Soak test",
 };

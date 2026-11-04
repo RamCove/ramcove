@@ -19,7 +19,7 @@
     "title": "H100 SXM 80 GB · Qwen3.8-27B-FP8 · vLLM v0.29.0",
     "rule_hash": "60f0e93681500730d646f707f25d285f254c0e0fb231183d4eeb5755b33eb2d8",
     "measured": false,
-    "bootstrap_mode": "local"
+    "deployment_mode": "local"
    },
    "champion": {
     "version": 1,
@@ -335,12 +335,6 @@
      "price_max_age_s": 900,
      "price_source": "coingecko:bittensor:usd"
     },
-    "bootstrap": {
-     "mode": "local",
-     "min_independent_validators_for_mainnet": 3,
-     "max_stake_share_bp": 3333,
-     "quorum_validators_after_sunset": 2
-    },
     "question_bank": {
      "period_days": 7,
      "epoch": "2026-09-21T00:00:00Z",
@@ -360,7 +354,11 @@
      "BSD-3-Clause"
     ],
     "measured": false,
-    "no_winner_writer_verified": false
+    "no_winner_writer_verified": false,
+    "deployment": {
+     "mode": "local",
+     "reproduce_winners": false
+    }
    },
    "rule_hash": "60f0e93681500730d646f707f25d285f254c0e0fb231183d4eeb5755b33eb2d8",
    "champion": {
@@ -464,13 +462,6 @@
   "/v1/status": {
    "profile": "ramcove-p1-h100sxm-qwen38-27b-fp8",
    "workers": [
-    {
-     "id": "w-shadow-1",
-     "online": false,
-     "safe_and_ready": false,
-     "provider": "simulated-trusted-fixtures",
-     "untrusted_code_isolation": false
-    },
     {
      "id": "w-op-2",
      "online": true,

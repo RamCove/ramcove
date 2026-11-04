@@ -1,9 +1,10 @@
 # RamCove — More AI. Same GPU.
 
-RamCove is a Bittensor subnet that pays for independently verified software improvements which
+RamCove is a Bittensor subnet that pays for verified software improvements which
 let one fixed GPU serve more useful AI requests, by using its memory better. Miners submit reviewable
-code. Validators build it in controlled environments and measure *qualified serving capacity* against the
-current champion's fixed score, once per submission. Each profile runs king of the hill: a challenger that
+code. The owner-operated validator builds it in controlled environments and measures *qualified serving
+capacity* against the current champion's fixed score, once per submission, and every validator sets its
+weights from the owner's signed result. Each profile runs king of the hill: a challenger that
 proves a real improvement becomes King #1, and the five most recent kings each earn 20% of that profile's miner
 allocation until they fall out of the queue. A person reviews a winner only when an automatic check flags it.
 

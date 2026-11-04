@@ -50,12 +50,9 @@ DEMO_IDENTITIES = [
     DemoIdentity("miner-cyd", "//RamCoveDemoMinerCyd", "Cyd (demo miner)", ("miner",)),
     DemoIdentity("miner-dee", "//RamCoveDemoMinerDee", "Dee (demo miner, unregistered)", ("miner",)),
     DemoIdentity(
-        "validator-op", "//RamCoveDemoValidatorOperator", "RamCove bootstrap validator (demo)", ("validator",)
-    ),
-    DemoIdentity(
-        "validator-shadow",
-        "//RamCoveDemoValidatorShadow",
-        "Unaffiliated shadow validator (demo)",
+        "validator-op",
+        "//RamCoveDemoValidatorOperator",
+        "RamCove owner-operated validator (demo)",
         ("validator",),
     ),
     DemoIdentity(
@@ -75,7 +72,6 @@ DEMO_IDENTITIES = [
 DEMO_WORKERS = [
     ("w-op-1", "validator-op", "//RamCoveDemoWorkerOne"),
     ("w-op-2", "validator-op", "//RamCoveDemoWorkerTwo"),
-    ("w-shadow-1", "validator-shadow", "//RamCoveDemoWorkerShadow"),
 ]
 
 
@@ -163,27 +159,17 @@ def seed_base(ctx: AppContext) -> dict:
                         hotkey=kp.ss58_address,
                         role=role,
                         granted_by="demo-seed",
-                        independent_group="shadow" if "shadow" in d.key else None,
+                        independent_group=None,
                     )
                 )
         op = Keypair.create_from_uri("//RamCoveDemoValidatorOperator").ss58_address
-        sh = Keypair.create_from_uri("//RamCoveDemoValidatorShadow").ss58_address
         conn.execute(
             validators.insert().values(
                 hotkey=op,
-                name="RamCove bootstrap validator (demo)",
+                name="RamCove owner-operated validator (demo): evaluates and publishes signed results",
                 operator_affiliated=True,
                 independence_group="ramcove-operator",
                 scoring=True,
-            )
-        )
-        conn.execute(
-            validators.insert().values(
-                hotkey=sh,
-                name="Shadow validator (demo, non-scoring)",
-                operator_affiliated=False,
-                independence_group="shadow-1",
-                scoring=False,
             )
         )
         wv = Keypair.create_from_uri("//RamCoveDemoValidatorWeights").ss58_address
@@ -196,17 +182,17 @@ def seed_base(ctx: AppContext) -> dict:
                 scoring=False,
             )
         )
-        for wid, vkey, uri in DEMO_WORKERS:
+        for wid, _validator, uri in DEMO_WORKERS:
             conn.execute(
                 workers.insert().values(
                     id=wid,
-                    validator=op if vkey == "validator-op" else sh,
+                    validator=op,
                     profile_id=profile.profile_id,
                     provider="simulated-trusted-fixtures",
                     public_key=Keypair.create_from_uri(uri).ss58_address,
                     readiness={"simulated": True},
                     ready=False,
-                    enabled=wid != "w-shadow-1",
+                    enabled=True,
                 )
             )
         conn.execute(

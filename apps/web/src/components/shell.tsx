@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 // The site is public and read-only: miners submit with the ramcove-miner command line, and validators
-// run the controller and workers, so there is nothing to sign in to here.
+// set weights with ramcove-validator, so there is nothing to sign in to here.
 const NAV = [
   { href: "/", label: "Overview" },
   { href: "/dashboard", label: "Dashboard" },

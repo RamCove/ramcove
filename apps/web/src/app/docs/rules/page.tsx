@@ -79,11 +79,9 @@ type ProfileDetail = {
       service_cost_usd_cents_per_admission: number;
       price_source: string;
     };
-    bootstrap: {
-      mode: string;
-      min_independent_validators_for_mainnet: number;
-      quorum_validators_after_sunset: number;
-    };
+    // older snapshots name this "bootstrap"
+    deployment?: { mode: string; reproduce_winners: boolean };
+    bootstrap?: { mode: string };
     measured: boolean;
     no_winner_writer_verified: boolean;
   };
@@ -165,7 +163,9 @@ export default async function CompetitionPage() {
               ? "calibrated on hardware"
               : "not calibrated on hardware"}
           </Pill>
-          <Pill tone="neutral">bootstrap: {p.bootstrap.mode}</Pill>
+          <Pill tone="neutral">
+            deployment: {(p.deployment ?? p.bootstrap)?.mode}
+          </Pill>
         </div>
       </PageHeader>
 

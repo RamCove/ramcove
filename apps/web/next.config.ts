@@ -5,7 +5,7 @@ const config: NextConfig = {
   agentRules: false,
   poweredByHeader: false,
   // Old addresses land where their content lives now. The site is read-only: miners submit with the
-  // command line and validators run their own software, so the signed-in pages are gone.
+  // command line and validators run ramcove-validator, so the signed-in pages are gone.
   async redirects() {
     return [
       { source: "/competition", destination: "/docs/rules", permanent: false },

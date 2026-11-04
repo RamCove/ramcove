@@ -6,6 +6,7 @@ from ramcove_api.store import audit
 from ramcove_api.store.db import tx
 from ramcove_api.store.schema import champions, comparisons, ledger, receipts, reviews, weight_plans
 from sqlalchemy import select
+from substrateinterface import Keypair
 
 from .helpers import (
     ATTEMPTS,
@@ -129,24 +130,48 @@ def test_a_close_first_reading_gets_a_second_and_both_are_recorded(ctx, monkeypa
     assert abs(sum(gains) / 2 * 1e6 - w.bound_gain_ppm) <= 1e6 * 0.005, (gains, w.bound_gain_ppm)
 
 
-def test_after_the_sunset_a_second_validator_reproduces_the_winner(ctx):
-    """In mainnet mode a winner is promoted only after a validator with no shared operator repeats its reading."""
-    from ramcove_api.store.schema import jobs, profile_versions, workers
+def test_a_profile_can_require_another_evaluation_group_to_reproduce_the_winner(ctx):
+    """With reproduce_winners set, a winner is promoted only after a worker of another group repeats its reading.
+
+    It is off by default; turning it on needs a second evaluation group, which this test adds."""
+    from ramcove_api.store.schema import jobs, profile_versions, validators, workers
     from ramcove_protocol.rules import ProfileVersion
     from sqlalchemy import update
 
-    with tx(ctx.engine) as conn:  # publish the same profile in mainnet mode, as the sunset would
+    with tx(ctx.engine) as conn:  # publish the same profile with reproduction switched on
         row = conn.execute(select(profile_versions).where(profile_versions.c.active)).first()
-        body = {**row.body, "bootstrap": {**row.body["bootstrap"], "mode": "mainnet"}, "measured": True}
-        mainnet = ProfileVersion.model_validate(body)
+        body = {**row.body, "deployment": {**row.body["deployment"], "reproduce_winners": True}}
+        reproducing = ProfileVersion.model_validate(body)
         conn.execute(
             update(profile_versions)
             .where(profile_versions.c.rule_hash == row.rule_hash)
-            .values(body=mainnet.model_dump(mode="json", by_alias=True), rule_hash=mainnet.rule_hash())
+            .values(
+                body=reproducing.model_dump(mode="json", by_alias=True), rule_hash=reproducing.rule_hash()
+            )
         )
-    everyone = ("w-op-1", "w-op-2", "w-shadow-1")
-    with tx(ctx.engine) as conn:  # the shadow validator's worker is off in the seeded demo
-        conn.execute(update(workers).where(workers.c.id == "w-shadow-1").values(enabled=True))
+        second = Keypair.create_from_uri("//RamCoveTestEvaluationGroupTwo").ss58_address
+        conn.execute(
+            validators.insert().values(
+                hotkey=second,
+                name="Second evaluation group (test)",
+                operator_affiliated=True,
+                independence_group="ramcove-operator-2",
+                scoring=True,
+            )
+        )
+        conn.execute(
+            workers.insert().values(
+                id="w-op-3",
+                validator=second,
+                profile_id=row.profile_id,
+                provider="simulated-trusted-fixtures",
+                public_key=Keypair.create_from_uri("//RamCoveTestWorkerThree").ss58_address,
+                readiness={"simulated": True},
+                ready=False,
+                enabled=True,
+            )
+        )
+    everyone = ("w-op-1", "w-op-2", "w-op-3")
     bring_workers_online(ctx, everyone)
     outcomes = []
     for variant in range(ATTEMPTS):  # the simulated measurement is noisy; a miner would resubmit
@@ -176,8 +201,8 @@ def test_after_the_sunset_a_second_validator_reproduces_the_winner(ctx):
             )
         }
     assert "reproduce" in stages
-    # one reading from the operator's workers and one from the shadow validator's
-    assert "w-shadow-1" in readers and readers & {"w-op-1", "w-op-2"}, readers
+    # one reading from each evaluation group
+    assert "w-op-3" in readers and readers & {"w-op-1", "w-op-2"}, readers
 
 
 def winning_submission(ctx, miner: str, fixture: str, expected: str) -> dict:

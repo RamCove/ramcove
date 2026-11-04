@@ -92,8 +92,9 @@
     "offline_long": 3200,
     "offline_general": 800
   },
-  "bootstrap": {
-    "mode": "local"
+  "deployment": {
+    "mode": "local",
+    "reproduce_winners": false
   },
   "measured": false,
   "no_winner_writer_verified": false,

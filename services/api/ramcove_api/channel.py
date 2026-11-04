@@ -6,7 +6,7 @@ from fastapi import Request
 
 # Requests that arrive through the public reverse proxy carry this header, set by the proxy itself and
 # never taken from the client. The public site only reads: miners submit with the command line and
-# validators run their own workers, both against an API they are given directly. So that door accepts
+# validators run ramcove-validator, both against an API they are given directly. So that door accepts
 # reads alone, and even among reads it refuses sign-in, personal data and every role's workspace.
 PUBLIC_CHANNEL_HEADER = "x-ramcove-channel"
 PUBLIC_METHODS = ("GET", "HEAD")

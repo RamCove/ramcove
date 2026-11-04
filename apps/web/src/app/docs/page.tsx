@@ -116,7 +116,7 @@ const FAILURES: [string, string, string][] = [
   ],
   [
     "not_reproduced",
-    "A second validator repeated the reading on its own worker and did not clear the margin.",
+    "Reproduction was on, and a worker of a second evaluation group repeated the reading without clearing the margin.",
     "Both readings are published on the submission page.",
   ],
   [
@@ -153,7 +153,7 @@ export default function DocsPage() {
       <PageHeader
         eyebrow="Documentation"
         title="How RamCove works"
-        lede="How miners submit and how validators measure, both from the command line, and what each failure means. The full protocol specification and the runbooks live in the repository."
+        lede="How miners submit and how validators set weights, both from the command line, and what each failure means. The full protocol specification and the runbooks live in the repository."
       />
 
       <Notice tone="sim" title="Running in simulation mode">
@@ -304,65 +304,63 @@ uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
         <Card
           id="validators"
           eyebrow="For validators"
-          title="Run the validator software"
-          subtitle="Validators do not sign in here either. They run evaluation workers that sign their own requests."
+          title="Set weights with ramcove-validator"
+          subtitle="Validators do not sign in here either. The owner-operated validator evaluates every submission; every validator submits weights from the owner's signed results."
           className="scroll-mt-24 lg:col-span-2"
         >
           <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
             <ul className="list-disc space-y-2 pl-5 text-[13px] leading-relaxed text-muted">
               <li>
-                A worker is one physical host with one whole GPU of the
-                profile&apos;s type (an H100 SXM in the first profile), no MIG
-                and no other workload during measurement.
+                <Mono>ramcove-validator</Mono> runs on a CPU: no GPU, no
+                evaluation data, no database. It needs a registered hotkey with
+                a validator permit.
               </li>
               <li>
-                <Mono>ramcove-worker</Mono> takes work from the API, runs it
-                inside its isolation provider and reports signed results. It
-                holds no database credentials, chain keys or tokens.
+                Every 30 seconds it fetches the owner&apos;s signed weight
+                result, checks the signature against the owner key pinned in
+                the program, and checks that the result is for this chain and
+                subnet and still valid.
               </li>
               <li>
-                Candidates run in a hardware-virtualized VM with the GPU passed
-                through, no network, and a trusted host-side measurement agent.
+                It maps hotkeys to UIDs from its own chain read and submits the
+                weights: five kings at 20% each, the rest burned to the subnet
+                owner. If anything is missing or wrong, it submits nothing.
               </li>
               <li>
-                &quot;Online&quot; and &quot;safe and ready&quot; are different
-                states. A worker that cannot prove its isolation is never given
-                untrusted code. Each worker&apos;s state is on the{" "}
-                <Link href="/status" className="text-accent hover:underline">
-                  status page
-                </Link>
-                .
+                Validators other than the owner run no H100 tests: they rely on
+                the owner&apos;s published scores rather than checking
+                performance themselves.
               </li>
               <li>
-                Each worker records the champion&apos;s score once, when it is
-                crowned. Once independent validators take over, a second
-                validator reproduces each winner once.
+                To run nothing at all, delegate stake weight to the owner&apos;s
+                validator hotkey on this subnet with Bittensor&apos;s child
+                hotkeys.
               </li>
             </ul>
             <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-line bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-muted">
-              {`# one worker per GPU host
-export RAMCOVE_API_ORIGIN=http://127.0.0.1:8787
-export RAMCOVE_WORKER_ID=w-1
-export RAMCOVE_WORKER_KEY_URI=<the worker's signing key>
+              {`# simulation mode: a development key
+uv run ramcove-validator --api http://127.0.0.1:8787 \\
+  --key-uri //YourDevKey
 
-# the VM isolation provider for real measurement
-export RAMCOVE_WORKER_PROVIDER=vfio-vm
-export RAMCOVE_GPU_BDF=<PCI address of the GPU>
-export RAMCOVE_VM_IMAGE_SHA256=<pinned VM image>
-export RAMCOVE_MEASUREMENT_AGENT_SOCKET=<agent socket>
+# network mode: reads the chain directly
+uv run ramcove-validator --api https://<owner host>:8788 \\
+  --chain-endpoint wss://<rpc> --hotkey <your hotkey>
 
-uv run ramcove-worker`}
+# the owner's signed result, open to anyone
+curl https://<owner host>:8788/v1/weights/latest`}
             </pre>
           </div>
           <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
-            The VM provider is the network-mode path. It checks that the host
-            can isolate a whole H100 (VFIO passthrough, IOMMU groups, the
-            host-side measurement agent) and refuses to run anything if a check
-            fails; its GPU execution is completed and calibrated in Stage 1, the
-            first launch step. The demo&apos;s workers use the simulated
-            provider, which evaluates the trusted repository fixtures. Weight
-            plans are published as proposals and set through commit-reveal once
-            the subnet is registered.
+            The owner&apos;s evaluation workers run <Mono>ramcove-worker</Mono>{" "}
+            on whole H100 SXM GPUs, each candidate in a hardware-virtualized VM
+            with no network, and a worker that cannot prove its isolation is
+            never given untrusted code (see the{" "}
+            <Link href="/status" className="text-accent hover:underline">
+              status page
+            </Link>
+            ). The demo&apos;s workers use the simulated provider. Submitting
+            weights on testnet and mainnet is a launch step; the program reads
+            the network today.
           </p>
         </Card>
 

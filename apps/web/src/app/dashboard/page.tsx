@@ -204,7 +204,7 @@ const GROUPS: {
 const STAGE_NAMES: Record<string, string> = {
   screen: "screening",
   full: "evaluation",
-  reproduce: "independent reproduction",
+  reproduce: "reproduction by a second group",
   calibration: "calibration",
 };
 

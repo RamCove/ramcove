@@ -612,7 +612,8 @@ def reproduce(
     bank: Bank,
     on_progress: Reporter | None = None,
 ) -> dict:
-    """After the sunset: a second validator repeats one reading against its own worker's fixed score."""
+    """When the profile sets reproduce_winners: another evaluation group repeats one reading against its own
+    worker's fixed score."""
     seed = f"{bank.traffic_seed}:{seed}"
     base = champion_calibration["capacity_milli_rps"] / 1000
     if base <= 0:

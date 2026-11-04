@@ -20,7 +20,7 @@ class S(StrEnum):
     SCREENING = "screening"
     EVAL_QUEUED = "eval_queued"
     EVALUATING = "evaluating"
-    # after the sunset only: a second validator repeats a winning reading
+    # only when the profile sets reproduce_winners: another evaluation group repeats a winning reading
     REPRODUCE_QUEUED = "reproduce_queued"
     REPRODUCING = "reproducing"
     IN_REVIEW = "in_review"  # only when an automatic check flags the winner
