@@ -32,7 +32,7 @@
     "torch": "2.13.0",
     "cuda": "13.0.3",
     "python_lock_sha256": null,
-    "args_sha256": "491bd646c47cfb75927e863b052eb4a60c8d99fa16e75e7036dcba95392771e0"
+    "args_sha256": "2c00c14304bbb05288d7cfb77f3a90ca64d1b912593d64599853b94f37571010"
   },
   "hardware": {
     "gpu": "NVIDIA H100 SXM 80GB (whole device, no MIG)",

@@ -97,5 +97,5 @@ project and redeploying switches it to the read-only snapshot instead.
 ## What the demo is
 
 The RamCove subnet running in simulation mode for the public: the chain, the randomness and the GPU
-workers are simulated and every number they produce is labelled. It runs on a single host; the
-network deployment adds redundancy and the external security review listed in the readiness report.
+workers are simulated and every number they produce is labelled. It runs on a single host; a network
+deployment adds redundancy.

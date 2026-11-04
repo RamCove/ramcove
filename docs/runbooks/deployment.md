@@ -32,9 +32,8 @@ what follows is the procedure to review before asking for it.
 
 ## Before switching intake on
 
-Every launch step in the README's Launch section for the mode you are entering. In particular: no
-admissions of untrusted code until at least one worker reports `untrusted_code_isolation: true` from real
-probes.
+No admissions of untrusted code until at least one worker reports `untrusted_code_isolation: true` from
+real probes.
 
 ## Rollback of a deployment
 

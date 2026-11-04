@@ -1,8 +1,8 @@
 # How a submission is evaluated
 
 This is the whole path a submission takes, in order, with the number that decides each step. It is the
-same path the whitepaper describes in Chapter 5 and the website shows on `/dashboard`; if the three ever
-disagree, the code in this repository is the one that runs.
+same path the website shows on `/dashboard`; if the two ever disagree, the code in this repository is the
+one that runs.
 
 Every number below comes from the published profile (`config/profiles/…json`, served at `/v1/profile`)
 and from the evaluator (`packages/evaluator/ramcove_evaluator/`). The values quoted are the ones in the
@@ -198,4 +198,4 @@ miners pay no submission fee.
 In simulation mode — what the public demo runs — the GPU workers use `SimulatedStack`, a coarse model of a
 memory-bound server, and every number the demo shows comes from it. It exercises the whole protocol and is
 not a prediction of H100 behaviour. In network mode the worker's VFIO provider runs the same pipeline on a
-whole H100, and the Stage 1 calibration sets the measured values before any of this decides real money.
+whole H100, and a calibration on that hardware sets the measured values in a new profile version.

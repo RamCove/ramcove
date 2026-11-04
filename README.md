@@ -15,14 +15,14 @@ question quality, the capacity reading, the rule and the winner checks — with 
 step and why each step exists.
 
 This repository is the RamCove subnet: the miner tool, the owner's evaluation worker, the validator's
-weight-setting program, and the owner's intake, queue, controller, API and website. It runs in two modes, chosen by configuration:
+weight-setting program, and the owner's intake, queue, controller, API and website. It runs in two modes,
+chosen by configuration:
 
 - **Simulation mode** (`RAMCOVE_ENV=demo`), which the public demo at https://ramcove.vercel.app uses: a
   deterministic dev chain, a simulated beacon and simulated GPU workers, so the whole competition can be
   run end to end on one machine. Every number that comes from the simulation is labelled as such.
 - **Network mode** (`RAMCOVE_ENV=testnet`, then mainnet): the worker's VFIO provider runs candidates in a
-  hardware VM on a whole H100 SXM, and admissions, weights and the audit anchor follow the chain. The steps
-  that switch it on are in [Launch](#launch).
+  hardware VM on a whole H100 SXM, and admissions, weights and the audit anchor follow the chain.
 
 | Part | What it is |
 |---|---|
@@ -94,23 +94,7 @@ uv run pytest -m chain_readonly     # read-only queries against the public Bitte
 ## Documentation
 
 - `docs/evaluation.md` — the whole evaluation workflow, step by step, and why each step is there
-- `docs/spec/protocol.md` — the corrected protocol, rule by rule
-- `docs/adr/` — architecture decisions, including where the implementation deviates from the whitepaper and why
+- `docs/spec/protocol.md` — the protocol, rule by rule
+- `docs/adr/` — architecture decisions and why they were made
 - `docs/guides/` — miner, validator and operator guides
 - `docs/runbooks/` — deployment, backup and recovery, rollback, incidents
-
-## Launch
-
-Moving from simulation mode to the network is a sequence of steps:
-
-1. **GPU measurement.** Enable the VFIO provider on the owner's evaluation hosts with a whole H100 SXM and run the Stage 1
-   calibration: the tuned baseline's score, the noise study that sets the margin, and the published run
-   times. Until then the worker's simulated provider evaluates the trusted repository fixtures.
-2. **Subnet registration** on testnet, then mainnet, which fixes the netuid the tools and the site use.
-3. **Chain and weights.** Point the controller at the network's finalized blocks, which set admission keys
-   and registration checks, give it a production signing key for weight results and pin that key in `ramcove-validator`, have the API read
-   validator permits from the chain (the weight result is served only to validators), and enable the
-   program's network mode: it loads the validator's hotkey to sign its reads and submits through
-   commit-reveal. Validators then set weights from the owner's signed results with `ramcove-validator`, or
-   delegate stake to the owner's validator with child hotkeys.
-4. **Customer releases** of the reference stack, on the quarterly cadence the whitepaper describes.

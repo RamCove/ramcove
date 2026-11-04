@@ -37,14 +37,14 @@ program never invents weights of its own.
 # simulation mode: the dev chain runs inside the owner's service, so a development key is enough
 uv run ramcove-validator --api http://127.0.0.1:8787 --key-uri //YourDevKey
 
-# network mode (launch step 3): reads the chain directly
+# network mode: reads the chain directly
 uv run ramcove-validator --api https://<owner host>:8788 --chain-endpoint wss://<rpc> --hotkey <your hotkey>
 ```
 
-Network mode is enabled at launch step 3 in the README: there the program loads your validator hotkey, which
-both signs the reads of the weight result and submits the weights, and the owner's service reads validator
-permits from the chain. The owner signing keys for testnet and mainnet are pinned in
-`ramcove_validator/core.py` when the subnet launches there.
+In network mode the program loads your validator hotkey, which both signs the reads of the weight result
+and submits the weights through commit-reveal, and the owner's service reads validator permits from the
+chain. The owner's signing key for each network is pinned in `ramcove_validator/core.py`; this release
+pins the development chain's key and runs in simulation mode.
 
 ### Who can read the weight result
 

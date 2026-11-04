@@ -1,12 +1,12 @@
 # RamCove protocol, as implemented
 
-Version 0.1 of the implementation, against RamCove whitepaper v0.2 and its review. Every rule below exists in
-code; the column "where" names the module that owns it. Provisional values live in an immutable profile
+Version 0.1 of the implementation. Every rule below exists in code; the "where" note names the module that
+owns it. Provisional values live in an immutable profile
 version (`config/profiles/ramcove-p1@1.0.0.json`) whose hash is recorded with every admission, comparison and
 promotion.
 
-**Nothing here is measured.** Runtimes, thresholds, capacities and costs are planning values until a Stage 1
-study on real hardware replaces them.
+**Provisional values.** Runtimes, thresholds, capacities and costs are planning values until a calibration
+on the profile's hardware replaces them in a new profile version.
 
 ## 1. Profile
 
@@ -130,14 +130,14 @@ until a level passes. No pass at the lowest rate ⇒ `below_grid`; a pass at the
 not cut short, because a winner's gain may later be set against a newer champion by arithmetic.
 *Where: `ramcove_evaluator.capacity`.*
 
-### 3.3 Quality (review R1)
+### 3.3 Quality
 
 Each challenger is compared with the current champion **and** with a frozen quality reference belonging to
 the profile version, on the same items, plus absolute per-group floors and an answer-length floor. Small
 permitted losses therefore cannot accumulate across generations. Paired comparisons use matched items;
 unpaired comparisons are labelled and use the wider interval. *Where: `ramcove_protocol.scoring`.*
 
-### 3.4 Memory evidence (review R7, ADR 0007)
+### 3.4 Memory evidence (ADR 0007)
 
 Three kinds of evidence, none of which proves causation:
 
@@ -149,7 +149,8 @@ Three kinds of evidence, none of which proves causation:
 3. **Declared mechanism:** the manifest declares whether the change acts on cache storage, retention,
    allocation or admission; a reviewer confirms it in the code when the winner is flagged or disputed.
 
-Validation against known methods is part of Stage 1 and is recorded in the readiness report.
+Validation against known memory methods and compute-only changes is part of the calibration on the profile's
+hardware.
 
 ### 3.5 Units
 
@@ -173,7 +174,7 @@ integer parts per million, so exactly 5% does not win. Ties keep the incumbent. 
 submission with a changed artifact and fresh tests; readings are never pooled across attempts.
 *Where: `ramcove_protocol.scoring.replacement_decision`.*
 
-## 5. Order, leases and settlement (review R2, R3, R4)
+## 5. Order, leases and settlement
 
 - **Dispatch order:** oldest admission key first among compatible queued jobs.
 - **Completion order:** free. Workers run different submissions at once.
@@ -194,7 +195,7 @@ submission with a changed artifact and fresh tests; readings are never pooled ac
   change or a rollback in between runs the evaluation again, at the same key.
 *Where: `ramcove_protocol.settlement`, `ramcove_protocol.reservation`, `ramcove_api.services.queue`, `settlement`.*
 
-## 6. Champion, weights and registration (review R5, R6)
+## 6. Champion, weights and registration
 
 - King of the hill (ADR 0011, ADR 0013). Each profile keeps a queue of five kings; King #1 is the current
   champion. A challenger that beats King #1 becomes the new King #1, every king moves down one place, and King
@@ -254,10 +255,3 @@ its exposed tests are never reused. A second reading uses the same round with th
 Every consequential transition is appended to a hash-chained audit log that a database trigger protects
 from updates, deletes and truncation. The chain makes silent edits detectable; it does not prove that the
 recorded decisions were fair.
-
-## 10. Deliberate deviations from the whitepaper
-
-| Rule | Whitepaper v0.2 | Here | Why |
-|---|---|---|---|
-| Recomputation | Counts towards memory evidence | Reported only | It also falls for a faster stack (review R7) |
-| Fixed-score step-downs | 97% then 94% of the edge | Continue stepping down until a level passes three fresh runs | Otherwise a noisy edge yields no score at all; the result stays conservative |

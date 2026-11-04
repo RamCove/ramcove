@@ -39,7 +39,7 @@ class Decision:
 
 
 def replacement_decision(readings: list[Reading], rule: ReplacementRule, champion_version: int) -> Decision:
-    """Section 9.2: at or below the margin loses, at or above the clear-win line wins, in between one more
+    """At or below the margin loses, at or above the clear-win line wins, in between one more
     reading decides and the average of the two must exceed the margin. Only non-void readings taken against
     *this* champion version count."""
     usable = [r for r in readings if not r.voided and r.champion_version == champion_version]
@@ -140,7 +140,7 @@ class QualityVerdict:
 
 
 def quality_verdict(ev: QualityEvidence, rule: QualityRule) -> QualityVerdict:
-    """Review R1: must be non-inferior to the champion AND to the frozen reference AND above absolute floors.
+    """Must be non-inferior to the champion AND to the frozen reference AND above absolute floors.
 
     Because the reference and floors never move within a profile version, small permitted losses
     cannot accumulate across generations of champions.

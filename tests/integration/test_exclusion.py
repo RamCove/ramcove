@@ -1,4 +1,4 @@
-"""Section 9.6: an excluded hotkey is refused in the free checks, so it is never charged.
+"""An excluded hotkey is refused in the free checks, before it can take a place in the queue.
 
 Exclusion is an operator remedy for copying and spam. It is published in the audit log with its reason,
 and it is reversible.

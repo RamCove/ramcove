@@ -125,7 +125,7 @@ def _near_limit(xs: list[RequestLog], gates: LatencyGates) -> bool:
 def recovered_after_bursts(
     logs: list[RequestLog], gates: LatencyGates, bursts: tuple[float, ...], window_s: float
 ) -> bool:
-    """Section 8.2: after a burst, p90 end-to-end must come back to the pre-burst level (within 1.2x).
+    """After a burst, p90 end-to-end must come back to the pre-burst level (within 1.2x).
     A stack that never recovers is over its capacity even if the averages look fine. Each burst is judged
     against the quiet stretch before it and the quiet stretch after it, which never reaches into the
     next burst."""
@@ -167,7 +167,7 @@ def per_run_gates(
     drift_ok = True
     if len(done) >= 8:
         # Over-saturation shows as a queue that keeps growing: compare p90 end-to-end time of the last quarter
-        # with the second quarter (Section 8.8).
+        # with the second quarter.
         quarter = len(done) // 4
         q2 = sorted(x.e2e_ms for x in done[quarter : 2 * quarter])
         q4 = sorted(x.e2e_ms for x in done[3 * quarter :])
@@ -192,7 +192,7 @@ def per_run_gates(
 
 def accuracy_under_load(runs: list[list[RequestLog]]) -> tuple[int, int]:
     """Right answers over every request offered in these runs. An answer that never arrived is wrong, so
-    a stack cannot raise its accuracy by dropping the questions it would have failed (Section 8.6)."""
+    a stack cannot raise its accuracy by dropping the questions it would have failed."""
     allogs = [x for r in runs for x in r]
     return sum(1 for x in allogs if x.correct), len(allogs)
 
@@ -200,9 +200,9 @@ def accuracy_under_load(runs: list[list[RequestLog]]) -> tuple[int, int]:
 def accuracy_gate(
     runs: list[list[RequestLog]], quality: QualityRule, champion_under_load: dict | None
 ) -> tuple[bool | None, list[str], dict]:
-    """Section 8.2: accuracy under load, non-inferior to the champion's. The champion's side comes from the
+    """Accuracy under load, non-inferior to the champion's. The champion's side comes from the
     three confirmation runs behind its fixed score; the challenger's from its passing reading runs and its
-    hour-long soak, which is what makes the sample large enough to bound anything (Section 8.6).
+    hour-long soak, which is what makes the sample large enough to bound anything.
 
     A champion crowned before this was recorded has no baseline, and then the gate does not run rather
     than failing everyone."""

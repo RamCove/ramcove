@@ -1,4 +1,4 @@
-"""The pooled accuracy gate (Section 8.2): a stack may not serve more by answering worse under load.
+"""The pooled accuracy gate: a stack may not serve more by answering worse under load.
 
 The simulated stacks answer the same whatever the load, so this gate cannot fire for a fixture. It is
 tested directly instead, on the pooled logs a winner brings to it: its passing reading runs and its soak.

@@ -1,4 +1,4 @@
-"""Randomness scheduling for capacity readings (Section 8.9).
+"""Randomness scheduling for capacity readings.
 
 A comparison record names a *future* beacon round chosen only after the record's anchor is
 finalized. The seed is sha256(round randomness || comparison id). Fallback: if a round is
@@ -6,8 +6,8 @@ unavailable after ``max_wait_s``, use the next round (round + 1, then + 2 ...) u
 ``max_fallback`` times, then void the reading with a published reason. No discretionary redraws.
 
 The dev beacon is the simulation-mode beacon and is deterministic. The drand HTTP reader fetches rounds
-from public relays and accepts one when they agree; BLS signature verification is a launch step
-(docs/adr/0006).
+from public relays and accepts one when they agree; BLS signature verification is described in
+docs/adr/0006.
 """
 
 from __future__ import annotations

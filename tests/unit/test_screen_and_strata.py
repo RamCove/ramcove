@@ -1,4 +1,4 @@
-"""Screening's decisive failures and the stratification the quality bounds rest on (Sections 7.2, 8.6)."""
+"""Screening's decisive failures and the stratification the quality bounds rest on."""
 
 from __future__ import annotations
 

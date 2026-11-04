@@ -3,7 +3,7 @@
 **Status:** accepted, 2026-09-17
 
 **Context.** The competition's rules decide who is paid. They must be testable without a database, an HTTP
-server or a chain, and they must be readable by someone checking them against the whitepaper.
+server or a chain, and they must be readable by any miner or validator checking how a result is decided.
 
 **Decision.** One repository, with `packages/protocol` holding pure rules (no HTTP, no SQL, no chain SDK),
 `packages/evaluator` and `packages/chain` holding measurement and chain shapes, `services/*` holding the

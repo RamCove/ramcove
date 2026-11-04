@@ -19,7 +19,7 @@ def entry(sid, block, state, version=0, registered=True, idx=0):
 
 
 def test_earlier_job_still_in_full_evaluation_blocks_later_promotion():
-    """Review R2: A was admitted first and is still evaluating; B finished first. B must wait."""
+    """A was admitted first and is still evaluating; B finished first. B must wait."""
     a = entry("A", 100, S.EVALUATING)
     b = entry("B", 101, S.READY_FOR_PROMOTION)
     d = decide_promotion(b, [a, b], 0, RH, registration_expired=False)

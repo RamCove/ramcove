@@ -5,7 +5,7 @@ server that exercises the protocol with trusted fixtures. Its numbers are a mode
 H100 behaviour.
 
 ``OpenAICompatibleTarget`` is the network-mode target: it sends real requests to an engine exposing the
-OpenAI-compatible HTTP API (for example vLLM), and is calibrated on H100 workers in Stage 1.
+OpenAI-compatible HTTP API (for example vLLM), and is calibrated on H100 workers.
 """
 
 from __future__ import annotations
@@ -207,7 +207,7 @@ def simulate_run(
             if t < a["first_token_at"]:
                 continue
             a["produced"] += tokens_this_step
-            # the longest gap between two output tokens: Section 8.2 disqualifies a request that stalls
+            # the longest gap between two output tokens: the latency gate disqualifies a request that stalls
             if int(a["produced"]) > a["emitted"]:
                 a["emitted"] = int(a["produced"])
                 a["max_gap"] = max(a["max_gap"], t - a["last_token_at"])

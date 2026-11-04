@@ -10,7 +10,7 @@ Use this when a promoted champion turns out to be unsafe or wrong.
 
 ## Act
 
-1. Open an incident first, with a public summary that names the effect on miners and customers.
+1. Open an incident first, with a public summary that names the effect on miners and validators.
 2. Pause admissions if the fault could affect measurements.
 3. `ramcove-operator --key-uri … rollback --reason "…" [--deliberate]`, with a reason of at least ten
    characters and the deliberate flag set honestly.

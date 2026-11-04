@@ -1,4 +1,4 @@
-"""The owner's question bank: periods, identifiers and seeds (Section 8.7). Pure arithmetic, no I/O.
+"""The owner's question bank: periods, identifiers and seeds. Pure arithmetic, no I/O.
 
 The owner platform holds one secret. Each period's seed is an HMAC of that secret with the profile and the
 period number, so seeds cannot be guessed ahead of time, yet revealing one period's seed says nothing about

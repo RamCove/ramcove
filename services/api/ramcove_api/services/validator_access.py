@@ -7,8 +7,8 @@ validator permit:
 - in simulation the dev chain has no stake, so a validator is a hotkey the owner lists in the validators
   table that is registered on the dev chain;
 - on a real network it is a hotkey with Bittensor's validator permit on the subnet
-  (``SubstrateReader.validator_permit_hotkeys``). This service reads the network from launch step 3; until
-  then the check refuses every read, so the result is never served to an unchecked hotkey.
+  (``SubstrateReader.validator_permit_hotkeys``). This release checks permits on the simulated chain; on
+  a network the check refuses every read, so the result is never served to an unchecked hotkey.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ def require_validator(
     if not ctx.settings.simulated_chain:
         raise ServiceError(
             "permit_check_unavailable",
-            "this service reads validator permits from the network from launch step 3",
+            "this release checks validator permits on the simulated chain",
             503,
         )
     with tx(ctx.engine) as conn:

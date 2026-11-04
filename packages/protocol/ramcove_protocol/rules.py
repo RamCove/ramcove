@@ -1,8 +1,8 @@
 """Versioned competition rules.
 
 A ``ProfileVersion`` is immutable once published: its canonical hash is recorded with every
-admission, comparison and promotion. All numeric values here are *provisional planning values* from the RamCove
-v0.2 whitepaper and review corrections; none is a measured service guarantee.
+admission, comparison and promotion. The numeric values are *provisional planning values* until a
+calibration on the profile's hardware replaces them in a new version; none is a measured service guarantee.
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ class EvaluatorPin(Frozen):
 
 
 class ReplacementRule(Frozen):
-    """Section 9.2: the challenger is measured once against the champion's fixed score.
+    """The challenger is measured once against the champion's fixed score.
 
     A first reading at or above ``clear_win_ppm`` wins at once; one at or below ``delta_ppm`` loses; one in
     between gets exactly one more reading, and the average of the two must exceed the margin.
@@ -83,11 +83,13 @@ class ReplacementRule(Frozen):
     grid_step_ppm: int = 30_000
     grid_min_steps: int = Field(-8, description="Lowest grid rate = base * (1+step)^min")
     grid_max_steps: int = Field(16, description="Highest grid rate = base * (1+step)^max")
-    calibrated: bool = Field(False, description="False until a Stage 1 noise study has been published")
+    calibrated: bool = Field(
+        False, description="False until a noise study on the profile's hardware has been published"
+    )
 
 
 class QualityRule(Frozen):
-    """Review R1: non-inferiority vs champion AND fixed floors vs a frozen quality reference."""
+    """Non-inferiority vs champion AND fixed floors vs a frozen quality reference."""
 
     reference_id: str = Field(description="Frozen quality-reference implementation for this profile version")
     vs_champion_margin_bp: int = Field(200, description="Lower bound must exceed -2.00 points")
@@ -152,7 +154,7 @@ class StageEnvelope(Frozen):
 
 
 class Deadlines(Frozen):
-    """Review R4: bounded lifecycle. Durations in seconds."""
+    """Bounded lifecycle. Durations in seconds."""
 
     invitation_ttl_s: int = 24 * 3600
     screen_start_target_s: int = 24 * 3600
@@ -168,12 +170,12 @@ class Deadlines(Frozen):
     second_reading_delay_s: int = Field(
         7200,
         description="A second reading's beacon round is this long after the first reading's, so its traffic "
-        "is fresh and cannot be known when the first reading starts (Section 9.2)",
+        "is fresh and cannot be known when the first reading starts",
     )
     beacon_min_delay_s: int = Field(
         1800,
         description="A reading's beacon round must be at least this far after its anchor is finalized, so "
-        "nobody can know the traffic before the artifact and its admission are frozen (Section 8.9)",
+        "nobody can know the traffic before the artifact and its admission are frozen",
     )
     upload_hold_s: int = 72 * 3600
 
@@ -191,7 +193,7 @@ class Deployment(Frozen):
 
 
 class QuestionBankRule(Frozen):
-    """Section 8.7: the owner platform's secret question bank, rotated on a fixed schedule.
+    """The owner platform's secret question bank, rotated on a fixed schedule.
 
     Periods start at ``epoch`` plus whole multiples of ``period_days``. The next bank's commitment is published
     at least ``commit_ahead_s`` before its period starts, and a bank's seed is revealed when its period ends.

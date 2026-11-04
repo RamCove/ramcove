@@ -1,4 +1,4 @@
-"""Free preflight, free admission to the queue and the free waiting list (Section 7.2; review R3).
+"""Free preflight, free admission to the queue and the free waiting list.
 
 Submitting costs nothing. Evaluation capacity is what limits the queue: a submission that passes the free
 checks is admitted when capacity is free and waits on the waiting list otherwise.
@@ -70,7 +70,7 @@ def preflight(ctx: AppContext, hotkey: str, data: bytes, signature_hex: str) -> 
         result = run_preflight(data, profile, known, signature_ok=sig_ok)
         if result.manifest and result.manifest.hotkey != hotkey:
             result.fail("hotkey_mismatch", "manifest hotkey differs from the signed-in hotkey")
-        # Section 9.6: an excluded hotkey is refused here, in the free checks, so it is never charged
+        # an excluded hotkey is refused here, in the free checks, before it can take a queue place
         excluded = ctx.setting(conn, "excluded_hotkeys", {}) or {}
         if hotkey in (excluded.get("hotkeys") or {}):
             result.fail(

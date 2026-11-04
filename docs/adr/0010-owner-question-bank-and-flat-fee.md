@@ -1,6 +1,6 @@
 # ADR 0010 — The owner's weekly question bank, a flat fee, and published champion code
 
-**Status:** accepted, 2026-09-22; the flat fee is superseded by ADR 0015 (submitting is free). Owner decisions; the whitepaper was revised to match.
+**Status:** accepted, 2026-09-22; the flat fee is superseded by ADR 0015 (submitting is free). Owner decisions.
 
 **Context.** Questions were generated per evaluation from a public generator and a beacon seed. Nobody could
 predict a given evaluation's questions, but the owner wanted the questions to come from the owner's

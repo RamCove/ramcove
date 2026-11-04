@@ -1,9 +1,9 @@
 # ADR 0009 — One evaluation per submission against the champion's fixed score
 
-**Status:** accepted, 2026-09-22. The whitepaper was revised to match (Sections 7, 8.9, 9.2 and 10.5).
+**Status:** accepted, 2026-09-22.
 
 **Context.** Each promotion used to need a triage evaluation, five paired confirmation blocks and a human
-review: about 62 GPU-hours booked per paid admission and up to ten business days of review. The champion was
+review: about 62 GPU-hours booked per admission and up to ten working days of review. The champion was
 re-measured in every block and recalibrated weekly. The owner asked for a faster, simpler flow.
 
 **Decision.**
@@ -26,6 +26,6 @@ re-measured in every block and recalibrated weekly. The owner asked for a faster
 queue holds about twenty times more submissions per worker. The price is that every comparison on a worker
 leans on one measurement of the champion: a score that comes out high rejects every challenger on that
 worker until the next champion, and one that comes out low lets weaker challengers win. In the simulator
-this noise is large; on real hardware the Stage 1 study must
-show that the fixed score and a single reading are measured within about 2% before paid submissions open.
+this noise is large; on real hardware the calibration must
+show that the fixed score and a single reading are measured within about 2% before the profile opens.
 Readings are never cut short, because arithmetic re-comparison needs uncapped gains.

@@ -1,4 +1,4 @@
-"""Leases, job results and stage transitions (Sections 7.4, 8.9).
+"""Leases, job results and stage transitions.
 
 Dispatch order = oldest admission key first among compatible queued jobs. Completion order is free.
 Promotion order is enforced separately in settlement.py.
@@ -60,7 +60,7 @@ def current_champion(conn: Connection, profile_id: str):
 
 
 def king_queue(conn: Connection, profile_id: str) -> list:
-    """King of the hill (Section 9.1): the current champion and the kings it displaced, King #1 first."""
+    """King of the hill: the current champion and the kings it displaced, King #1 first."""
     current = current_champion(conn, profile_id)
     records = conn.execute(select(champions).where(champions.c.profile_id == profile_id)).all()
     return select_kings(records, current.version)
@@ -216,7 +216,7 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
         chain = ctx.chain(conn)
         anchor = chain.finalized_head()
         beacon = DevBeacon()
-        # Section 8.9: a round far enough after the anchor that nobody can know it when the artifact and
+        # a round far enough after the anchor that nobody can know it when the artifact and
         # its admission are frozen. The dev beacon computes any round on demand; a real relay only serves a
         # round once it exists, so a real deployment waits for it and resolve_round's fallback applies.
         scheduled = schedule_round(beacon, now(), timedelta(seconds=profile.deadlines.beacon_min_delay_s))

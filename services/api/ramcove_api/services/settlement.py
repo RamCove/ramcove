@@ -1,4 +1,4 @@
-"""Promotion in admission order with an atomic champion check-and-set (review R2, R5, R6).
+"""Promotion in admission order with an atomic champion check-and-set.
 
 When a challenger is crowned, every other measured winner is re-compared with it by arithmetic: both gains are
 ratios to the same earlier champion's fixed score, so nothing is measured again."""

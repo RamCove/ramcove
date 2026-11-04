@@ -1,7 +1,6 @@
 # ADR 0015 — Submitting is free
 
-**Status:** accepted, 2026-11-04. Owner decision; supersedes ADR 0004 and the flat fee in ADR 0010. The
-whitepaper was revised to match.
+**Status:** accepted, 2026-11-04. Owner decision; supersedes ADR 0004 and the flat fee in ADR 0010.
 
 **Context.** A miner paid a flat 0.1 TAO per submission: the service issued a quote, the miner paid it with a
 `batch_all` transfer and remark, the controller verified the finalized payment and admitted the submission,
@@ -27,5 +26,4 @@ free.
 
 **Consequences.** Trying an idea costs a miner nothing but the registration, so more attempts reach the
 queue; the capacity cap and the one-active-submission rule keep that within the owner's GPU budget, and the
-waiting list absorbs the rest. The profile's rule hash changes, so existing databases are reset. Customer
-revenue terms are unaffected.
+waiting list absorbs the rest. The profile's rule hash changes, so existing databases are reset.

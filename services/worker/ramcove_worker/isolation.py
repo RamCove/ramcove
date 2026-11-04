@@ -9,7 +9,7 @@ queue.
 passed through by VFIO, no network interface, a vsock channel only to the trusted host-side measurement
 agent, read-only verified image, destroy + GPU reset between jobs. It implements the readiness probes
 and the launch specification, fails closed when any requirement is missing, and is brought up on H100 SXM
-hosts in the Stage 1 calibration.
+hosts for the calibration.
 """
 
 from __future__ import annotations
@@ -196,7 +196,7 @@ class VfioVmProvider:
             self._check(
                 "gpu_reset_clears_memory",
                 False,
-                "UNVERIFIED: requires a pattern-probe test on the real host (Stage 1)",
+                "UNVERIFIED: requires a pattern-probe test on the real host (calibration)",
             )
         )
         ready = all(c["ok"] for c in checks)

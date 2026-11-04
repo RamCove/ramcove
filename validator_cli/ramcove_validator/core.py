@@ -27,8 +27,8 @@ from ramcove_protocol.weight_document import (
 # the server it fetches from. The development chain's key is the published demo service key.
 PINNED_SIGNERS: dict[str, str | None] = {
     "ramcove-devchain": "5DHka7cdFE3pGpuAXZ7ZAVukk2hUvpzu8FYKpH7gq32LBtsG",
-    "test": None,  # set when the subnet launches on testnet
-    "finney": None,  # set when the subnet launches on mainnet
+    "test": None,  # pinned in the release for testnet
+    "finney": None,  # pinned in the release for mainnet
 }
 RESUBMIT_BLOCKS = TEMPO_BLOCKS  # resubmit an unchanged result once a tempo, so the validator stays active
 

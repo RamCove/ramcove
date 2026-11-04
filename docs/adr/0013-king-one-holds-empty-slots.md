@@ -1,10 +1,9 @@
 # ADR 0013 — King #1 holds the share of every empty slot
 
-**Status:** accepted, 2026-11-04. Owner decision; amends the shares in ADR 0011. The whitepaper was revised
-to match.
+**Status:** accepted, 2026-11-04. Owner decision; amends the shares in ADR 0011.
 
 **Context.** Under ADR 0011 each of the five king slots earned 20% of the profile's miner allocation and the
-share of an empty slot burned. The first winner after launch earned 20% while 80% burned, and the allocation
+share of an empty slot burned. The first winner earned 20% while 80% burned, and the allocation
 was fully paid only once five kings existed.
 
 **Decision.**

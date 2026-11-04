@@ -919,11 +919,11 @@ function WhatIsReal() {
     "Race-safe accounting on PostgreSQL",
     "Reading finalized Bittensor blocks",
   ];
-  const launch = [
-    "GPU workers: the simulated provider here, H100 VMs at launch",
-    "Chain and beacon: the dev chain here, the network at launch",
+  const simulated = [
+    "GPU workers: the simulated provider here; network mode runs H100 VMs",
+    "Chain and beacon: the dev chain here; network mode reads the chain",
     "Workers evaluate the trusted repository fixtures in simulation mode",
-    "Thresholds are provisional until the Stage 1 calibration",
+    "Thresholds are provisional until calibrated on the profile's hardware",
   ];
   return (
     <Section
@@ -932,7 +932,7 @@ function WhatIsReal() {
       title={
         <>
           Running in simulation mode,{" "}
-          <span className="display-accent">ready for launch steps.</span>
+          <span className="display-accent">every number labelled.</span>
         </>
       }
       band
@@ -945,9 +945,9 @@ function WhatIsReal() {
       <div className="grid gap-5 md:grid-cols-2">
         <StatusList title="Running now" tone="ok" items={working} />
         <StatusList
-          title="Simulation mode, and what launch switches on"
+          title="Simulation mode, and what network mode runs"
           tone="sim"
-          items={launch}
+          items={simulated}
         />
       </div>
     </Section>

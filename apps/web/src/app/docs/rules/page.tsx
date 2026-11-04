@@ -159,10 +159,10 @@ export default async function CompetitionPage() {
       </PageHeader>
 
       {!p.measured && (
-        <Notice tone="warn" title="Provisional values, set before launch">
-          The thresholds, runtimes and costs come from the v0.2 whitepaper. The
-          Stage 1 calibration on H100 workers replaces them with measured values
-          before submissions open on the network.
+        <Notice tone="warn" title="Provisional values">
+          The thresholds, runtimes and costs are planning values. A calibration
+          on H100 workers replaces them with measured values in a new profile
+          version.
         </Notice>
       )}
 

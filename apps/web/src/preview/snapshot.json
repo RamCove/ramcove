@@ -374,7 +374,7 @@
     "status": "proposed_not_submitted",
     "simulated": true
    },
-   "values_are": "provisional planning values from the v0.2 whitepaper; none is measured on H100"
+   "values_are": "provisional planning values until a calibration on the profile's hardware"
   },
   "/v1/status": {
    "profile": "ramcove-p1-h100sxm-qwen38-27b-fp8",

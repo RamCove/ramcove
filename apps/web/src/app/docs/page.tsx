@@ -154,7 +154,7 @@ export default function DocsPage() {
       <Notice tone="sim" title="Running in simulation mode">
         The chain, the randomness beacon and the GPU workers run in simulation
         mode, and every number they produce is labelled. Network
-        mode puts the same services on the chain and on H100 workers at launch.
+        mode runs the same services on the chain and on H100 workers.
       </Notice>
 
       <Card
@@ -196,8 +196,7 @@ export default function DocsPage() {
           >
             dashboard
           </Link>{" "}
-          shows where each submission is in this path right now; Section 5
-          of the{" "}
+          shows where each submission is in this path right now; the{" "}
           <a
             href={WHITEPAPER_PDF}
             target="_blank"
@@ -285,7 +284,7 @@ uv run ramcove-miner status --submission sub_...`}
           </div>
           <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
             In simulation mode <Mono>--key-uri</Mono> takes a development key;
-            at launch the tool signs with your wallet&apos;s hotkey instead. It
+            in network mode the tool signs with your wallet&apos;s hotkey. It
             talks to the API given by <Mono>--api</Mono> (default{" "}
             <Mono>http://127.0.0.1:8787</Mono>). Submissions go through the
             command line, never the website; to try one end to end, run the
@@ -336,7 +335,7 @@ uv run ramcove-miner status --submission sub_...`}
 uv run ramcove-validator --api http://127.0.0.1:8787 \\
   --key-uri //YourDevKey
 
-# network mode (launch step 3): reads the chain directly
+# network mode: reads the chain directly
 uv run ramcove-validator --api https://<owner host>:8788 \\
   --chain-endpoint wss://<rpc> --hotkey <your hotkey>
 
@@ -353,9 +352,8 @@ curl https://<owner host>:8788/v1/weights/signer`}
             <Link href="/status" className="text-accent hover:underline">
               status page
             </Link>
-            ). The demo&apos;s workers use the simulated provider. Submitting
-            weights on testnet and mainnet is a launch step; the program reads
-            the network today.
+            ). The demo&apos;s workers use the simulated provider, and its
+            validators set weights on the dev chain.
           </p>
         </Card>
 
@@ -476,23 +474,9 @@ make test-all   # unit and database-backed tests
 make reset      # wipe and reseed the demo data`}
           </pre>
           <p className="mt-3 text-[13px] leading-relaxed text-muted">
-            The repository holds the corrected protocol specification,
+            The repository holds the protocol specification,
             architecture decisions and the runbooks for deployment, backup,
             recovery, rollback and incidents.
-          </p>
-        </Card>
-
-        <Card
-          title="Supported software package"
-          subtitle="What a customer receives."
-        >
-          <p className="text-[13px] leading-relaxed text-muted">
-            Approved champions are merged into an open reference stack and
-            released on a quarterly cadence after a soak test, as a validated
-            build for one profile with a capacity test on the customer&apos;s
-            own hardware. Customers run it inside their own perimeter: RamCove
-            improves the software they serve with, and does not route their
-            requests to miners.
           </p>
         </Card>
       </div>

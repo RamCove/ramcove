@@ -1,6 +1,6 @@
 # ADR 0012 — Owner-operated evaluation; validators set weights from signed results
 
-**Status:** accepted, 2026-11-04. Owner decision; the whitepaper was revised to match.
+**Status:** accepted, 2026-11-04. Owner decision.
 
 **Context.** The design let every validator run its own evaluation workers, and a shadow validator in a
 second independence group repeated each winner's reading before promotion. Evaluating a submission needs a
@@ -28,8 +28,8 @@ scoring jobs; where only the owner scores, it has nothing to gate.
   a worker in a second evaluation group. The `bootstrap` block is renamed `deployment`, and the shadow
   validator leaves the demo seed. Mainnet mode no longer forces reproduction, which owner-only evaluation
   could never satisfy.
-- Network submission in `ramcove-validator` stays refused until launch step 3 pins a production signing key
-  and enables commit-reveal.
+- Network submission in `ramcove-validator` comes with the release that pins the owner's production signing
+  key and submits through commit-reveal; this release submits on the development chain.
 
 **Consequences.** Validators other than the owner need stake and a CPU machine, not an H100, and hold no
 question bank. They trust the owner's measurement rather than checking it; what they can check is that the

@@ -42,9 +42,8 @@ evaluator changes at least seven days ahead and raise the weights version.
 
 ## Review
 
-Only a flagged winner is reviewed: native code, third-party components, a failed scan, a dispute or a
-customer's release requirement. Every other winner is promoted
-automatically. Review uses published criteria, and the review record marks which criteria were flagged. A
+Only a flagged winner is reviewed: native code, third-party components, a failed scan or a dispute.
+Every other winner is promoted automatically. Review uses published criteria, and the review record marks which criteria were flagged. A
 rejection must cite a failed criterion and explain the evidence. Reviewers list open reviews, with the
 flags that sent each one, with `ramcove-operator reviews` and decide with
 `review <id> approve`, `review <id> reject --failed <criteria> --reasons …` or `review <id> recuse`; the

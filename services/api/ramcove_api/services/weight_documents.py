@@ -1,4 +1,4 @@
-"""The owner's signed weight result, re-issued every tempo for validators to submit (Section 7.5).
+"""The owner's signed weight result, re-issued every tempo for validators to submit.
 
 The latest weight plan is the owner's evaluation outcome. This module signs a weight document built from
 it, valid for two tempos, and replaces it when the plan changes or less than a tempo of validity is left.

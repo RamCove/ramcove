@@ -1,7 +1,7 @@
 """ramcove-validator: a CPU-only validator that sets weights from the owner's signed results.
 
     ramcove-validator --api https://<owner host>:8788 --key-uri //YourDevKey          # simulation mode
-    ramcove-validator --api https://<owner host>:8788 --chain-endpoint wss://...      # network mode (launch step 3)
+    ramcove-validator --api https://<owner host>:8788 --chain-endpoint wss://...      # network mode
 
 Every ``--interval`` seconds it fetches ``/v1/weights/latest`` with a request signed by its hotkey (the
 owner serves the result only to validators), checks the owner's signature against the key pinned for the
@@ -132,8 +132,8 @@ class NetworkSubmitter:
 
     def submit(self, uids: list[int], weights: list[int], version_key: int, document_hash: str) -> dict:
         raise CliError(
-            f"submitting weights on {self.network} is a launch step: this build reads the network but does not "
-            "write to it (see the README's Launch section)"
+            f"this release submits weights on the simulated chain; submitting on {self.network} comes with the "
+            f"release that pins the owner's signing key for {self.network}"
         )
 
 
@@ -166,11 +166,11 @@ def main(argv: list[str] | None = None) -> int:
                 raise CliError(f"no owner signing key is pinned for {network!r} in this build")
             if not meta.get("simulated_chain"):
                 # reading the result needs the hotkey's signature, and submitting needs the hotkey too; loading a
-                # network hotkey and NetworkSubmitter are enabled together at launch step 3
+                # network hotkey and NetworkSubmitter come together with the network release
                 raise CliError(
-                    f"network mode on {network} is launch step 3: the owner serves the weight result only to "
-                    "requests signed by a validator hotkey, and this build loads development keys only "
-                    "(see the README's Launch section)"
+                    f"this release runs in simulation mode with development keys; network mode on {network} "
+                    "signs reads and submissions with your validator hotkey and comes with the release that pins "
+                    f"the owner's signing key for {network}"
                 )
             if not args.key_uri:
                 raise CliError("simulation mode needs --key-uri, a development key")

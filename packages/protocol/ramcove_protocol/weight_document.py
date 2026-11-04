@@ -1,4 +1,4 @@
-"""Signed weight results: what the owner publishes and what every validator submits (Section 7.5).
+"""Signed weight results: what the owner publishes and what every validator submits.
 
 The owner's evaluation produces a weight plan (``weights.build_weight_plan``). Every tempo the owner signs a
 *weight document* built from it: the share of the miner allocation each hotkey receives, valid for a

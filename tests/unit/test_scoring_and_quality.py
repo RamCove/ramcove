@@ -1,4 +1,4 @@
-"""Worked examples from the whitepaper (Sections 9.2 and 8.10) and review R1/R7."""
+"""Worked examples of the replacement rule and the quality bounds."""
 
 import math
 
@@ -108,7 +108,7 @@ def _generation(acc_prev_bp: int, acc_new_bp: int, n: int = 4000) -> list[int]:
 
 
 def test_small_losses_cannot_accumulate_against_fixed_reference(profile):
-    """Review R1: 90.0 -> 89.5 -> ... each step passes vs its predecessor but the chain drifts."""
+    """90.0 -> 89.5 -> ... each step passes vs its predecessor but the chain drifts."""
     rule = profile.quality
     reference = _generation(0, 9000)
     acc = 9000

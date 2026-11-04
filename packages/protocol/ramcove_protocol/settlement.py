@@ -1,4 +1,4 @@
-"""Promotion order (review R2) and champion compare-and-set preconditions.
+"""Promotion order and champion compare-and-set preconditions.
 
 Promise: *promotion order is admission order*. A later admission can never be promoted while any
 earlier admission in the same profile is still active and retains priority, whatever stage it

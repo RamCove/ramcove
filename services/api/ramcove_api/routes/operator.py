@@ -175,8 +175,8 @@ def set_intake(
 def set_exclusion(
     body: ExcludeIn, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
 ) -> dict:
-    """Section 9.6: exclude a hotkey, or reinstate it. An excluded hotkey is refused in the free checks,
-    so it is never charged, and the decision is published in the audit log with its reason."""
+    """Exclude a hotkey, or reinstate it. An excluded hotkey is refused in the free checks, before it can
+    take a queue place, and the decision is published in the audit log with its reason."""
     with tx(ctx.engine) as conn:
         current = dict((ctx.setting(conn, "excluded_hotkeys", {}) or {}).get("hotkeys") or {})
         if body.excluded:

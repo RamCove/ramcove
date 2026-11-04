@@ -76,7 +76,7 @@ def make_item(seed: str, idx: int, group: str | None = None, band: int | None = 
 
 def offline_suite(seed: str, n_long: int, n_general: int) -> list[Item]:
     """The long-context items are stratified over the context bands as well as the positions: the quality
-    rule bounds accuracy per band (Section 8.6), and a band that follows the traffic weights would leave
+    rule bounds accuracy per band, and a band that follows the traffic weights would leave
     the widest contexts with too few items to bound anything. The general items keep the traffic mix."""
     per_band = n_long // len(BANDS)
     items = [

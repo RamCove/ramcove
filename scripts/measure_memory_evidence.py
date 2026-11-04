@@ -8,7 +8,7 @@ demonstration fixture under several seeds and reports how often it is called a m
 with the spread of the tight-budget gain.
 
 A fixture that lands near the margin will flip between runs. Finding one is the point: it tells you the
-margin is not yet separated from the noise, which is what Stage 1 calibration on real hardware must fix.
+margin is not yet separated from the noise, which calibration on real hardware settles.
 Everything here runs against the simulator, so the numbers describe the simulation, not an H100.
 """
 

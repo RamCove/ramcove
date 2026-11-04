@@ -46,7 +46,7 @@ from .taskgen import POSITIONS, grade, seed_manifest
 
 
 class CalibrationMissing(RuntimeError):
-    """Infrastructure-side failure: never charged to the miner."""
+    """Infrastructure-side failure: it never counts against the miner."""
 
 
 REFERENCE = StackParams("ramcove-quality-reference-16bit", base_accuracy_bp=9100)
@@ -149,7 +149,7 @@ def screen(
     )
     cand, champ = sum(cand_each), sum(champ_each)
     gap_bp = (champ - cand) * 10_000 // len(items)
-    # a paired gap on 200 items is noisy, so Section 7.2 rejects only a gap that is also four standard
+    # a paired gap on 200 items is noisy, so screening rejects only a gap that is also four standard
     # errors wide: the discordant pairs are what carry the information
     worse = sum(1 for c, h in zip(cand_each, champ_each, strict=True) if h and not c)
     better = sum(1 for c, h in zip(cand_each, champ_each, strict=True) if c and not h)
@@ -223,7 +223,7 @@ def _capacity(params: StackParams, base_rps: float, profile: ProfileVersion, see
 
 def _confirmation_accuracy(runs: dict) -> dict:
     """What the champion answered under load while its score was confirmed. A challenger's runs are set
-    against this, so neither side is graded on questions the other never saw (Section 8.6)."""
+    against this, so neither side is graded on questions the other never saw."""
     confirmed = [logs for label, logs in runs.items() if label.startswith("confirm")]
     correct, offered = accuracy_under_load(confirmed)
     return {"correct": correct, "offered": offered}
@@ -456,7 +456,7 @@ def evaluate(
         )
         gpu += RUN_CENTI * cap.runs
         readings.append(_reading_record(cap, base))
-        # Section 8.2 pools the bands "across the passing runs", so every run that passed counts, not
+        # the gate pools the bands "across the passing runs", so every run that passed counts, not
         # only the highest one: a band that fails lower down is evidence too.
         passed = [f"reading-run{i}" for i, (_, ok) in enumerate(cap.trace) if ok]
         reading_runs.extend(runs[label] for label in passed if label in runs)

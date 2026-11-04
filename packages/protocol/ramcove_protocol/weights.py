@@ -1,4 +1,4 @@
-"""Proposed weight plan (Section 9.3). Pure and deterministic.
+"""Proposed weight plan. Pure and deterministic.
 
 King of the hill: every profile keeps a queue of up to ``KING_SLOTS`` kings. King #1 is the current
 champion, the stack every challenger must beat. When a challenger beats King #1 it becomes the new

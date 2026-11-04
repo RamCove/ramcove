@@ -1,4 +1,4 @@
-"""Promotion review and appeals with published criteria, recusal and an independent appeal decider (9.5, R8)."""
+"""Promotion review and appeals with published criteria, recusal and an independent appeal decider."""
 
 from __future__ import annotations
 
