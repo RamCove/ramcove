@@ -7,9 +7,8 @@ import json
 from datetime import timedelta
 from typing import Any
 
-from ramcove_protocol.money import format_tao
-from ramcove_protocol.reservation import can_issue_quote
-from ramcove_protocol.state import PAID_ACTIVE, TERMINAL, S
+from ramcove_protocol.reservation import can_admit
+from ramcove_protocol.state import ACTIVE, TERMINAL, S
 from ramcove_protocol.weights import KING_SLOTS, slot_shares
 from sqlalchemy import func, or_, select
 
@@ -21,12 +20,8 @@ from ..store.schema import (
     chain_observations,
     champions,
     comparisons,
-    credits,
     incidents,
     jobs,
-    quotes,
-    receipts,
-    refunds,
     reports,
     reviews,
     submissions,
@@ -73,11 +68,10 @@ def progress_label(p: dict | None) -> str | None:
 
 
 STAGE_LABEL = {
-    "preflight_passed": "Checked, not yet reserved",
+    "preflight_passed": "Checked, not yet in the queue",
     "waitlisted": "On the free waiting list",
-    "invited": "Invited to reserve capacity",
-    "quoted": "Quote issued, awaiting payment",
-    "admitted": "Paid, waiting for screening",
+    "invited": "Invited to join the queue",
+    "admitted": "In the queue, waiting for screening",
     "screening": "Screening (build and smoke checks)",
     "eval_queued": "Waiting for evaluation",
     "evaluating": "Evaluation running",
@@ -90,7 +84,6 @@ STAGE_LABEL = {
     "rejected_preflight": "Rejected by free checks",
     "rejected_screen": "Rejected in screening",
     "review_rejected": "Rejected in review",
-    "expired_quote": "Quote expired",
     "expired_unregistered": "Expired: hotkey not registered in time",
     "operator_failed": "Stopped by an operator-side failure",
     "withdrawn": "Withdrawn by the miner",
@@ -124,8 +117,8 @@ def meta(ctx: AppContext) -> dict:
         "chain_writes_enabled": ctx.settings.chain_writes_enabled,
         "demo_features": ctx.settings.demo_features,
         "notice": (
-            "Simulation mode: the chain, beacon, GPU workers and payments are simulated, and every "
-            "number they produce is labelled."
+            "Simulation mode: the chain, beacon and GPU workers are simulated, and every number they "
+            "produce is labelled."
         ),
     }
 
@@ -138,7 +131,7 @@ def overview(ctx: AppContext) -> dict:
         plan = ctx.capacity_plan(conn, profile, trusted_fixture=True)
         paused = bool(ctx.setting(conn, "intake_paused", {"paused": False}).get("paused"))
         committed = ctx.committed_centi(conn, profile.profile_id)
-        check = can_issue_quote(committed, profile.envelope, plan, paused)
+        check = can_admit(committed, profile.envelope, plan, paused)
         counts = dict(
             conn.execute(select(submissions.c.state, func.count()).group_by(submissions.c.state)).all()
         )
@@ -161,7 +154,6 @@ def overview(ctx: AppContext) -> dict:
                 .order_by(champions.c.version)
             ).all()
         ]
-        price = ctx.latest_price(conn)
         inc = [
             dict(
                 id=i.id,
@@ -205,7 +197,7 @@ def overview(ctx: AppContext) -> dict:
             "champion_history": history,
             "queue": {
                 "counts_by_state": counts,
-                "admitted_active": sum(counts.get(s.value, 0) for s in PAID_ACTIVE),
+                "admitted_active": sum(counts.get(s.value, 0) for s in ACTIVE),
                 "waiting_list": counts.get("waitlisted", 0) + counts.get("invited", 0),
             },
             "capacity": {
@@ -215,18 +207,11 @@ def overview(ctx: AppContext) -> dict:
                 "capacity_centi_gpu_hours": check.capacity_centi,
                 "envelope_per_admission_centi": profile.envelope.total(),
                 "intake_paused": paused,
-                "accepting_paid_submissions": check.allowed,
+                "accepting_submissions": check.allowed,
                 "reason": check.reason,
                 "horizon_hours": plan.horizon_hours,
             },
-            "fee": {
-                "flat_fee_rao": profile.fees.flat_fee_rao,
-                "flat_fee_tao": format_tao(profile.fees.flat_fee_rao),
-                "service_cost_usd_cents": profile.fees.service_cost_usd_cents_per_admission,
-                "price_usd_micros": price.usd_micros_per_tao if price else None,
-                "price_simulated": price.simulated if price else None,
-                "price_observed_at": price.observed_at if price else None,
-            },
+            "submission_fee": None,  # submitting is free
             "chain": None
             if not obs
             else {
@@ -278,7 +263,7 @@ def profile_detail(ctx: AppContext) -> dict:
 def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = None, limit: int = 25) -> dict:
     with tx(ctx.engine) as conn:
         states = (
-            [s.value for s in PAID_ACTIVE]
+            [s.value for s in ACTIVE]
             if kind == "admitted"
             else ["waitlisted", "invited"]
             if kind == "waiting"
@@ -337,7 +322,7 @@ def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = Non
                     "bound_gain_ppm": r.bound_gain_ppm,
                     "outcome": None
                     if r.state not in {s.value for s in TERMINAL}
-                    else {"code": r.outcome_code, "summary": r.outcome_summary, "fee": r.fee_outcome},
+                    else {"code": r.outcome_code, "summary": r.outcome_summary},
                 }
             )
         nxt = None
@@ -355,7 +340,7 @@ def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = Non
             "items": items,
             "next_cursor": nxt,
             "note": (
-                "Paid admissions are ordered by their finalized payment. Workers may run different "
+                "Admissions are ordered by their admission block and index. Workers may run different "
                 "submissions at the same time; promotion still follows admission order, so a single "
                 "rank across stages would be misleading."
             ),
@@ -380,10 +365,6 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
         ).all()
         revs = conn.execute(select(reviews).where(reviews.c.submission_id == sub_id)).all()
         aps = conn.execute(select(appeals).where(appeals.c.submission_id == sub_id)).all()
-        q = conn.execute(
-            select(quotes).where(quotes.c.submission_id == sub_id).order_by(quotes.c.issued_at.desc())
-        ).first()
-        rc = conn.execute(select(receipts).where(receipts.c.submission_id == sub_id)).first()
         reps = conn.execute(select(reports).where(reports.c.submission_id == sub_id)).all()
         profile = ctx.profile_by_hash(conn, r.rule_hash)
         champ = current_champion(conn, r.profile_id)
@@ -395,7 +376,7 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
                     select(submissions.c.id).where(
                         submissions.c.profile_id == r.profile_id,
                         submissions.c.id != r.id,
-                        submissions.c.state.in_([s.value for s in PAID_ACTIVE]),
+                        submissions.c.state.in_([s.value for s in ACTIVE]),
                         or_(
                             submissions.c.admission_block < r.admission_block,
                             (submissions.c.admission_block == r.admission_block)
@@ -424,7 +405,7 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
             "bound_gain_ppm": r.bound_gain_ppm,
             "margin_ppm": profile.replacement.delta_ppm,
             "clear_win_ppm": profile.replacement.clear_win_ppm,
-            "outcome": {"code": r.outcome_code, "summary": r.outcome_summary, "fee": r.fee_outcome},
+            "outcome": {"code": r.outcome_code, "summary": r.outcome_summary},
             "method": art.manifest.get("method") if art else None,
             "mechanism": art.manifest.get("mechanism") if art else None,
             "trusted_fixture": art.trusted_fixture if art else None,
@@ -505,38 +486,6 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
             ],
             "simulated": True,
         }
-        if privileged and q:
-            out["quote"] = {
-                "id": q.id,
-                "amount_rao": q.amount_rao,
-                "amount_tao": format_tao(q.amount_rao),
-                "status": q.status,
-                "expires_block": q.expires_block,
-                "payer": q.payer,
-                "recipient": q.recipient,
-                "body": q.body,
-                "signature": q.signature,
-                "price_simulated": q.price_simulated,
-                "service_cost_usd_cents": q.service_cost_usd_cents,
-                "fee_usd_cents": q.fee_usd_cents,
-            }
-        if privileged and rc:
-            out["receipt"] = {"id": rc.id, "body": rc.body, "signature": rc.signature, "signer": rc.signer}
-        if privileged:
-            out["credits"] = [
-                {
-                    "id": c.id,
-                    "amount_rao": c.amount_rao,
-                    "reason": c.reason,
-                    "expires_at": c.expires_at,
-                    "consumed_by": c.consumed_by,
-                }
-                for c in conn.execute(select(credits).where(credits.c.source_submission == sub_id)).all()
-            ]
-            out["refunds"] = [
-                {"id": f.id, "amount_rao": f.amount_rao, "status": f.status, "reason": f.reason}
-                for f in conn.execute(select(refunds).where(refunds.c.submission_id == sub_id)).all()
-            ]
         return out
 
 
@@ -548,9 +497,6 @@ def my_submissions(ctx: AppContext, hotkey: str) -> dict:
             .order_by(submissions.c.created_at.desc())
             .limit(100)
         ).all()
-        cr = conn.execute(
-            select(credits).where(credits.c.hotkey == hotkey, credits.c.consumed_by.is_(None))
-        ).all()
         return {
             "items": [
                 {
@@ -561,22 +507,12 @@ def my_submissions(ctx: AppContext, hotkey: str) -> dict:
                     "created_at": r.created_at,
                     "updated_at": r.updated_at,
                     "admission_key": [r.admission_block, r.admission_index] if r.admission_block else None,
-                    "outcome": {"code": r.outcome_code, "summary": r.outcome_summary, "fee": r.fee_outcome},
+                    "outcome": {"code": r.outcome_code, "summary": r.outcome_summary},
                     "support_ref": r.support_ref,
                     "first_gain_ppm": r.first_gain_ppm,
                     "bound_gain_ppm": r.bound_gain_ppm,
                 }
                 for r in rows
-            ],
-            "credits": [
-                {
-                    "id": c.id,
-                    "amount_rao": c.amount_rao,
-                    "amount_tao": format_tao(c.amount_rao),
-                    "reason": c.reason,
-                    "expires_at": c.expires_at,
-                }
-                for c in cr
             ],
         }
 
@@ -758,8 +694,8 @@ def verify_audit(ctx: AppContext) -> dict:
 
 # Status groups shown on the miners' dashboard. Every state belongs to exactly one group.
 DASHBOARD_GROUPS: dict[str, frozenset[str]] = {
-    "in_progress": frozenset(s.value for s in PAID_ACTIVE),
-    "waiting": frozenset({S.PREFLIGHT_PASSED.value, S.WAITLISTED.value, S.INVITED.value, S.QUOTED.value}),
+    "in_progress": frozenset(s.value for s in ACTIVE),
+    "waiting": frozenset({S.PREFLIGHT_PASSED.value, S.WAITLISTED.value, S.INVITED.value}),
     "promoted": frozenset({S.PROMOTED.value}),
     "rejected": frozenset(
         {
@@ -770,7 +706,7 @@ DASHBOARD_GROUPS: dict[str, frozenset[str]] = {
             S.EXPIRED_UNREGISTERED.value,
         }
     ),
-    "closed": frozenset({S.WITHDRAWN.value, S.EXPIRED_QUOTE.value, S.OPERATOR_FAILED.value}),
+    "closed": frozenset({S.WITHDRAWN.value, S.OPERATOR_FAILED.value}),
 }
 
 
@@ -789,29 +725,29 @@ def workflow(profile) -> list[dict]:
         {
             "key": "preflight",
             "name": "Free checks",
-            "what": "Signature, manifest, patch scope and duplicate check. No GPU, no fee, no queue place.",
+            "what": "Signature, manifest, patch scope and duplicate check. No GPU and no queue place yet.",
             "when": "Every submission",
             "gpu_centi": 0,
             "states": ["preflight_passed", "rejected_preflight"],
         },
         {
             "key": "admission",
-            "name": "Quote, payment, queue place",
+            "name": "Queue place",
             "what": (
-                f"A flat fee of {format_tao(profile.fees.flat_fee_rao).rstrip('0').rstrip('.')} TAO books "
-                f"{env.total() / 100:.2f} GPU-hours: screening plus one evaluation. The payment block and "
-                "index fix the order."
+                f"Free. A hotkey registered on the subnet joins the queue, booking {env.total() / 100:.2f} "
+                "GPU-hours: screening plus one evaluation. The admission block and index fix the order. "
+                "While evaluation capacity is fully booked, the submission waits on the free waiting list."
             ),
-            "when": "After a quote is accepted",
+            "when": "After the free checks, when capacity is free",
             "gpu_centi": 0,
-            "states": ["quoted", "admitted"],
+            "states": ["waitlisted", "invited", "admitted"],
         },
         {
             "key": "screen",
             "name": "Screening",
             "what": (
                 f"Build, engine start, {screening:,} questions from this week's owner bank and the memory "
-                "ceiling. A failure here ends the submission and the fee is consumed."
+                "ceiling. A failure here ends the submission."
             ),
             "when": "Once, before any measurement",
             "gpu_centi": env.screen,
@@ -857,7 +793,7 @@ def workflow(profile) -> list[dict]:
             "key": "winner_checks",
             "name": "Winner checks",
             "what": (
-                "Only for a winner, and paid from the reserve rather than the miner's booking: attainment "
+                "Only for a winner, and drawn from the reserve rather than the submission's booking: attainment "
                 "across context bands, memory evidence at a 25% smaller cache budget, a short-request "
                 "control, real multi-turn conversations, and an hour-long soak at 90% of the measured "
                 "capacity."
@@ -1036,7 +972,7 @@ def dashboard(ctx: AppContext, limit: int = 80) -> dict:
                     "bound_gain_ppm": r.bound_gain_ppm,
                     "outcome": None
                     if not r.outcome_code
-                    else {"code": r.outcome_code, "summary": r.outcome_summary, "fee": r.fee_outcome},
+                    else {"code": r.outcome_code, "summary": r.outcome_summary},
                     "created_at": r.created_at,
                     "updated_at": r.updated_at,
                 }

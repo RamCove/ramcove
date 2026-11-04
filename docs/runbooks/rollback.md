@@ -11,13 +11,13 @@ Use this when a promoted champion turns out to be unsafe or wrong.
 ## Act
 
 1. Open an incident first, with a public summary that names the effect on miners and customers.
-2. Pause paid admissions if the fault could affect measurements.
+2. Pause admissions if the fault could affect measurements.
 3. `ramcove-operator --key-uri … rollback --reason "…" [--deliberate]`, with a reason of at least ten
    characters and the deliberate flag set honestly.
 
 What that does: the current champion becomes `rolled_back` and keeps its evidence; the previous champion's
 stack becomes current under a **new** version number; every waiting winner is evaluated again against it,
-keeping its admission key and charging no new fee (a rollback is the one case where arithmetic
+keeping its admission key (a rollback is the one case where arithmetic
 re-comparison does not apply); workers record the restored champion's fixed score once. The rolled-back king
 leaves the king queue and the kings below it move up one place, so the restored champion is King #1 again;
 the share of any slot left empty goes to King #1 (and burns only if no king is left).

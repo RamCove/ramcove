@@ -1,8 +1,8 @@
 """Deterministic development chain (SIMULATION). Never connects to a real network.
 
-It produces extrinsics and events in the same normalized shapes as the real reader, including
-failure modes (plain ``batch`` interruption, insufficient balance, wrong remark), so the payment
-verifier is exercised end to end. Finality lags the head by ``finality_lag`` blocks.
+It produces extrinsics and events in the same normalized shapes as the real reader, including failure
+modes (plain ``batch`` interruption, insufficient balance). Finality lags the head by ``finality_lag``
+blocks.
 
 Validators set weights with ``SubtensorModule.set_weights``. The dev chain checks what the real chain checks
 first (the signer and every destination registered, matching lengths, no duplicate UID, the rate limit) and
@@ -18,8 +18,12 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from .network import DEVCHAIN
-from .payment import blake2_256
 from .types import Call, Event, Extrinsic, FinalizedHead
+
+
+def blake2_256(data: bytes) -> str:
+    return "0x" + hashlib.blake2b(data, digest_size=32).hexdigest()
+
 
 DEV_FEE_RAO = 166_251
 WEIGHTS_RATE_LIMIT_BLOCKS = 100  # Bittensor's default WeightsSetRateLimit
@@ -225,19 +229,6 @@ class DevChain:
             )
             return True, [Event("System", "Remarked", {"sender": signer, "hash": blake2_256(data)}, idx)]
         return False, []
-
-
-def payment_call(recipient: str, amount_rao: int, quote_id: str, plain_batch: bool = False) -> Call:
-    remark = "0x" + (b"ramcove:quote:" + quote_id.encode()).hex()
-    return Call(
-        "Utility",
-        "batch" if plain_batch else "batch_all",
-        {},
-        (
-            Call("Balances", "transfer_keep_alive", {"dest": recipient, "value": amount_rao}),
-            Call("System", "remark_with_event", {"remark": remark}),
-        ),
-    )
 
 
 def weights_call(netuid: int, uids: list[int], weights: list[int], version_key: int) -> Call:

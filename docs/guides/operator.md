@@ -13,7 +13,7 @@ uv run ramcove-operator --key-uri <your key> console
 ## Daily
 
 - Run `ramcove-operator console`: queue health, leases, expired leases waiting for the sweep, overdue
-  reviews, open incidents, pending refunds, worker readiness.
+  reviews, open incidents, worker readiness.
 - Watch `/status` as your users see it.
 - Check that workers are *safe and ready*, not merely online.
 - Run `ramcove-operator audit-verify` after any unusual event.
@@ -22,10 +22,9 @@ uv run ramcove-operator --key-uri <your key> console
 
 | Control | Command | Effect | Recorded |
 |---|---|---|---|
-| Pause or resume paid admissions | `intake pause\|resume --reason …` | No new quotes; paid work continues; the free waiting list still accepts entries | Reason in the audit trail, visible publicly |
+| Pause or resume admissions | `intake pause\|resume --reason …` | No new admissions to the queue; admitted work continues; the free waiting list still accepts entries | Reason in the audit trail, visible publicly |
 | Open and resolve incidents | `incident open …`, `incident resolve <id>` | Shown on the status page and the overview | Audit trail |
-| Approve and send refunds | `refund approve <id>`, then `refund execute <id>` | Two steps, both idempotent; sending needs an authorized signer outside this build | Ledger and audit trail |
-| Suspend and roll back a champion | `rollback --reason … [--deliberate]` | The suspended version is kept with its evidence; the previous champion's stack becomes current under a new version, workers record its fixed score again, and waiting winners are evaluated again at their admission key with no new fee; weight goes to no winner until a challenger qualifies | Audit trail, marked deliberate or not |
+| Suspend and roll back a champion | `rollback --reason … [--deliberate]` | The suspended version is kept with its evidence; the previous champion's stack becomes current under a new version, workers record its fixed score again, and waiting winners are evaluated again at their admission key; weight goes to no winner until a challenger qualifies | Audit trail, marked deliberate or not |
 | Run a controller tick (demo) | `ramcove-admin tick` | Advances the simulated chain and settlement once | Audit trail |
 
 ## Controls you do not have, on purpose
@@ -33,11 +32,11 @@ uv run ramcove-operator --key-uri <your key> console
 - You cannot set a champion by hand.
 - You cannot edit a measured score.
 - You cannot delete evidence; the audit log is append-only and a database trigger enforces it.
-- You cannot promote past an earlier active paid admission.
+- You cannot promote past an earlier active admission.
 
 ## Rules changes
 
-A profile version is immutable and its hash is recorded with every quote, comparison and promotion. To
+A profile version is immutable and its hash is recorded with every admission, comparison and promotion. To
 change a rule, publish a new version: it applies only to submissions admitted afterwards. Announce
 evaluator changes at least seven days ahead and raise the weights version.
 
@@ -52,11 +51,11 @@ flags that sent each one, with `ramcove-operator reviews` and decide with
 appeal panel uses `appeals` and `appeal <id> uphold|dismiss --reason …`. Authors never review their own submission; reviewers with a conflict recuse. Appeals are decided
 by someone who was not part of the disputed decision, within the published window.
 
-## Money
+## Cost of evaluation
 
-Fee income, consumed fees, credits and refund liabilities are separate records. The fee is a flat 0.1 TAO
-per paid submission; a recent price from the published source only adds its value in US dollars, and a
-stale price never blocks a quote. Accepted quotes never change.
+Submitting is free, so there is no fee income, no refund and no credit to manage. The owner bears the
+evaluation workers' GPU time. What protects that budget is the queue: the two-week capacity cap, one active
+submission per hotkey and per lineage, a registered hotkey to join, and `intake pause` when needed.
 
 ## Question bank
 

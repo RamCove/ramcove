@@ -62,16 +62,9 @@ type Overview = {
     capacity_centi_gpu_hours: number;
     envelope_per_admission_centi: number;
     intake_paused: boolean;
-    accepting_paid_submissions: boolean;
+    accepting_submissions: boolean;
     reason: string;
     horizon_hours: number;
-  };
-  fee: {
-    flat_fee_rao: number;
-    flat_fee_tao: string;
-    price_usd_micros: number | null;
-    price_simulated: boolean | null;
-    service_cost_usd_cents: number;
   };
   chain: {
     finalized_number: number;
@@ -196,7 +189,7 @@ function Hero({ data, margin }: { data: Overview; margin: string }) {
           <HeroStat value="1" label="evaluation decides each submission" />
           <HeroStat
             value={centiHours(data.capacity.envelope_per_admission_centi)}
-            label="of GPU time booked per paid submission"
+            label="of GPU time booked per submission, free to submit"
           />
           <HeroStat
             value="5"
@@ -489,14 +482,14 @@ function HowItWorks({ margin }: { margin: string }) {
     [
       "01",
       "Free checks",
-      "Format, signature, allowed paths, licences and duplicates are checked before anyone pays.",
+      "Format, signature, allowed paths, licences and duplicates are checked before any GPU time is booked.",
       "Free",
     ],
     [
       "02",
-      "Reserve and pay",
-      "When the evaluation queue has room you get a time-limited quote and pay a fee in TAO. Otherwise you wait for free.",
-      "Fee in TAO",
+      "Join the queue",
+      "Submitting is free. A registered hotkey joins the queue when evaluation capacity is free, or waits on the free waiting list until it is invited.",
+      "Free",
     ],
     [
       "03",
@@ -563,8 +556,8 @@ function Principles({
   const items: { title: string; body: string; detail: string }[] = [
     {
       title: "Order comes from the chain",
-      body: "Paid admissions are ordered by their finalized payment. A later submission cannot promote while any earlier paid one is still being evaluated, so finishing fast never jumps the queue.",
-      detail: "key = (finalized block, extrinsic index)",
+      body: "Admissions are ordered by the finalized block at which each submission joined the queue. A later submission cannot promote while any earlier one is still being evaluated, so finishing fast never jumps the queue.",
+      detail: "key = (finalized block, admission index)",
     },
     {
       title: "Paid only when the gain is real",
@@ -751,27 +744,7 @@ function LiveBoard({ data }: { data: Overview }) {
                     "Deployment mode",
                     data.profile.deployment_mode ?? data.profile.bootstrap_mode,
                   ],
-                  [
-                    "Evaluation fee",
-                    data.fee?.flat_fee_tao ? (
-                      <span
-                        key="fee"
-                        className="inline-flex flex-wrap items-center gap-1.5"
-                      >
-                        {`${Number(data.fee.flat_fee_tao)} TAO flat`}
-                        {data.fee.price_usd_micros ? (
-                          <>
-                            {` · about ${usd(Math.floor((data.fee.flat_fee_rao * data.fee.price_usd_micros) / 1e13))}`}
-                            {data.fee.price_simulated && (
-                              <SimulatedTag what="simulated price" />
-                            )}
-                          </>
-                        ) : null}
-                      </span>
-                    ) : (
-                      "—"
-                    ),
-                  ],
+                  ["Submission fee", "None: submitting is free"],
                 ]}
               />
             </div>
@@ -825,16 +798,16 @@ function LiveBoard({ data }: { data: Overview }) {
             <MiniStat label="Waiting" value={queue.waiting_list} />
           </dl>
           <div className="mt-6">
-            {capacity.accepting_paid_submissions ? (
-              <Notice tone="ok" title="Accepting paid submissions">
-                Each paid submission books{" "}
+            {capacity.accepting_submissions ? (
+              <Notice tone="ok" title="Accepting submissions">
+                Submitting is free. Each admission books{" "}
                 {centiHours(capacity.envelope_per_admission_centi)}: screening
                 plus one evaluation, until its result is known. A winner&apos;s
                 extra checks come from the reserve. Submit any time; there are
                 no rounds.
               </Notice>
             ) : (
-              <Notice tone="warn" title="Paid admissions are paused">
+              <Notice tone="warn" title="The queue is full or paused">
                 {capacity.reason} You can still run the free checks and join the
                 waiting list.
               </Notice>
@@ -862,7 +835,7 @@ function Audiences() {
       title: "Make the GPU do more. Get paid for it.",
       points: [
         "Submit a patch to the pinned engine with the ramcove-miner command line",
-        "See the fee, the refund rules and the queue position before you pay",
+        "Submit for free with a registered hotkey, and see your place in the queue",
         "Follow every stage on the dashboard, and read exactly why a submission ended",
       ],
       href: "/docs#miners",
@@ -942,13 +915,13 @@ function Audiences() {
 function WhatIsReal() {
   const working = [
     "Competition rules, queue order and the promotion barrier",
-    "Payment verification, receipts, refunds and the audit chain",
+    "Free admission, the signed admission record and the audit chain",
     "Race-safe accounting on PostgreSQL",
     "Reading finalized Bittensor blocks",
   ];
   const launch = [
     "GPU workers: the simulated provider here, H100 VMs at launch",
-    "Chain, beacon and payments: the dev chain here, the network at launch",
+    "Chain and beacon: the dev chain here, the network at launch",
     "Workers evaluate the trusted repository fixtures in simulation mode",
     "Thresholds are provisional until the Stage 1 calibration",
   ];

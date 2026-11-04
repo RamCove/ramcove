@@ -12,7 +12,7 @@ from ..store import audit
 from ..store.db import new_id, now, tx
 from ..store.schema import appeals, reviews, role_grants, submissions
 from .context import AppContext, ServiceError
-from .queue import _consume_fee, review_criteria, transition
+from .queue import review_criteria, transition
 
 APPEAL_WINDOW = timedelta(days=7)
 APPEAL_DECISION = timedelta(days=14)
@@ -86,11 +86,9 @@ def decide_review(
                 ctx,
                 sub.id,
                 "review_reject",
-                fee_outcome="consumed",
                 outcome_code="review_rejected",
                 outcome_summary=f"Review rejected on: {', '.join(failed)}. {reasons[:300]}",
             )
-            _consume_fee(conn, ctx, sub.id)
         audit.append(
             conn,
             reviewer,
@@ -166,9 +164,7 @@ def decide_appeal(ctx: AppContext, appeal_id: str, decider: str, upheld: bool, r
             sub = conn.execute(
                 select(subs_t).where(subs_t.c.id == ap.submission_id).with_for_update()
             ).first()
-            transition(
-                conn, ctx, sub.id, "appeal_upheld", fee_outcome=None, outcome_code=None, outcome_summary=None
-            )
+            transition(conn, ctx, sub.id, "appeal_upheld", outcome_code=None, outcome_summary=None)
             profile = ctx.profile_by_hash(conn, sub.rule_hash)
             conn.execute(
                 reviews.insert().values(

@@ -1,4 +1,4 @@
-"""Controller loop: advances the simulated chain, verifies payments, expires leases, settles promotions.
+"""Controller loop: advances the simulated chain, expires leases, invites waiting submissions, settles.
 
 Runs as its own process. Safe to restart: every step is transactional and resumes from durable state.
 """

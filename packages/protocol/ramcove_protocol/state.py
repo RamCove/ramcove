@@ -1,4 +1,7 @@
-"""Submission lifecycle state machine (explicit, versioned ``ramcove.lifecycle/1``).
+"""Submission lifecycle state machine (explicit, versioned ``ramcove.lifecycle/2``).
+
+Submitting is free: a submission that passes the free checks is admitted to the queue when evaluation
+capacity is free, or waits on the free waiting list until it is invited.
 
 Every transition is named; the database layer applies them inside transactions with row locks.
 Terminal states never transition again.
@@ -10,13 +13,12 @@ from enum import StrEnum
 
 
 class S(StrEnum):
-    # free, unpaid
+    # free checks passed, not yet in the queue
     PREFLIGHT_PASSED = "preflight_passed"
     WAITLISTED = "waitlisted"
     INVITED = "invited"
-    # paid admission
-    QUOTED = "quoted"
-    ADMITTED = "admitted"  # verified finalized payment, receipt issued
+    # in the queue
+    ADMITTED = "admitted"  # capacity reserved and admission key assigned
     SCREENING = "screening"
     EVAL_QUEUED = "eval_queued"
     EVALUATING = "evaluating"
@@ -31,9 +33,8 @@ class S(StrEnum):
     REJECTED_PREFLIGHT = "rejected_preflight"
     REJECTED_SCREEN = "rejected_screen"
     REVIEW_REJECTED = "review_rejected"
-    EXPIRED_QUOTE = "expired_quote"
     EXPIRED_UNREGISTERED = "expired_unregistered"
-    OPERATOR_FAILED = "operator_failed"  # repeated infrastructure or quorum failure: refund or credit
+    OPERATOR_FAILED = "operator_failed"  # repeated infrastructure or quorum failure
     WITHDRAWN = "withdrawn"
 
 
@@ -44,14 +45,14 @@ TERMINAL = frozenset(
         S.REJECTED_PREFLIGHT,
         S.REJECTED_SCREEN,
         S.REVIEW_REJECTED,
-        S.EXPIRED_QUOTE,
         S.EXPIRED_UNREGISTERED,
         S.OPERATOR_FAILED,
         S.WITHDRAWN,
     }
 )
 
-PAID_ACTIVE = frozenset(
+# admitted and not yet finished: these hold evaluation capacity and a place in the queue
+ACTIVE = frozenset(
     {
         S.ADMITTED,
         S.SCREENING,
@@ -71,10 +72,8 @@ AWAITING_PROMOTION = frozenset({S.REPRODUCE_QUEUED, S.REPRODUCING, S.IN_REVIEW, 
 TRANSITIONS: dict[str, dict[S, S]] = {
     "waitlist": {S.PREFLIGHT_PASSED: S.WAITLISTED},
     "invite": {S.WAITLISTED: S.INVITED},
-    "quote": {S.PREFLIGHT_PASSED: S.QUOTED, S.INVITED: S.QUOTED},
+    "admit": {S.PREFLIGHT_PASSED: S.ADMITTED, S.INVITED: S.ADMITTED},
     "invitation_missed": {S.INVITED: S.WAITLISTED},
-    "quote_expired": {S.QUOTED: S.EXPIRED_QUOTE},
-    "payment_verified": {S.QUOTED: S.ADMITTED},
     "screen_start": {S.ADMITTED: S.SCREENING},
     "screen_pass": {S.SCREENING: S.EVAL_QUEUED},
     "screen_decisive_fail": {S.SCREENING: S.REJECTED_SCREEN},
@@ -99,21 +98,20 @@ TRANSITIONS: dict[str, dict[S, S]] = {
         S.REPRODUCING: S.REPRODUCE_QUEUED,
     },
     # a new champion was crowned first: the measured gain is re-compared with the new champion's score, and a
-    # challenger that no longer clears the margin ends here (no new measurement, no new fee)
+    # challenger that no longer clears the margin ends here (no new measurement)
     "recompare_lose": {s: S.NOT_PROMOTED for s in AWAITING_PROMOTION},
-    # emergency rollback: pending work is evaluated again against the restored stack, same key, no fee
+    # emergency rollback: pending work is evaluated again against the restored stack, same key
     "requeue": {
         S.EVAL_QUEUED: S.EVAL_QUEUED,
         S.EVALUATING: S.EVAL_QUEUED,
         **{s: S.EVAL_QUEUED for s in AWAITING_PROMOTION},
     },
-    "operator_failure": {s: S.OPERATOR_FAILED for s in PAID_ACTIVE},
+    "operator_failure": {s: S.OPERATOR_FAILED for s in ACTIVE},
     "withdraw": {
-        **{s: S.WITHDRAWN for s in PAID_ACTIVE if s != S.READY_FOR_PROMOTION},
+        **{s: S.WITHDRAWN for s in ACTIVE if s != S.READY_FOR_PROMOTION},
         S.PREFLIGHT_PASSED: S.WITHDRAWN,
         S.WAITLISTED: S.WITHDRAWN,
         S.INVITED: S.WITHDRAWN,
-        S.QUOTED: S.WITHDRAWN,
     },
 }
 
@@ -132,29 +130,3 @@ def next_state(current: S | str, event: str) -> S:
     if cur not in table:
         raise TransitionError(f"event {event} not allowed from {cur}")
     return table[cur]
-
-
-def fee_outcome(terminal: S) -> str:
-    """Published fee rule for each terminal state (Section 7.3 table, review R4)."""
-    return {
-        S.PROMOTED: "consumed",
-        S.NOT_PROMOTED: "consumed",
-        S.REJECTED_SCREEN: "consumed",
-        S.REVIEW_REJECTED: "consumed",
-        S.EXPIRED_UNREGISTERED: "consumed",
-        S.OPERATOR_FAILED: "refund_or_credit",
-        S.WITHDRAWN: "withdrawal_policy",
-        S.EXPIRED_QUOTE: "none_or_late_payment_refund",
-        S.REJECTED_PREFLIGHT: "none",
-    }[terminal]
-
-
-def withdrawal_fee_outcome(state_before: S | str) -> str:
-    """Miner withdrawal: before any GPU work starts the fee returns as credit; afterwards it is consumed
-    unless the operator missed a published deadline (then operator_failure applies instead)."""
-    st = S(state_before)
-    if st in (S.PREFLIGHT_PASSED, S.WAITLISTED, S.INVITED, S.QUOTED):
-        return "none"
-    if st == S.ADMITTED:
-        return "credit"
-    return "consumed"

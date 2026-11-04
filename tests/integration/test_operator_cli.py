@@ -14,11 +14,11 @@ from ramcove_api.services import seed
 
 from .helpers import (
     ATTEMPTS,
+    admit_submission,
     bring_workers_online,
     drain,
     make_ctx,
     only_measurement_noise,
-    pay_and_admit,
     state,
     submit_fixture,
 )
@@ -89,7 +89,7 @@ def test_a_reviewer_decides_a_promotion_from_the_command_line(ctx, run):
     for attempt in range(ATTEMPTS):
         bring_workers_online(ctx)  # readiness expires in 120 s, and resubmitting takes longer than that
         sub = submit_fixture(ctx, "miner-ada", "native-paged-kv-kernel", variant=attempt)
-        pay_and_admit(ctx, sub["submission_id"], "miner-ada")
+        admit_submission(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
         st = state(ctx, sub["submission_id"])
         if st.state == "in_review":

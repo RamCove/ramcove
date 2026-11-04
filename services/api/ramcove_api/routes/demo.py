@@ -56,7 +56,7 @@ def fixtures(ctx: AppContext = Depends(get_ctx)) -> dict:
             if f["role"] == "challenger"
         ],
         "note": "Trusted repository fixtures. The simulated worker evaluates only these; any other artifact "
-        "passes free preflight but cannot be quoted, because no real isolation backend is available.",
+        "passes free preflight but cannot join the queue, because no real isolation backend is available.",
     }
 
 

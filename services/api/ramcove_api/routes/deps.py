@@ -45,7 +45,7 @@ def require_role(*roles: str):
 
 
 def idempotent(ctx: AppContext, actor: str, route: str, key: str | None, produce) -> Any:
-    """Store-and-replay: a refresh or double click cannot create a second payment or submission."""
+    """Store-and-replay: a refresh or double click cannot create a second admission or submission."""
     if not key:
         return produce()
     with tx(ctx.engine) as conn:

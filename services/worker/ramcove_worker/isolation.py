@@ -2,7 +2,8 @@
 
 ``SimulatedTrustedProvider`` (SIMULATION): evaluates only trusted repository fixtures identified by
 normalized patch hash, using the simulated serving model. It declares ``untrusted_code_isolation: false``,
-so the controller never assigns it an untrusted artifact and paid quotes for such artifacts are refused.
+so the controller never assigns it an untrusted artifact, and such artifacts wait instead of joining the
+queue.
 
 ``VfioVmProvider``: the intended boundary - one hardware-virtualized VM per candidate with the whole GPU
 passed through by VFIO, no network interface, a vsock channel only to the trusted host-side measurement

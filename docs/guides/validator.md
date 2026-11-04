@@ -2,7 +2,7 @@
 
 RamCove separates two jobs.
 
-- **Evaluation, owner-operated.** The owner's evaluation workers run every paid submission on the profile's
+- **Evaluation, owner-operated.** The owner's evaluation workers run every submission on the profile's
   hardware (one whole H100 SXM per worker), check correctness, quality and performance, and decide the king
   queue. Every tempo the owner's controller signs the outcome as a **signed weight result**, which it
   serves only to validators.
@@ -111,5 +111,5 @@ multi-turn and soak checks once.
 
 ## Costs
 
-Setting weights costs a validator only its machine. The evaluation fee goes to the owner's evaluation
-wallet as validation cost recovery, and the owner covers any shortfall in the cost of evaluation.
+Setting weights costs a validator only its machine. Submitting is free for miners, and the owner bears
+the cost of evaluation.

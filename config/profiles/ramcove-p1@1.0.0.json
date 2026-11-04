@@ -2,7 +2,7 @@
   "schema": "ramcove.profile/1",
   "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
   "version": "1.0.0",
-  "title": "H100 SXM 80 GB \u00b7 Qwen3.8-27B-FP8 \u00b7 vLLM v0.29.0",
+  "title": "H100 SXM 80 GB · Qwen3.8-27B-FP8 · vLLM v0.29.0",
   "model": {
     "repo": "Qwen/Qwen3.8-27B-FP8",
     "revision": "017b9c7af6b5689d5dd426a76e0bc077eb5ca20a",
@@ -82,7 +82,6 @@
   },
   "envelope": {},
   "deadlines": {},
-  "fees": {},
   "question_bank": {
     "period_days": 7,
     "epoch": "2026-09-21T00:00:00Z",

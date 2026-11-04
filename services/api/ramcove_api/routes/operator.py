@@ -7,19 +7,15 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 
-from ..services import accounting, public
+from ..services import public
 from ..services.context import AppContext
 from ..services.settlement import suspend_and_rollback
 from ..store import audit
 from ..store.db import new_id, now, tx
 from ..store.schema import (
-    credits,
     incidents,
     jobs,
-    ledger,
     profile_versions,
-    quotes,
-    refunds,
     reviews,
     submissions,
     workers,
@@ -67,12 +63,6 @@ def console(ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_rol
         queued = conn.execute(
             select(jobs.c.stage, func.count()).where(jobs.c.status == "queued").group_by(jobs.c.stage)
         ).all()
-        open_quotes = conn.execute(select(quotes).where(quotes.c.status == "open")).all()
-        rfs = conn.execute(select(refunds).order_by(refunds.c.created_at.desc()).limit(50)).all()
-        crs = conn.execute(select(credits).order_by(credits.c.created_at.desc()).limit(50)).all()
-        led = conn.execute(
-            select(ledger.c.kind, func.sum(ledger.c.amount_rao), func.count()).group_by(ledger.c.kind)
-        ).all()
         revs = conn.execute(select(reviews).where(reviews.c.decision.is_(None))).all()
         incs = conn.execute(select(incidents).order_by(incidents.c.started_at.desc()).limit(20)).all()
         vers = conn.execute(select(profile_versions)).all()
@@ -97,40 +87,6 @@ def console(ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_rol
                 }
                 for j in leases
             ],
-            "open_quotes": [
-                {
-                    "id": q.id,
-                    "submission_id": q.submission_id,
-                    "amount_rao": q.amount_rao,
-                    "expires_block": q.expires_block,
-                    "hotkey": q.hotkey,
-                }
-                for q in open_quotes
-            ],
-            "refunds": [
-                {
-                    "id": r.id,
-                    "status": r.status,
-                    "amount_rao": r.amount_rao,
-                    "hotkey": r.hotkey,
-                    "reason": r.reason,
-                    "submission_id": r.submission_id,
-                    "simulated": r.simulated,
-                }
-                for r in rfs
-            ],
-            "credits": [
-                {
-                    "id": c.id,
-                    "hotkey": c.hotkey,
-                    "amount_rao": c.amount_rao,
-                    "reason": c.reason,
-                    "expires_at": c.expires_at,
-                    "consumed_by": c.consumed_by,
-                }
-                for c in crs
-            ],
-            "ledger_totals": [{"kind": k, "total_rao": int(total or 0), "entries": n} for k, total, n in led],
             "open_reviews": [
                 {
                     "id": r.id,
@@ -284,20 +240,6 @@ def resolve_incident(
         conn.execute(update(incidents).where(incidents.c.id == incident_id).values(resolved_at=now()))
         audit.append(conn, sess["hotkey"], "incident_resolved", "incident", incident_id, {}, public=True)
     return {"id": incident_id, "resolved": True}
-
-
-@router.post("/refunds/{refund_id}/approve")
-def approve_refund(
-    refund_id: str, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
-) -> dict:
-    return accounting.approve_refund(ctx, refund_id, sess["hotkey"])
-
-
-@router.post("/refunds/{refund_id}/execute")
-def execute_refund(
-    refund_id: str, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_role("operator"))
-) -> dict:
-    return accounting.execute_refund_demo(ctx, refund_id, sess["hotkey"])
 
 
 @router.post("/champion/rollback")

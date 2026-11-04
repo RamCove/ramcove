@@ -4,25 +4,17 @@ from __future__ import annotations
 
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
 
 import pytest
-from ramcove_api.services import control, intake, payments, queue, settlement
+from ramcove_api.services import control, intake, queue, settlement
 from ramcove_api.services.context import ServiceError
 from ramcove_api.store.db import now, tx
 from ramcove_api.store.schema import (
     champion_pointer,
     champions,
-    credits,
     identities,
     jobs,
-    ledger,
-    price_observations,
-    receipts,
     submissions,
-)
-from ramcove_api.store.schema import (
-    payments as payments_t,
 )
 from ramcove_miner.artifact import pack, sign_artifact
 from ramcove_miner.fixtures import by_name, manifest_for
@@ -83,7 +75,9 @@ def pretend_calibrated(ctx, capacity_milli: int = 500) -> None:
             )
 
 
-def unique_submission(ctx, index: int, fixture: str = "fragmentation-aware-allocator") -> tuple[str, str]:
+def unique_submission(
+    ctx, index: int, fixture: str = "fragmentation-aware-allocator", register: bool = True
+) -> tuple[str, str]:
     """A distinct miner and a distinct patch, so neither the hotkey nor the duplicate check interferes."""
     kp = Keypair.create_from_uri(f"//RaceMiner{index}")
     with tx(ctx.engine) as conn:
@@ -101,12 +95,13 @@ def unique_submission(ctx, index: int, fixture: str = "fragmentation-aware-alloc
     sig = sign_artifact(kp, data, ctx.settings.network, profile.profile_id, profile.version)
     r = intake.preflight(ctx, kp.ss58_address, data, sig)
     assert r["ok"], r["errors"]
-    with tx(ctx.engine) as conn:  # a champion must be registered to receive weight
-        ctx.chain(conn).store.register(ctx.settings.netuid, kp.ss58_address)
+    if register:  # joining the queue needs a registered hotkey, and so does receiving weight
+        with tx(ctx.engine) as conn:
+            ctx.chain(conn).store.register(ctx.settings.netuid, kp.ss58_address)
     return r["submission_id"], kp.ss58_address
 
 
-def test_simultaneous_quotes_cannot_oversell_capacity(ctx):
+def test_simultaneous_admissions_cannot_oversell_capacity(ctx):
     allow_untrusted(ctx)
     subs = [unique_submission(ctx, i) for i in range(14)]
     filler, _ = unique_submission(ctx, 14)
@@ -121,98 +116,60 @@ def test_simultaneous_quotes_cannot_oversell_capacity(ctx):
             .values(reserved_centi=plan.capacity_centi() - fits * profile.envelope.total())
         )
 
-    def reserve(pair):
+    def admit(pair):
         sub_id, hotkey = pair
         try:
-            return intake.reserve(ctx, sub_id, hotkey, hotkey)["status"]
+            return intake.admit(ctx, sub_id, hotkey)["status"]
         except ServiceError as e:  # pragma: no cover - surfaced as a failure below
             return f"error:{e.code}"
 
     with ThreadPoolExecutor(max_workers=14) as pool:
-        results = list(pool.map(reserve, subs))
-    quoted = results.count("quoted")
-    assert quoted == fits, results
+        results = list(pool.map(admit, subs))
+    assert results.count("admitted") == fits, results
     assert results.count("waitlisted") == 14 - fits
     with tx(ctx.engine) as conn:
         committed = ctx.committed_centi(conn, profile.profile_id)
+        keys = conn.execute(
+            select(submissions.c.admission_block, submissions.c.admission_index).where(
+                submissions.c.state == S.ADMITTED.value
+            )
+        ).all()
     assert committed <= plan.capacity_centi()
+    assert len(keys) == len(set(keys)) == fits  # every admission has its own place in the order
 
 
-def test_replaying_a_payment_cannot_admit_twice(ctx):
+def test_joining_the_queue_needs_a_registered_hotkey(ctx):
+    allow_untrusted(ctx)
+    sub_id, hotkey = unique_submission(ctx, 99, register=False)  # the free checks need no registration
+    with pytest.raises(ServiceError) as e:
+        intake.admit(ctx, sub_id, hotkey)
+    assert e.value.code == "not_registered"
+    assert state(ctx, sub_id).state == S.PREFLIGHT_PASSED
+    with tx(ctx.engine) as conn:
+        ctx.chain(conn).store.register(ctx.settings.netuid, hotkey)
+    assert intake.admit(ctx, sub_id, hotkey)["status"] == "admitted"
+
+
+def test_admission_is_free_signed_and_happens_once(ctx):
     allow_untrusted(ctx)
     sub_id, hotkey = unique_submission(ctx, 100)
-    q = intake.reserve(ctx, sub_id, hotkey, hotkey)
-    intake.demo_pay(ctx, q["quote"]["quote_id"], hotkey)
-    for _ in range(3):
-        control.tick(ctx)
+    a = intake.admit(ctx, sub_id, hotkey)
+    assert a["status"] == "admitted" and a["admission"]["schema"] == "ramcove.admission/1"
+    from ramcove_protocol.canonical import signing_payload
+
+    assert Keypair(ss58_address=a["signer"]).verify(
+        signing_payload("admission", ctx.settings.network, a["admission"]), bytes.fromhex(a["signature"][2:])
+    )
+    with pytest.raises(ServiceError) as e:  # a second request cannot admit it again
+        intake.admit(ctx, sub_id, hotkey)
+    assert e.value.code == "bad_state"
     with tx(ctx.engine) as conn:
-        assert conn.execute(select(func.count()).select_from(receipts)).scalar() == 1
-        chain = ctx.chain(conn)
-        ext = [
-            e
-            for e in chain.extrinsics(conn.execute(select(payments_t.c.block_number)).scalar())
-            if e.index == 0
-        ][0]
-        # replay the same extrinsic several times, exactly as a restarted scanner would
-        for _ in range(3):
-            payments.process_extrinsic(conn, ctx, ext)
-    with tx(ctx.engine) as conn:
-        assert conn.execute(select(func.count()).select_from(receipts)).scalar() == 1
-        assert conn.execute(select(func.count()).select_from(payments_t)).scalar() == 1
-        fee_rows = conn.execute(
-            select(func.count()).select_from(ledger).where(ledger.c.kind == "fee_received")
+        n = conn.execute(
+            select(func.count()).select_from(jobs).where(jobs.c.submission_id == sub_id)
         ).scalar()
-        assert fee_rows == 1
-
-
-def test_second_payment_for_the_same_quote_is_refunded_not_admitted(ctx):
-    allow_untrusted(ctx)
-    sub_id, hotkey = unique_submission(ctx, 101)
-    q = intake.reserve(ctx, sub_id, hotkey, hotkey)
-    intake.demo_pay(ctx, q["quote"]["quote_id"], hotkey)
-    for _ in range(3):
-        control.tick(ctx)
-    with tx(ctx.engine) as conn:  # the miner pays a second time by mistake
-        chain = ctx.chain(conn)
-        from ramcove_chain.devchain import payment_call
-
-        chain.produce_block(
-            [(hotkey, payment_call(ctx.evaluation_wallet, q["quote"]["amount_rao"], q["quote"]["quote_id"]))]
-        )
-    for _ in range(3):
-        control.tick(ctx)
-    with tx(ctx.engine) as conn:
-        assert conn.execute(select(func.count()).select_from(receipts)).scalar() == 1
-        outcomes = [r.outcome for r in conn.execute(select(payments_t))]
-        assert sorted(outcomes) == ["rejected", "verified"]
-        from ramcove_api.store.schema import refunds
-
-        assert conn.execute(select(func.count()).select_from(refunds)).scalar() == 1
-
-
-def test_underpayment_is_rejected_and_opens_a_refund(ctx):
-    allow_untrusted(ctx)
-    sub_id, hotkey = unique_submission(ctx, 102)
-    q = intake.reserve(ctx, sub_id, hotkey, hotkey)
-    intake.demo_pay(ctx, q["quote"]["quote_id"], hotkey, amount_override=q["quote"]["amount_rao"] // 2)
-    for _ in range(3):
-        control.tick(ctx)
-    assert state(ctx, sub_id).state == S.QUOTED
-    with tx(ctx.engine) as conn:
-        from ramcove_api.store.schema import refunds
-
-        r = conn.execute(select(refunds)).first()
-        assert r is not None and "underpaid" in r.reason
-
-
-def test_a_stale_price_does_not_block_the_flat_fee(ctx):
-    allow_untrusted(ctx)
-    sub_id, hotkey = unique_submission(ctx, 103)
-    with tx(ctx.engine) as conn:
-        conn.execute(update(price_observations).values(observed_at=now() - timedelta(hours=2)))
-    q = intake.reserve(ctx, sub_id, hotkey, hotkey)
-    assert q["status"] == "quoted" and q["quote"]["amount_rao"] == 100_000_000
-    assert q["quote"]["price_usd_micros"] is None and q["display"]["fee_usd_cents_at_price"] is None
+    assert n == 1  # one screening job, one place in line
+    row = state(ctx, sub_id)
+    assert [row.admission_block, row.admission_index] == a["admission"]["admission_key"]
 
 
 def test_paused_intake_and_no_ready_worker_fail_closed(ctx):
@@ -225,14 +182,14 @@ def test_paused_intake_and_no_ready_worker_fail_closed(ctx):
         conn.execute(
             update(settings_t).where(settings_t.c.key == "intake_paused").values(value={"paused": True})
         )
-    assert intake.reserve(ctx, sub_id, hotkey, hotkey)["status"] == "waitlisted"
+    assert intake.admit(ctx, sub_id, hotkey)["status"] == "waitlisted"
     with tx(ctx.engine) as conn:
         conn.execute(
             update(settings_t).where(settings_t.c.key == "intake_paused").values(value={"paused": False})
         )
         conn.execute(update(workers).values(ready=False))
     sub2, hk2 = unique_submission(ctx, 105)
-    assert intake.reserve(ctx, sub2, hk2, hk2)["status"] == "waitlisted"
+    assert intake.admit(ctx, sub2, hk2)["status"] == "waitlisted"
 
 
 def test_untrusted_artifact_is_never_leased_to_a_fixtures_only_worker(ctx):
@@ -254,32 +211,32 @@ def test_untrusted_artifact_is_never_leased_to_a_fixtures_only_worker(ctx):
     sig = sign_artifact(kp, data, ctx.settings.network, profile.profile_id, profile.version)
     r = intake.preflight(ctx, kp.ss58_address, data, sig)
     assert r["ok"] and r["trusted_fixture"] is None
-    assert intake.reserve(ctx, r["submission_id"], kp.ss58_address, kp.ss58_address)["status"] == "waitlisted"
+    with tx(ctx.engine) as conn:
+        ctx.chain(conn).store.register(ctx.settings.netuid, kp.ss58_address)
+    assert intake.admit(ctx, r["submission_id"], kp.ss58_address)["status"] == "waitlisted"
 
 
 def test_worker_payload_carries_no_credentials(ctx):
     allow_untrusted(ctx)
     sub_id, hotkey = unique_submission(ctx, 106)
-    pay_and_admit_like(ctx, sub_id, hotkey)
+    admit_like(ctx, sub_id, hotkey)
     payload = queue.lease_next(ctx, "w-op-1")
     blob = json.dumps(payload).lower()
     for secret in ("password", "postgres", "ghp_", "database_url", "//ramcovedemo", "token", "private"):
         assert secret not in blob, (secret, blob[:200])
 
 
-def pay_and_admit_like(ctx, sub_id: str, hotkey: str) -> None:
-    q = intake.reserve(ctx, sub_id, hotkey, hotkey)
-    assert q["status"] == "quoted", q
-    intake.demo_pay(ctx, q["quote"]["quote_id"], hotkey)
-    for _ in range(3):
-        control.tick(ctx)
+def admit_like(ctx, sub_id: str, hotkey: str) -> None:
+    a = intake.admit(ctx, sub_id, hotkey)
+    assert a["status"] == "admitted", a
+    control.tick(ctx)
 
 
 def test_lease_expiry_keeps_priority_then_ends_as_operator_failure(ctx):
     allow_untrusted(ctx)
     pretend_calibrated(ctx)
     sub_id, hotkey = unique_submission(ctx, 107)
-    pay_and_admit_like(ctx, sub_id, hotkey)
+    admit_like(ctx, sub_id, hotkey)
     leased = queue.lease_next(ctx, "w-op-1")
     assert leased["stage"] == "screen"
     with tx(ctx.engine) as conn:
@@ -294,9 +251,7 @@ def test_lease_expiry_keeps_priority_then_ends_as_operator_failure(ctx):
         conn.execute(update(jobs).where(jobs.c.submission_id == sub_id).values(lease_expires_at=now()))
         queue.expire_leases(conn, ctx)
     row = state(ctx, sub_id)
-    assert row.state == S.OPERATOR_FAILED and row.fee_outcome == "refund_or_credit"
-    with tx(ctx.engine) as conn:
-        assert conn.execute(select(func.count()).select_from(credits)).scalar() == 1
+    assert row.state == S.OPERATOR_FAILED and row.outcome_code == "operator_failure"
 
 
 def test_modified_artifact_cannot_inherit_an_earlier_result(ctx):
@@ -304,7 +259,7 @@ def test_modified_artifact_cannot_inherit_an_earlier_result(ctx):
     allow_untrusted(ctx)
     pretend_calibrated(ctx)
     sub_id, hotkey = unique_submission(ctx, 108)
-    pay_and_admit_like(ctx, sub_id, hotkey)
+    admit_like(ctx, sub_id, hotkey)
     with tx(ctx.engine) as conn:
         conn.execute(
             update(submissions)
@@ -329,7 +284,7 @@ def test_two_promotions_cannot_both_win_with_the_same_compared_version(ctx):
     a, hk_a = unique_submission(ctx, 109)
     b, hk_b = unique_submission(ctx, 110, fixture="kv8-conversation-retention")
     for sub, hk in ((a, hk_a), (b, hk_b)):
-        pay_and_admit_like(ctx, sub, hk)
+        admit_like(ctx, sub, hk)
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
         for sub in (a, b):
@@ -359,8 +314,8 @@ def test_earlier_active_admission_blocks_a_later_promotion(ctx):
     allow_untrusted(ctx)
     early, hk_e = unique_submission(ctx, 111)
     later, hk_l = unique_submission(ctx, 112, fixture="kv8-conversation-retention")
-    pay_and_admit_like(ctx, early, hk_e)
-    pay_and_admit_like(ctx, later, hk_l)
+    admit_like(ctx, early, hk_e)
+    admit_like(ctx, later, hk_l)
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
         conn.execute(
@@ -394,7 +349,7 @@ def test_a_winner_measured_against_an_old_champion_is_re_compared_not_re_measure
 ):
     allow_untrusted(ctx)
     a, hk_a = unique_submission(ctx, 113)
-    pay_and_admit_like(ctx, a, hk_a)
+    admit_like(ctx, a, hk_a)
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
         # v1 is crowned while this submission, measured +30% over v0, waits its turn

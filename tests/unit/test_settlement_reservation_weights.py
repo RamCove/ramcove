@@ -1,11 +1,7 @@
-from datetime import UTC, datetime, timedelta
-
 import pytest
-from ramcove_protocol.fees import PriceObservation, compute_fee
-from ramcove_protocol.money import RAO_PER_TAO
-from ramcove_protocol.reservation import CapacityPlan, can_issue_quote, remaining_envelope
+from ramcove_protocol.reservation import CapacityPlan, can_admit, remaining_envelope
 from ramcove_protocol.settlement import AdmissionKey, QueueEntry, decide_promotion
-from ramcove_protocol.state import TERMINAL, S, TransitionError, fee_outcome, next_state
+from ramcove_protocol.state import TERMINAL, TRANSITIONS, S, TransitionError, next_state
 from ramcove_protocol.weights import (
     KING_SLOTS,
     U16_MAX,
@@ -23,7 +19,7 @@ def entry(sid, block, state, version=0, registered=True, idx=0):
 
 
 def test_earlier_job_still_in_full_evaluation_blocks_later_promotion():
-    """Review R2: A paid first and is still evaluating; B finished first. B must wait."""
+    """Review R2: A was admitted first and is still evaluating; B finished first. B must wait."""
     a = entry("A", 100, S.EVALUATING)
     b = entry("B", 101, S.READY_FOR_PROMOTION)
     d = decide_promotion(b, [a, b], 0, RH, registration_expired=False)
@@ -76,8 +72,13 @@ def test_terminal_states_cannot_move():
             next_state(t, "promote")
 
 
-def test_operator_failures_never_consume_fee():
-    assert fee_outcome(S.OPERATOR_FAILED) == "refund_or_credit"
+def test_admission_is_free_and_follows_the_free_checks_or_an_invitation():
+    assert next_state(S.PREFLIGHT_PASSED, "admit") == S.ADMITTED
+    assert next_state(S.INVITED, "admit") == S.ADMITTED
+    with pytest.raises(TransitionError):
+        next_state(S.WAITLISTED, "admit")  # the waiting list is left by invitation, in order
+    assert not {"quote", "payment_verified", "quote_expired"} & set(TRANSITIONS)
+    assert {s.value for s in S}.isdisjoint({"quoted", "expired_quote"})
 
 
 def test_booked_work_never_exceeds_the_two_week_queue(profile):
@@ -86,7 +87,7 @@ def test_booked_work_never_exceeds_the_two_week_queue(profile):
     committed = 0
     admitted = 0
     for _ in range(1000):  # a flood of submissions
-        check = can_issue_quote(committed, env, plan, intake_paused=False)
+        check = can_admit(committed, env, plan, intake_paused=False)
         if not check.allowed:
             break
         committed += remaining_envelope(S.ADMITTED, env)
@@ -104,28 +105,9 @@ def test_envelope_releases_as_outcomes_are_known(profile):
     assert values == [241, 224, 0, 0, 0]
 
 
-def test_no_quotes_when_paused_or_no_safe_workers(profile):
-    assert not can_issue_quote(0, profile.envelope, CapacityPlan(2, 336), intake_paused=True).allowed
-    assert not can_issue_quote(0, profile.envelope, CapacityPlan(0, 336), intake_paused=False).allowed
-
-
-def test_the_fee_is_a_flat_tenth_of_a_tao(profile):
-    now = datetime(2026, 9, 17, 15, 40, tzinfo=UTC)
-    price = PriceObservation("coingecko:bittensor:usd", 227_920_000, now - timedelta(minutes=4), False)
-    f = compute_fee(profile.fees, price, now)
-    assert f.fee_rao == RAO_PER_TAO // 10  # 0.1 TAO
-    assert f.fee_usd_cents_at_price == 2279  # $22.79 at $227.92, shown for information only
-    doubled = PriceObservation("coingecko:bittensor:usd", 455_840_000, now - timedelta(minutes=4), False)
-    assert compute_fee(profile.fees, doubled, now).fee_rao == f.fee_rao  # the price never moves the fee
-
-
-def test_a_stale_or_foreign_price_only_hides_the_dollar_value(profile):
-    now = datetime(2026, 9, 17, tzinfo=UTC)
-    stale = PriceObservation("coingecko:bittensor:usd", 227_920_000, now - timedelta(hours=1), False)
-    foreign = PriceObservation("somewhere-else", 227_920_000, now, False)
-    for price in (stale, foreign, None):
-        f = compute_fee(profile.fees, price, now)
-        assert f.fee_rao == RAO_PER_TAO // 10 and f.fee_usd_cents_at_price is None and f.price is None
+def test_no_admission_when_paused_or_no_safe_workers(profile):
+    assert not can_admit(0, profile.envelope, CapacityPlan(2, 336), intake_paused=True).allowed
+    assert not can_admit(0, profile.envelope, CapacityPlan(0, 336), intake_paused=False).allowed
 
 
 def king(slot, hotkey, version=None, eligible=True, profile="p1"):

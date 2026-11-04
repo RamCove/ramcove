@@ -1,6 +1,6 @@
 # ADR 0004 — Payment is `Utility.batch_all(transfer_keep_alive, remark_with_event)`
 
-**Status:** accepted, 2026-09-17. Runtime facts checked on 2026-09-17.
+**Status:** superseded by ADR 0015 (submitting is free; there is no payment). Accepted 2026-09-17.
 
 **Context.** A fee payment must bind to one quote and one artifact, must be atomic, and must be verifiable
 from chain data alone.

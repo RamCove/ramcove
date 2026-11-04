@@ -42,7 +42,6 @@ TERMINAL_STATES = (
     "rejected_preflight",
     "rejected_screen",
     "review_rejected",
-    "expired_quote",
     "expired_unregistered",
     "operator_failed",
     "withdrawn",
@@ -150,7 +149,6 @@ submissions = Table(
     Column("bound_gain_ppm", Integer),
     Column("reserved_centi", Integer, nullable=False, server_default=text("0")),
     Column("ready_since", DateTime(timezone=True)),
-    Column("fee_outcome", String(40)),
     Column("outcome_code", String(60)),
     Column("outcome_summary", Text),
     Column("support_ref", String(24), nullable=False),
@@ -184,77 +182,6 @@ Index(
 )
 Index("ix_submissions_updated", submissions.c.updated_at.desc(), submissions.c.id)
 
-quotes = Table(
-    "quotes",
-    metadata,
-    Column("id", String(40), primary_key=True),
-    Column("submission_id", String(40), ForeignKey("submissions.id"), nullable=False),
-    Column("network", String(40), nullable=False),
-    Column("hotkey", String(48), nullable=False),
-    Column("payer", String(48), nullable=False),
-    Column("recipient", String(48), nullable=False),
-    Column("artifact_sha256", String(64), nullable=False),
-    Column("rule_hash", String(64), nullable=False),
-    Column("amount_rao", BigInteger, nullable=False),
-    Column("issued_block", BigInteger, nullable=False),
-    Column("expires_block", BigInteger, nullable=False),
-    Column("price_usd_micros", BigInteger),
-    Column("price_observed_at", DateTime(timezone=True)),
-    Column("price_simulated", Boolean),
-    Column("fee_usd_cents", Integer),
-    Column("service_cost_usd_cents", Integer, nullable=False),
-    Column("reserved_centi", Integer, nullable=False),
-    Column("status", String(16), nullable=False, server_default=text("'open'")),
-    Column("body", JSONB, nullable=False),
-    Column("signature", Text, nullable=False),
-    ts("issued_at", False, True),
-    CheckConstraint("amount_rao > 0", name="amount_positive"),
-    CheckConstraint("status IN ('open','paid','expired','withdrawn')", name="status"),
-)
-Index(
-    "uq_quote_open_per_submission",
-    quotes.c.submission_id,
-    unique=True,
-    postgresql_where=text("status IN ('open','paid')"),
-)
-
-payments = Table(
-    "payments",
-    metadata,
-    Column("block_hash", String(66), nullable=False),
-    Column("extrinsic_index", Integer, nullable=False),
-    Column("block_number", BigInteger, nullable=False),
-    Column("network", String(40), nullable=False),
-    Column("quote_id", String(40), ForeignKey("quotes.id")),
-    Column("payer", String(48)),
-    Column("paid_rao", BigInteger, nullable=False, server_default=text("0")),
-    Column("excess_rao", BigInteger, nullable=False, server_default=text("0")),
-    Column("outcome", String(20), nullable=False),
-    Column("reason", Text, nullable=False),
-    ts("observed_at", False, True),
-    PrimaryKeyConstraint("block_hash", "extrinsic_index"),
-)
-Index(
-    "uq_payment_consumes_quote_once",
-    payments.c.quote_id,
-    unique=True,
-    postgresql_where=text("outcome = 'verified'"),
-)
-
-receipts = Table(
-    "receipts",
-    metadata,
-    Column("id", String(40), primary_key=True),
-    Column("submission_id", String(40), ForeignKey("submissions.id"), nullable=False, unique=True),
-    Column("quote_id", String(40), ForeignKey("quotes.id"), nullable=False, unique=True),
-    Column("payment_block_hash", String(66), nullable=False),
-    Column("payment_extrinsic_index", Integer, nullable=False),
-    Column("body", JSONB, nullable=False),
-    Column("signature", Text, nullable=False),
-    Column("signer", String(48), nullable=False),
-    ts("issued_at", False, True),
-    UniqueConstraint("payment_block_hash", "payment_extrinsic_index", name="payment_ref"),
-)
 
 jobs = Table(
     "jobs",
@@ -434,60 +361,6 @@ weight_plans = Table(
     ts("created_at", False, True),
 )
 
-ledger = Table(
-    "ledger",
-    metadata,
-    Column("id", BigInteger, primary_key=True, autoincrement=True),
-    Column("kind", String(30), nullable=False),
-    Column("hotkey", String(48)),
-    Column("submission_id", String(40)),
-    Column("amount_rao", BigInteger, nullable=False),
-    Column("reference", String(120), nullable=False),
-    Column("idempotency_key", String(120), nullable=False, unique=True),
-    Column("simulated", Boolean, nullable=False),
-    Column("memo", Text),
-    ts("created_at", False, True),
-    CheckConstraint(
-        "kind IN ('fee_received','fee_consumed','fee_excess_credit','credit_issued','credit_used',"
-        "'credit_expired','refund_liability','refund_sent','refund_confirmed')",
-        name="kind",
-    ),
-)
-
-credits = Table(
-    "credits",
-    metadata,
-    Column("id", String(40), primary_key=True),
-    Column("hotkey", String(48), nullable=False),
-    Column("amount_rao", BigInteger, nullable=False),
-    Column("reason", Text, nullable=False),
-    Column("source_submission", String(40)),
-    Column("idempotency_key", String(120), nullable=False, unique=True),
-    Column("consumed_by", String(40)),
-    ts("created_at", False, True),
-    ts("expires_at", False),
-    CheckConstraint("amount_rao > 0", name="positive"),
-)
-
-refunds = Table(
-    "refunds",
-    metadata,
-    Column("id", String(40), primary_key=True),
-    Column("hotkey", String(48), nullable=False),
-    Column("payer", String(48), nullable=False),
-    Column("amount_rao", BigInteger, nullable=False),
-    Column("reason", Text, nullable=False),
-    Column("submission_id", String(40)),
-    Column("status", String(12), nullable=False, server_default=text("'requested'")),
-    Column("approved_by", String(48)),
-    Column("idempotency_key", String(120), nullable=False, unique=True),
-    Column("tx_reference", String(120)),
-    Column("simulated", Boolean, nullable=False),
-    ts("created_at", False, True),
-    ts("updated_at", False, True),
-    CheckConstraint("amount_rao > 0", name="positive"),
-    CheckConstraint("status IN ('requested','approved','sent','confirmed','cancelled')", name="status"),
-)
 
 incidents = Table(
     "incidents",
@@ -552,15 +425,6 @@ chain_observations = Table(
     ts("observed_at", False, True),
 )
 
-price_observations = Table(
-    "price_observations",
-    metadata,
-    Column("id", BigInteger, primary_key=True, autoincrement=True),
-    Column("source", String(60), nullable=False),
-    Column("usd_micros", BigInteger, nullable=False),
-    Column("simulated", Boolean, nullable=False),
-    ts("observed_at", False),
-)
 
 devchain_blocks = Table(
     "devchain_blocks",

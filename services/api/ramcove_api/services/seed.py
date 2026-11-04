@@ -18,13 +18,12 @@ from substrateinterface import Keypair
 
 from ..config import ROOT
 from ..store import audit
-from ..store.db import now, tx
+from ..store.db import tx
 from ..store.devchain_sql import SqlDevChainStore
 from ..store.schema import (
     champion_pointer,
     champions,
     identities,
-    price_observations,
     profile_versions,
     role_grants,
     validators,
@@ -198,11 +197,6 @@ def seed_base(ctx: AppContext) -> dict:
         conn.execute(
             settings_t.insert().values(
                 key="intake_paused", value={"paused": False}, updated_by="demo-seed", reason="demo start"
-            )
-        )
-        conn.execute(
-            price_observations.insert().values(
-                source="simulated:demo-price", usd_micros=227_920_000, simulated=True, observed_at=now()
             )
         )
         chain = DevChain(SqlDevChainStore(conn))

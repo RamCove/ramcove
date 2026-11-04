@@ -1,6 +1,6 @@
-"""Compute booked for paid admissions.
+"""Compute booked for admissions. Submitting is free; evaluation capacity is what limits the queue.
 
-A paid admission books its screening and one evaluation (quality, up to two capacity readings and the GPU
+An admission books its screening and one evaluation (quality, up to two capacity readings and the GPU
 check); each part is released as soon as it finishes. Queue capacity counts these bookings against what the
 ready workers can deliver over the published horizon. A winner's extra checks and the new champion's
 calibration come out of the published reserve. All quantities are centi-GPU-hours (integers).
@@ -16,7 +16,6 @@ from .state import S
 
 def remaining_envelope(state: S, env: StageEnvelope) -> int:
     table = {
-        S.QUOTED: env.total(),
         S.ADMITTED: env.total(),
         S.SCREENING: env.total(),
         S.EVAL_QUEUED: env.evaluation,
@@ -36,7 +35,7 @@ class CapacityPlan:
 
 
 @dataclass(frozen=True)
-class QuoteCapacityCheck:
+class CapacityCheck:
     allowed: bool
     committed_centi: int
     capacity_centi: int
@@ -44,21 +43,21 @@ class QuoteCapacityCheck:
     reason: str
 
 
-def can_issue_quote(
+def can_admit(
     committed_centi: int, env: StageEnvelope, plan: CapacityPlan, intake_paused: bool
-) -> QuoteCapacityCheck:
+) -> CapacityCheck:
     cap = plan.capacity_centi()
     req = env.total()
     if intake_paused:
-        return QuoteCapacityCheck(False, committed_centi, cap, req, "intake is paused by the operator")
+        return CapacityCheck(False, committed_centi, cap, req, "intake is paused by the operator")
     if plan.workers_ready <= 0:
-        return QuoteCapacityCheck(False, committed_centi, cap, req, "no evaluation worker is safe and ready")
+        return CapacityCheck(False, committed_centi, cap, req, "no evaluation worker is safe and ready")
     if committed_centi + req > cap:
-        return QuoteCapacityCheck(
+        return CapacityCheck(
             False,
             committed_centi,
             cap,
             req,
             "published evaluation capacity is fully reserved; join the free waiting list",
         )
-    return QuoteCapacityCheck(True, committed_centi, cap, req, "capacity reserved")
+    return CapacityCheck(True, committed_centi, cap, req, "capacity reserved")

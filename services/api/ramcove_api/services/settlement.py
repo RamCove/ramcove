@@ -26,7 +26,6 @@ from ..store.schema import (
 )
 from .context import AppContext
 from .queue import (
-    _consume_fee,
     _lose,
     current_champion,
     king_queue,
@@ -87,12 +86,10 @@ def settle(conn: Connection, ctx: AppContext, profile_id: str) -> list[dict]:
                 ctx,
                 sub.id,
                 "registration_expired",
-                fee_outcome="consumed",
                 outcome_code="registration_expired",
                 outcome_summary="Technically approved, but the hotkey was not registered within the grace "
                 "period. The incumbent champion kept its allocation.",
             )
-            _consume_fee(conn, ctx, sub.id)
             audit.append(conn, "controller", "registration_expired", "submission", sub.id, {}, public=True)
             actions.append({"submission": sub.id, "action": "registration_expired"})
         elif d.action == "wait":
@@ -158,11 +155,9 @@ def promote(conn: Connection, ctx: AppContext, profile, sub, compared_version: i
         ctx,
         sub.id,
         "promote",
-        fee_outcome="consumed",
         outcome_code="promoted",
         outcome_summary=f"Promoted to champion version {new_version}.",
     )
-    _consume_fee(conn, ctx, sub.id)
     conn.execute(
         update(workers).where(workers.c.profile_id == sub.profile_id).values(calibrated_champion_version=None)
     )

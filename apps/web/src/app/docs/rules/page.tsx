@@ -74,11 +74,6 @@ type ProfileDetail = {
       champion_answers_per_bank: number;
     };
     deadlines: Record<string, number>;
-    fees: {
-      flat_fee_rao: number;
-      service_cost_usd_cents_per_admission: number;
-      price_source: string;
-    };
     // older snapshots name this "bootstrap"
     deployment?: { mode: string; reproduce_winners: boolean };
     bootstrap?: { mode: string };
@@ -167,7 +162,7 @@ export default async function CompetitionPage() {
         <Notice tone="warn" title="Provisional values, set before launch">
           The thresholds, runtimes and costs come from the v0.2 whitepaper. The
           Stage 1 calibration on H100 workers replaces them with measured values
-          before paid submissions open on the network.
+          before submissions open on the network.
         </Notice>
       )}
 
@@ -273,8 +268,7 @@ export default async function CompetitionPage() {
             per worker, when it is crowned, and never again. If another
             submission is crowned while a measured winner waits, the winner is
             set against the new champion by arithmetic, (1 + G) / (1 + G
-            <sub>new</sub>) − 1: nothing is measured again and no new fee is
-            charged. A person reviews a winner only when an automatic check
+            <sub>new</sub>) − 1: nothing is measured again. A person reviews a winner only when an automatic check
             flags it.{" "}
             {r.calibrated
               ? ""
@@ -518,7 +512,7 @@ export default async function CompetitionPage() {
         </Card>
 
         <Card
-          title="GPU time per paid submission"
+          title="GPU time per submission"
           subtitle="Booked: screening and one evaluation, released as results come in. Winners' extra checks and a new champion's score come from the reserve."
         >
           <Table head={["Work", "GPU time", "Who uses it"]}>
@@ -527,14 +521,14 @@ export default async function CompetitionPage() {
               <Td className="num whitespace-nowrap">
                 {centiHours(p.envelope.screen)}
               </Td>
-              <Td>booked for every paid submission</Td>
+              <Td>booked for every admission</Td>
             </tr>
             <tr>
               <Td>evaluation</Td>
               <Td className="num whitespace-nowrap">
                 {centiHours(p.envelope.evaluation)}
               </Td>
-              <Td>booked for every paid submission</Td>
+              <Td>booked for every admission</Td>
             </tr>
             <tr>
               <Td className="font-semibold">booked per submission</Td>
@@ -566,12 +560,10 @@ export default async function CompetitionPage() {
             </tr>
           </Table>
           <p className="mt-3 text-[12px] leading-relaxed text-muted">
-            Fee: a flat {Number((p.fees.flat_fee_rao / 1e9).toFixed(4))} TAO per
-            paid submission; the TAO price does not change it. The planning cost
-            of one submission is about{" "}
-            {usd(p.fees.service_cost_usd_cents_per_admission)}. Dollar values
-            use <Mono>{p.fees.price_source}</Mono> in network mode; in
-            simulation mode the TAO price is a fixed simulated value.
+            Submitting is free: the owner runs the evaluation workers and bears
+            the GPU time. Joining the queue needs a hotkey registered on the
+            subnet, and each hotkey and lineage has one active submission at a
+            time.
           </p>
         </Card>
 

@@ -1,10 +1,10 @@
-"""Controller tick: chain progress (dev), payments, expiries, invitations, settlement, refunds, observations."""
+"""Controller tick: chain progress (dev), lease expiries, invitations, settlement, weight results, observations."""
 
 from __future__ import annotations
 
 from datetime import timedelta
 
-from ramcove_protocol.reservation import can_issue_quote
+from ramcove_protocol.reservation import can_admit
 from ramcove_protocol.state import S
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -13,16 +13,13 @@ from ..store import audit
 from ..store.db import advisory_lock, now, tx
 from ..store.schema import (
     chain_observations,
-    price_observations,
     profile_versions,
     reviews,
     submissions,
     workers,
 )
 from . import banks
-from .accounting import confirm_sent_refunds
 from .context import WORKER_HEARTBEAT_FRESH_S, AppContext
-from .payments import expire_quotes, scan_finalized
 from .queue import expire_leases
 from .settlement import settle
 from .weight_documents import ensure_weight_document
@@ -58,7 +55,7 @@ def invite_waitlist(conn, ctx: AppContext, profile_id: str) -> int:
     ).all():
         plan = ctx.capacity_plan(conn, profile, trusted_fixture=True)
         committed = ctx.committed_centi(conn, profile_id) + len(invited) * profile.envelope.total()
-        if not can_issue_quote(committed, profile.envelope, plan, paused).allowed:
+        if not can_admit(committed, profile.envelope, plan, paused).allowed:
             break
         conn.execute(
             update(submissions)
@@ -81,17 +78,6 @@ def tick(ctx: AppContext, produce_block: bool = True) -> dict:
         chain = ctx.chain(conn)
         if produce_block and ctx.settings.simulated_chain:
             chain.produce_block()
-        if ctx.settings.demo_features:
-            latest = ctx.latest_price(conn)
-            if latest is None or (latest.simulated and now() - latest.observed_at > timedelta(minutes=5)):
-                conn.execute(
-                    price_observations.insert().values(
-                        source="simulated:demo-price",
-                        usd_micros=227_920_000,
-                        simulated=True,
-                        observed_at=now(),
-                    )
-                )
         head = chain.finalized_head()
         conn.execute(
             insert(chain_observations)
@@ -108,8 +94,6 @@ def tick(ctx: AppContext, produce_block: bool = True) -> dict:
                 set_={"finalized_number": head.number, "finalized_hash": head.hash, "observed_at": now()},
             )
         )
-        out["payments"] = scan_finalized(conn, ctx)
-        out["quotes_expired"] = expire_quotes(conn, ctx)
     with tx(ctx.engine) as conn:
         out["leases_expired"] = expire_leases(conn, ctx)
         stale = now() - timedelta(seconds=WORKER_HEARTBEAT_FRESH_S)
@@ -129,8 +113,6 @@ def tick(ctx: AppContext, produce_block: bool = True) -> dict:
             # sign a fresh weight result for validators when the plan changed or the last one nears expiry
             if ensure_weight_document(conn, ctx, pid) is not None:
                 out["weight_documents"] = out.get("weight_documents", 0) + 1
-    with tx(ctx.engine) as conn:
-        out["refunds_confirmed"] = confirm_sent_refunds(conn, ctx)
     out["auto_reviewed"] = auto_review(ctx)
     return out
 

@@ -21,13 +21,13 @@ const WORKFLOW: { name: string; cost: string; what: string; why: string }[] = [
     name: "Free checks",
     cost: "no GPU",
     what: "Signature, manifest, declared paths, licences, size and duplicates.",
-    why: "Nothing is charged and no code runs, so a formatting mistake never costs a fee.",
+    why: "No code runs and no GPU time is used, so a formatting mistake costs nothing.",
   },
   {
-    name: "Quote, payment, queue place",
+    name: "Queue place",
     cost: "books 2.41 GPU-h",
-    what: "A flat 0.1 TAO. The finalized block and index of the payment fix the order.",
-    why: "Paying fixes a place in line, so finishing early never overtakes an earlier payment.",
+    what: "Free. A registered hotkey joins the queue when capacity is free; the admission block and index fix the order.",
+    why: "The admission fixes a place in line, so finishing early never overtakes an earlier admission.",
   },
   {
     name: "Screening",
@@ -62,7 +62,7 @@ const WORKFLOW: { name: string; cost: string; what: string; why: string }[] = [
   {
     name: "Promotion",
     cost: "6.51 GPU-h, reserve",
-    what: "Automatic unless a check flagged it, in payment order. The champion's code is published and its score measured again on every worker.",
+    what: "Automatic unless a check flagged it, in admission order. The champion's code is published and its score measured again on every worker.",
     why: "The next challenger is judged against a fresh number measured on the worker that will judge it.",
   },
 ];
@@ -72,17 +72,17 @@ const FAILURES: [string, string, string][] = [
   [
     "rejected_preflight",
     "A free check failed: format, signature, path, licence or a duplicate patch.",
-    "Fix the reported item and run the checks again. No fee was taken.",
+    "Fix the reported item and run the checks again.",
   ],
   [
     "screen_build_failure",
     "The patch did not build on two clean isolated builds.",
-    "Build against the pinned engine commit locally first. The fee is consumed.",
+    "Build against the pinned engine commit locally first.",
   ],
   [
     "screen_no_start",
     "The engine did not start within five minutes.",
-    "Check your change against the pinned engine arguments. The fee is consumed.",
+    "Check your change against the pinned engine arguments.",
   ],
   [
     "screen_memory_ceiling",
@@ -132,17 +132,12 @@ const FAILURES: [string, string, string][] = [
   [
     "operator_failure",
     "Infrastructure, quorum or deadline failure on our side.",
-    "Your fee returns as a refund or credit. Nothing is charged twice.",
+    "Submit the same artifact again: submitting is free.",
   ],
   [
-    "quote_expired",
-    "The quote was not paid before it expired.",
-    "Ask for a new quote. Nothing was charged.",
-  ],
-  [
-    "late_payment",
-    "The payment was finalized after the quote had expired.",
-    "The payment returns as a refund or credit.",
+    "not_registered",
+    "The hotkey is not registered on the subnet, so the submission could not join the queue.",
+    "Register the hotkey on the subnet, then run submit again. The free checks need no registration.",
   ],
 ];
 
@@ -157,8 +152,8 @@ export default function DocsPage() {
       />
 
       <Notice tone="sim" title="Running in simulation mode">
-        The chain, the randomness beacon, the GPU workers and the payments run
-        in simulation mode, and every number they produce is labelled. Network
+        The chain, the randomness beacon and the GPU workers run in simulation
+        mode, and every number they produce is labelled. Network
         mode puts the same services on the chain and on H100 workers at launch.
       </Notice>
 
@@ -191,17 +186,17 @@ export default function DocsPage() {
           ))}
         </ol>
         <p className="mt-4 text-[13px] leading-relaxed text-muted">
-          A miner&apos;s fee books screening plus one evaluation: 2.41
-          GPU-hours. A winner&apos;s extra checks (3.57) and the new
-          champion&apos;s fixed score (6.51 per worker) are paid from the
-          published reserve, not from the fee. The{" "}
+          Submitting is free. Each admission books screening plus one
+          evaluation: 2.41 GPU-hours. A winner&apos;s extra checks (3.57) and
+          the new champion&apos;s fixed score (6.51 per worker) come from the
+          published reserve, not from the booking. The{" "}
           <Link
             href="/dashboard#workflow"
             className="text-accent hover:underline"
           >
             dashboard
           </Link>{" "}
-          shows where each paid submission is in this path right now; Section 5
+          shows where each submission is in this path right now; Section 5
           of the{" "}
           <a
             href={WHITEPAPER_PDF}
@@ -248,15 +243,15 @@ export default function DocsPage() {
                 anything and never execute your code.
               </li>
               <li>
-                <Mono>submit</Mono> reserves capacity and shows the quote: a
-                flat 0.1 TAO, the recipient, the expiry and the refund rules.
-                Nothing is paid until you confirm. If the queue is full you join
-                the free waiting list. There is no daily limit; you may have one
+                <Mono>submit</Mono> runs the free checks and joins the queue, free
+                of charge. Joining needs a hotkey registered on the subnet. If
+                the queue is full you join the free waiting list and are invited
+                when capacity frees. There is no daily limit; you may have one
                 active submission per hotkey, and one per lineage name.
               </li>
               <li>
-                Your place in line is the finalized block and index of your
-                payment.
+                Your place in line is the finalized block at admission and your
+                index within it.
               </li>
               <li>
                 Screening (10 minutes), then one evaluation against the
@@ -278,17 +273,14 @@ uv run ramcove-miner champion-code --out champion/
 # build a reproducible artifact from your patch
 uv run ramcove-miner pack --patch patch.diff --manifest manifest.json
 
-# the free checks: no fee, your code is not run
+# the free checks: your code is not run
 uv run ramcove-miner preflight --artifact artifact.tar.gz --key-uri //Dev
 
-# checks, reserve, quote; pays only after you confirm
+# free checks, then join the queue (free; needs a registered hotkey)
 uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri //Dev
 
 # follow a submission
-uv run ramcove-miner status --submission sub_...
-
-# lost track of a payment? recover it, never charged twice
-uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
+uv run ramcove-miner status --submission sub_...`}
             </pre>
           </div>
           <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
@@ -439,14 +431,14 @@ curl https://<owner host>:8788/v1/weights/signer`}
               <Td>
                 If another submission is crowned while yours waits, your
                 measured gain is set against the new champion by arithmetic.
-                Your place and fee are kept.
+                Your place is kept.
               </Td>
             </tr>
             <tr>
               <Td>Admission key</Td>
               <Td>
-                The finalized block and index of your payment. It fixes
-                promotion order.
+                The finalized block at admission and your index within it. It
+                fixes promotion order.
               </Td>
             </tr>
           </Table>
@@ -486,7 +478,7 @@ make reset      # wipe and reseed the demo data`}
           <p className="mt-3 text-[13px] leading-relaxed text-muted">
             The repository holds the corrected protocol specification,
             architecture decisions and the runbooks for deployment, backup,
-            recovery, refunds, rollback and incidents.
+            recovery, rollback and incidents.
           </p>
         </Card>
 

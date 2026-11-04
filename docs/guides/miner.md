@@ -40,40 +40,34 @@ uv run ramcove-miner pack   --patch patch.diff --manifest manifest.json --out ar
 uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri "//YourDevKey"
 ```
 
-The command runs the free checks, reserves capacity if any exists, shows the quote, and pays only after you
-agree. The website has no sign-in and takes no submissions: everything a miner does happens here, and the
+The command runs the free checks and then joins the queue, free of charge; if evaluation capacity is fully
+booked you join the free waiting list and are invited when it frees. The website has no sign-in and takes no submissions: everything a miner does happens here, and the
 dashboard shows where each submission stands.
 
-You sign two different things, and RamCove never asks for a seed phrase or a key file:
+You sign your sign-in and your artifact hash: that proves who you are and what you submitted, and
+authorizes nothing on chain. RamCove never asks for a seed phrase or a key file.
 
-1. **Sign-in and your artifact hash** — proves who you are and what you submitted. Authorizes no payment.
-2. **The fee payment** — one atomic transaction: a transfer to the published evaluation wallet plus a note
-   carrying the quote identifier, so the payment can only admit that artifact.
+## Submitting is free
 
-## What is free and what costs
+There is no submission fee. The owner runs the evaluation workers and bears their GPU time. What limits the
+queue is evaluation capacity (two weeks of booked work) and three rules:
 
-Free: format, size, signature, path, licence and duplicate checks, and the waiting list. If the evaluation
-queue is full (two weeks of booked work) you are not asked to pay. There are no rounds: submit any time, as
-often as you like, with one active submission per hotkey.
+- **The free checks** — format, size, signature, path, licence and duplicate checks — need no registration.
+- **Joining the queue needs a hotkey registered on the subnet.** Registration is the cost of entry, the
+  same hotkey that would receive weight if you win.
+- **One active submission per hotkey, and one per lineage name.** There are no rounds and no daily limit:
+  submit again as soon as your last submission has finished.
 
-Paid: everything after your payment is finalized. The fee is a flat 0.1 TAO. The fee is consumed once screening or evaluation has run,
-whatever the result — including a rejection caused by your code.
-
-Never charged: operator or validator failures, an expired quote, or withdrawal before any GPU work starts
-(that returns a credit). A paid submission in the queue is always evaluated, however long it waits.
-
-If your payment went through but the tool lost track of it, recover it by reference:
-
-```bash
-uv run ramcove-miner recover --block <N> --index <I> --key-uri "//YourDevKey"
-```
-
-This never charges a second fee.
+While the queue is full you wait on the free waiting list and are invited in order when capacity frees. A
+submission in the queue is always evaluated, however long it waits, and you may withdraw it at any time
+before promotion. An infrastructure failure on the owner's side ends it as an operator failure; submit it
+again.
 
 ## How your place in line works
 
-Your position is the block and index of your finalized payment. Workers may evaluate several submissions at
-once, so results finish out of order, but promotion still follows admission order: an earlier paid
+Your position is the finalized block at which your submission joined the queue and its order within that
+block. The submit command prints it, signed by the owner's service. Workers may evaluate several submissions
+at once, so results finish out of order, but promotion still follows admission order: an earlier
 submission that is still active holds its place until it finishes or its lease runs out twice.
 
 ## What happens to your code
@@ -93,19 +87,19 @@ submission that is still active holds its place until it finishes or its lease r
 
 Your gain over the champion's fixed score must exceed the published margin (initially 5%), with every
 gate passed. A first reading at 9% or more wins at once; one between 5% and 9% gets one more reading, and
-the average of the two must exceed 5%. A near-tie keeps the incumbent. Resubmitting identical code cannot
-win; each attempt needs fresh tests and a fresh fee.
+the average of the two must exceed 5%. A near-tie keeps the incumbent. Resubmitting identical code is
+refused as a duplicate; each attempt needs a changed artifact.
 
 If another submission is crowned while you wait in the queue, you are simply evaluated against the new
 champion when your turn comes. If you already won and another winner ahead of you is crowned first, your
 gain is set against the new champion by arithmetic, (1 + your gain) / (1 + its gain) − 1: nothing is
-measured again, you keep your place and you pay no new fee.
+measured again and you keep your place.
 
 ## Getting paid
 
-Registration is not needed to submit or queue. It is needed to receive weight: once your submission is
-approved you have a published grace period to register the **same** hotkey. The incumbent keeps earning
-until you do. Rewards follow your hotkey, never a UID number.
+Weight follows the hotkey that submitted. If it is no longer registered when your submission is approved,
+you have a published grace period to register the **same** hotkey again; the incumbent keeps earning until
+you do. Rewards follow your hotkey, never a UID number.
 
 ## Why submissions fail
 

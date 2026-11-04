@@ -6,10 +6,10 @@
 
 | Data | Where | Loss means |
 |---|---|---|
-| Admissions, payments, receipts, champions, ledger, audit | PostgreSQL | you cannot say who paid or who won |
+| Admissions, champions, comparisons, audit | PostgreSQL | you cannot say who was admitted or who won |
 | Artifacts and reports | object store (local directory in this build) | you cannot replay or review |
 | Profile versions | database plus `config/profiles/` in git | rules become unverifiable |
-| Signing keys | external signer | you cannot issue receipts or weights |
+| Signing keys | external signer | you cannot sign admissions or weight results |
 
 ## Backups
 
@@ -25,14 +25,11 @@
 3. Restore the artifact store to the same point or later; artifacts are immutable, so extra objects are
    harmless.
 4. Verify the audit chain: `GET /v1/operator/audit/verify` must report `ok` and a plausible count.
-5. Reconcile the chain cursor: the payment scanner resumes from `payment_scan_cursor`. Re-scanning is safe
-   because payment references and receipts are unique.
-6. Reconcile money: for every `fee_received` there must be a receipt; for every `refund_sent` a finalized
-   transfer. Investigate any mismatch before opening intake.
-7. Start the API, then the controller, then workers. Leave intake paused until the checks above pass.
+5. Reconcile the queue: every admitted submission has one admission key and one screening job or later
+   stage; admission keys are unique, so a duplicate means the restore is inconsistent.
+6. Start the API, then the controller, then workers. Leave intake paused until the checks above pass.
 
 ## Data loss window
 
-Anything after the restore point is gone. Payments that were finalized on chain are recoverable: the
-scanner re-observes them and issues the receipt exactly once. Work already done by workers is not
-recoverable and will be repeated at operator cost, not the miner's.
+Anything after the restore point is gone. A miner whose admission was lost submits again; submitting is
+free. Work already done by workers is not recoverable and is repeated at the owner's cost.

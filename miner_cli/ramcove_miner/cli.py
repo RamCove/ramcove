@@ -2,9 +2,8 @@
 
     ramcove-miner pack     --patch patch.diff --manifest manifest.json --out artifact.tar.gz
     ramcove-miner preflight --artifact artifact.tar.gz --key-uri //Dev
-    ramcove-miner submit   --artifact artifact.tar.gz --key-uri //Dev      # preflight, reserve, quote, pay
+    ramcove-miner submit   --artifact artifact.tar.gz --key-uri //Dev      # free checks, then join the queue
     ramcove-miner status   --submission sub_...
-    ramcove-miner recover  --block N --index I
     ramcove-miner champion-code --out champion/             # the champion's patches, to build on
 
 The key URI form is for local development keys. A production signer is not included in this build, so
@@ -57,7 +56,7 @@ def cmd_pack(args: argparse.Namespace) -> int:
 
 
 def _session(client: httpx.Client, keypair: Keypair, network: str) -> None:
-    """Sign in with the hotkey: a message that authorizes no payment."""
+    """Sign in with the hotkey: a message that authorizes nothing on chain."""
     ch = _check(client.post("/v1/auth/challenge", json={"hotkey": keypair.ss58_address}))
     sig = "0x" + keypair.sign(ch["message"].encode()).hex()
     _check(client.post("/v1/auth/verify", json={"nonce": ch["nonce"], "signature": sig}))
@@ -106,34 +105,18 @@ def cmd_submit(args: argparse.Namespace) -> int:
             return 2
         sub = pre["submission_id"]
         print(f"submission {sub}")
-        res = _check(client.post(f"/v1/miner/submissions/{sub}/reserve", json={}))
+        # submitting is free: join the queue now, or the free waiting list while capacity is fully booked
+        res = _check(client.post(f"/v1/miner/submissions/{sub}/admit", headers={"idempotency-key": sub}))
         if res["status"] == "waitlisted":
-            print(f"waiting list: {res.get('message')}\nNo fee was requested.")
+            print(f"waiting list: {res.get('message')}")
             return 0
-        q, d = res["quote"], res["display"]
-        print(f"\nQuote {q['quote_id']}")
-        print(f"  network   {q['network']}{' (simulated)' if meta['simulated_chain'] else ''}")
-        usd = d.get("fee_usd_cents_at_price")
-        worth = f"  (about {usd / 100:.2f} USD at the latest price)" if usd is not None else ""
-        print(f"  amount    {d['amount_tao']} TAO, a flat fee{worth}")
-        print(f"  recipient {q['recipient']}")
-        print(f"  expires   block {q['expires_block']}")
-        print(f"  note      {q['remark']}")
-        print("  the fee is consumed once screening or evaluation runs; operator failures are refunded")
-        if args.yes or input("\nPay now? [y/N] ").strip().lower() == "y":
-            pay = _check(
-                client.post(
-                    f"/v1/miner/quotes/{q['quote_id']}/pay-simulated",
-                    headers={"idempotency-key": q["quote_id"]},
-                )
-            )
-            print(
-                f"payment submitted: block {pay['block_number']} index {pay['extrinsic_index']}"
-                f"{' (simulated)' if pay.get('simulated') else ''}"
-            )
-            print("keep this reference; recovery never charges a second fee")
-        else:
-            print("not paid. Recover later with: ramcove-miner recover --block N --index I")
+        a = res["admission"]
+        block, index = a["admission_key"]
+        print(
+            f"in the queue: admission block {block}, index {index}"
+            f"{' (simulated chain)' if meta['simulated_chain'] else ''}"
+        )
+        print("follow it with: ramcove-miner status --submission " + sub)
     return 0
 
 
@@ -146,22 +129,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f"{r['submission_id']}  {r['state_label']}")
     if r.get("outcome", {}).get("summary"):
         print(f"  outcome: {r['outcome']['summary']}")
-        print(f"  fee: {r['outcome'].get('fee')}")
     for t in r.get("timeline", []):
         print(f"  {t['stage']:<14} {t['status']:<10} {t.get('worker') or ''}")
-    return 0
-
-
-def cmd_recover(args: argparse.Namespace) -> int:
-    with _api(args.api) as client:
-        meta = _check(client.get("/v1/meta"))
-        _session(client, _keypair(args.key_uri, meta), meta["network"])
-        r = _check(
-            client.post(
-                "/v1/miner/payments/recover", json={"block_number": args.block, "extrinsic_index": args.index}
-            )
-        )
-    print(json.dumps(r, indent=2))
     return 0
 
 
@@ -231,22 +200,15 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--key-uri", required=True)
     sp.set_defaults(fn=cmd_preflight)
 
-    sp = sub.add_parser("submit", help="free checks, reserve capacity, quote and pay")
+    sp = sub.add_parser("submit", help="free checks, then join the queue (free)")
     sp.add_argument("--artifact", required=True)
     sp.add_argument("--key-uri", required=True)
-    sp.add_argument("--yes", action="store_true", help="do not ask before paying")
     sp.set_defaults(fn=cmd_submit)
 
     sp = sub.add_parser("status", help="show a submission")
     sp.add_argument("--submission", required=True)
     sp.add_argument("--key-uri")
     sp.set_defaults(fn=cmd_status)
-
-    sp = sub.add_parser("recover", help="recover an existing payment by reference")
-    sp.add_argument("--block", type=int, required=True)
-    sp.add_argument("--index", type=int, required=True)
-    sp.add_argument("--key-uri", required=True)
-    sp.set_defaults(fn=cmd_recover)
 
     sp = sub.add_parser("champion-code", help="download the champion's patches to build on")
     sp.add_argument("--out", default="champion")

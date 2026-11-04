@@ -15,7 +15,7 @@ from typing import Any
 from ramcove_chain.beacon import QUICKNET_PERIOD_S, DevBeacon, resolve_round, schedule_round
 from ramcove_protocol.reservation import remaining_envelope
 from ramcove_protocol.scoring import Reading, gain_against_later_champion
-from ramcove_protocol.state import PAID_ACTIVE, S
+from ramcove_protocol.state import ACTIVE, S
 from ramcove_protocol.weights import select_kings
 from sqlalchemy import Connection, select, update
 
@@ -34,7 +34,6 @@ from ..store.schema import (
     workers,
 )
 from . import banks
-from .accounting import issue_credit, ledger_entry
 from .context import AppContext, ServiceError
 from .intake import _set_state, lock_submission
 
@@ -218,7 +217,7 @@ def _lease(conn: Connection, ctx: AppContext, job, worker_id: str, profile, cham
         anchor = chain.finalized_head()
         beacon = DevBeacon()
         # Section 8.9: a round far enough after the anchor that nobody can know it when the artifact and
-        # the payment are frozen. The dev beacon computes any round on demand; a real relay only serves a
+        # its admission are frozen. The dev beacon computes any round on demand; a real relay only serves a
         # round once it exists, so a real deployment waits for it and resolve_round's fallback applies.
         scheduled = schedule_round(beacon, now(), timedelta(seconds=profile.deadlines.beacon_min_delay_s))
         cid = new_id("cmp")
@@ -286,14 +285,13 @@ def _store_report(
 
 def _operator_failure(conn: Connection, ctx: AppContext, sub_id: str, reason: str) -> None:
     sub = lock_submission(conn, sub_id)
-    if sub.state not in {s.value for s in PAID_ACTIVE}:
+    if sub.state not in {s.value for s in ACTIVE}:
         return
     transition(
         conn,
         ctx,
         sub_id,
         "operator_failure",
-        fee_outcome="refund_or_credit",
         outcome_code="operator_failure",
         outcome_summary=reason,
     )
@@ -302,36 +300,9 @@ def _operator_failure(conn: Connection, ctx: AppContext, sub_id: str, reason: st
         .where(jobs.c.submission_id == sub_id, jobs.c.status.in_(["queued", "leased"]))
         .values(status="cancelled", updated_at=now())
     )
-    from ..store.schema import quotes
-
-    q = conn.execute(
-        select(quotes).where(quotes.c.submission_id == sub_id, quotes.c.status == "paid")
-    ).first()
-    if q:
-        issue_credit(
-            conn,
-            ctx,
-            sub.hotkey,
-            q.amount_rao,
-            f"operator-side failure: {reason}",
-            sub_id,
-            f"operator_failure:{sub_id}",
-        )
     audit.append(
         conn, "controller", "operator_failure", "submission", sub_id, {"reason": reason}, public=True
     )
-
-
-def _consume_fee(conn: Connection, ctx: AppContext, sub_id: str) -> None:
-    from ..store.schema import quotes
-
-    q = conn.execute(
-        select(quotes).where(quotes.c.submission_id == sub_id, quotes.c.status == "paid")
-    ).first()
-    if q:
-        ledger_entry(
-            conn, ctx, "fee_consumed", q.amount_rao, sub_id, f"fee_consumed:{sub_id}", q.hotkey, sub_id
-        )
 
 
 # What a worker may say about a running stage. Anything else is dropped: progress is shown, never trusted.
@@ -351,7 +322,7 @@ PROGRESS_FIELDS = {"done", "total", "reading", "run", "rate_milli_rps", "over_ch
 
 
 def progress(ctx: AppContext, worker_id: str, job_id: str, event: dict) -> dict:
-    """Record where a leased stage is. Display only: no outcome, fee or weight depends on it, so a lost or
+    """Record where a leased stage is. Display only: no outcome or weight depends on it, so a lost or
     late event costs nothing and a stale one is simply overwritten by the next."""
     step = str(event.get("step", ""))
     if step not in PROGRESS_STEPS:
@@ -459,11 +430,9 @@ def complete(ctx: AppContext, worker_id: str, job_id: str, result: dict) -> dict
                     ctx,
                     sub.id,
                     "screen_decisive_fail",
-                    fee_outcome="consumed",
                     outcome_code=f"screen_{result['decisive_failure']}",
                     outcome_summary=result.get("explanation"),
                 )
-                _consume_fee(conn, ctx, sub.id)
             else:
                 transition(conn, ctx, sub.id, "screen_pass")
                 conn.execute(
@@ -542,7 +511,7 @@ def promoted_gains_since(conn: Connection, profile_id: str, measured_version: in
 
 
 def requeue_evaluation(conn: Connection, ctx: AppContext, sub, reason: str) -> None:
-    """Evaluate again against the current champion, same admission key, no new fee (after a rollback)."""
+    """Evaluate again against the current champion, same admission key (after a rollback)."""
     conn.execute(
         update(jobs)
         .where(jobs.c.submission_id == sub.id, jobs.c.status.in_(["queued", "leased"]))
@@ -566,7 +535,7 @@ def requeue_evaluation(conn: Connection, ctx: AppContext, sub, reason: str) -> N
         "evaluation_requeued",
         "submission",
         sub.id,
-        {"reason": reason, "fee": "no new fee", "priority": "kept"},
+        {"reason": reason, "priority": "kept"},
         public=True,
     )
 
@@ -702,12 +671,10 @@ def _lose(conn: Connection, ctx: AppContext, sub, event: str, code: str, summary
         ctx,
         sub.id,
         event,
-        fee_outcome="consumed",
         outcome_code=code,
         outcome_summary=summary[:500],
         **values,
     )
-    _consume_fee(conn, ctx, sub.id)
 
 
 def _store_answers(conn: Connection, job, worker_id: str, result: dict) -> None:

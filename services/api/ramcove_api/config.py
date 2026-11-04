@@ -48,9 +48,7 @@ class Settings:
 def load_settings() -> Settings:
     env = os.environ.get("RAMCOVE_ENV", "demo")
     if env == "mainnet":
-        raise ConfigError(
-            "mainnet mode is not available in this build (writes and real payments are disabled)"
-        )
+        raise ConfigError("mainnet mode is not available in this build (chain writes are disabled)")
     if env not in {"demo", "local", "testnet", "test"}:
         raise ConfigError(f"unknown RAMCOVE_ENV {env!r}")
     network = "test" if env == "testnet" else "ramcove-devchain"

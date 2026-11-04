@@ -15,10 +15,10 @@ from ramcove_evaluator import pipeline
 from ramcove_worker.runner import execute
 
 from .helpers import (
+    admit_submission,
     artifact_bytes,
     bring_workers_online,
     make_ctx,
-    pay_and_admit,
     profile,
     provider,
     submit_fixture,
@@ -47,7 +47,7 @@ def _lease_until(ctx, stage: str) -> dict:
 def test_a_running_stage_says_where_it_is(ctx):
     bring_workers_online(ctx)
     sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator")
-    pay_and_admit(ctx, sub["submission_id"], "miner-ada")
+    admit_submission(ctx, sub["submission_id"], "miner-ada")
     payload = _lease_until(ctx, "screen")
 
     seen = []
@@ -77,7 +77,7 @@ def test_a_running_stage_says_where_it_is(ctx):
 def test_only_the_lease_holder_may_report_and_only_known_steps(ctx):
     bring_workers_online(ctx)
     sub = submit_fixture(ctx, "miner-ada", "kv8-conversation-retention")
-    pay_and_admit(ctx, sub["submission_id"], "miner-ada")
+    admit_submission(ctx, sub["submission_id"], "miner-ada")
     payload = _lease_until(ctx, "screen")
     with pytest.raises(ServiceError) as other:
         queue.progress(ctx, "w-op-2", payload["job_id"], {"step": "quality", "done": 1, "total": 4000})

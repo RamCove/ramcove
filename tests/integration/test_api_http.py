@@ -74,13 +74,13 @@ def test_preflight_requires_authentication(client):
     assert r.status_code == 401 and r.json()["error"]["code"] == "unauthenticated"
 
 
-def test_miner_journey_over_http_and_idempotent_payment(client, app_ctx):
+def test_miner_journey_over_http_and_idempotent_admission(client, app_ctx):
     app, ctx = app_ctx
     sign_in(client, "miner-ada")
     r = client.post("/v1/demo/submit-fixture", json={"fixture": "fragmentation-aware-allocator"})
     assert r.status_code == 200 and r.json()["ok"], r.text
     sub_id = r.json()["submission_id"]
-    q = client.post(f"/v1/miner/submissions/{sub_id}/reserve", json={})
+    q = client.post(f"/v1/miner/submissions/{sub_id}/admit")
     assert q.status_code == 200 and q.json()["status"] == "waitlisted"  # no worker is ready yet
     # bring a worker online through the signed worker API
     body = json.dumps({"readiness": provider().readiness().as_dict()}).encode()
@@ -93,20 +93,15 @@ def test_miner_journey_over_http_and_idempotent_payment(client, app_ctx):
     sign_in(client, "operator")
     assert client.post("/v1/demo/tick").status_code == 200
     sign_in(client, "miner-ada")
-    q = client.post(f"/v1/miner/submissions/{sub_id}/reserve", json={})
-    assert q.status_code == 200 and q.json()["status"] == "quoted", q.text
-    quote = q.json()["quote"]
-    assert quote["amount_rao"] > 0 and quote["remark"].startswith("ramcove:quote:")
-    p1 = client.post(f"/v1/miner/quotes/{quote['quote_id']}/pay-simulated", headers={"idempotency-key": "k1"})
-    p2 = client.post(f"/v1/miner/quotes/{quote['quote_id']}/pay-simulated", headers={"idempotency-key": "k1"})
-    assert p1.status_code == 200 and p2.json().get("idempotent_replay") is True
-    assert p1.json()["block_number"] == p2.json()["block_number"]  # no second payment on refresh
-    sign_in(client, "operator")
-    for _ in range(3):
-        client.post("/v1/demo/tick")
-    sign_in(client, "miner-ada")
+    # the waiting list is left by invitation: the tick above invited it, and joining is free
+    a1 = client.post(f"/v1/miner/submissions/{sub_id}/admit", headers={"idempotency-key": "k1"})
+    a2 = client.post(f"/v1/miner/submissions/{sub_id}/admit", headers={"idempotency-key": "k1"})
+    assert a1.status_code == 200 and a1.json()["status"] == "admitted", a1.text
+    assert a2.json().get("idempotent_replay") is True  # a refresh does not admit twice
+    key = a1.json()["admission"]["admission_key"]
+    assert "amount_rao" not in a1.json() and "quote" not in a1.json()
     view = client.get(f"/v1/submissions/{sub_id}").json()
-    assert view["state"] in ("admitted", "screening") and view["receipt"]["body"]["admission_key"][0] > 0
+    assert view["state"] in ("admitted", "screening") and view["admission_key"] == key
     mine = client.get("/v1/miner/submissions").json()
     assert mine["items"][0]["submission_id"] == sub_id
 
@@ -167,8 +162,8 @@ def test_one_active_submission_per_hotkey(client):
     assert second.status_code == 409 and second.json()["error"]["code"] == "active_limit"
 
 
-def test_untrusted_artifact_passes_preflight_but_cannot_be_quoted(client, app_ctx):
-    """No isolation backend for untrusted code: free checks still run, paid admission does not."""
+def test_untrusted_artifact_passes_preflight_but_waits_to_join_the_queue(client, app_ctx):
+    """No isolation backend for untrusted code: free checks still run, admission to the queue waits."""
     app, ctx = app_ctx
     from ramcove_api.services.auth import demo_keypair
     from ramcove_miner.artifact import pack, sign_artifact
@@ -206,7 +201,9 @@ def test_untrusted_artifact_passes_preflight_but_cannot_be_quoted(client, app_ct
         content=body,
         headers=worker_headers(ctx, "w-op-1", "POST", "/v1/worker/heartbeat", body),
     )
-    q = client.post(f"/v1/miner/submissions/{sub_id}/reserve", json={})
+    with __import__("ramcove_api.store.db", fromlist=["tx"]).tx(ctx.engine) as conn:
+        ctx.chain(conn).store.register(ctx.settings.netuid, kp.ss58_address)
+    q = client.post(f"/v1/miner/submissions/{sub_id}/admit")
     assert q.json()["status"] == "waitlisted" and "capacity" in q.json()
 
 
@@ -237,4 +234,4 @@ def test_dashboard_groups_every_submission_and_shows_only_public_fields(client):
     for item in d["items"]:
         assert item["group"] in d["counts"]
         assert item["hotkey"] is None or "\u2026" in item["hotkey"]  # masked
-        assert not {"payment", "quote", "receipt", "changed_paths"} & set(item)
+        assert not {"changed_paths"} & set(item)

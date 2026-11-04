@@ -2,7 +2,7 @@
 
 Version 0.1 of the implementation, against RamCove whitepaper v0.2 and its review. Every rule below exists in
 code; the column "where" names the module that owns it. Provisional values live in an immutable profile
-version (`config/profiles/ramcove-p1@1.0.0.json`) whose hash is recorded with every quote, comparison and
+version (`config/profiles/ramcove-p1@1.0.0.json`) whose hash is recorded with every admission, comparison and
 promotion.
 
 **Nothing here is measured.** Runtimes, thresholds, capacities and costs are planning values until a Stage 1
@@ -13,7 +13,7 @@ study on real hardware replaces them.
 A profile fixes everything that affects a raw capacity number: model repository and revision, engine
 repository, tag and commit, image digests, driver and firmware, the single H100 SXM, the candidate VM
 (16 cores, 64 GiB, no swap, no network), context limit, decoding, workloads, gates, the replacement rule,
-deadlines, the fee formula and the deployment mode. Different hardware is a different profile; scores never
+deadlines and the deployment mode. Different hardware is a different profile; scores never
 share a leaderboard. *Where: `ramcove_protocol.rules`.*
 
 ## 2. Submission lifecycle
@@ -22,14 +22,14 @@ States and the events between them are a single table (`ramcove_protocol.state`)
 again, except that an upheld appeal reopens a rejected review.
 
 ```
-preflight_passed → waitlisted ⇄ invited → quoted → admitted → screening → eval_queued → evaluating
+preflight_passed [→ waitlisted ⇄ invited] → admitted → screening → eval_queued → evaluating
   → ready_for_promotion → promoted
   (a flagged winner: evaluating → in_review → ready_for_promotion)
   (only if the profile sets reproduce_winners: evaluating → reproduce_queued → reproducing → [in_review →] ready_for_promotion)
 ```
 
-Exits: `rejected_preflight`, `rejected_screen`, `not_promoted`, `review_rejected`, `expired_quote`,
-`expired_unregistered`, `operator_failed`, `withdrawn`.
+Exits: `rejected_preflight`, `rejected_screen`, `not_promoted`, `review_rejected`, `expired_unregistered`,
+`operator_failed`, `withdrawn`. Submitting is free at every step (ADR 0015).
 
 ### 2.1 Free preflight
 
@@ -40,44 +40,30 @@ forbidden paths from the diff, declared licences, exact duplicates and cosmetic 
 diff hash). No daily limit. One active submission per hotkey and per
 lineage. *Where: `ramcove_protocol.preflight`, `ramcove_api.services.intake`.*
 
-### 2.2 Waiting list and reservation
+### 2.2 Admission, free
 
-If no evaluation slot can be reserved the submission joins a free waiting list ordered by signed preflight
-time. Invitations last 24 hours; a missed invitation returns the entry to the back of the list. A
-reservation holds one slot and produces a signed quote. *Where: `ramcove_api.services.intake`, `control`.*
+Submitting is free: there is no fee, quote, payment, receipt, refund or credit (ADR 0015). A submission that
+passed preflight joins the queue with `intake.admit` when all hold: its hotkey is registered on the subnet
+(preflight needs no registration), the profile version is unchanged, intake is not paused, a safe and ready
+worker exists for its kind of artifact, and the booked work plus one more booking fits the published
+capacity. The admission key is the finalized block at admission and the order of admission within that
+block; it is assigned under a lock, so keys are unique, and it orders testing and promotion. The service
+returns a signed admission record (`ramcove.admission/1`) and creates the screening job in the same
+transaction. *Where: `ramcove_api.services.intake`, `ramcove_protocol.reservation`.*
 
-### 2.3 Quote and payment
+### 2.3 Waiting list
 
-A quote binds hotkey, authorized payer, artifact hash, profile and rule hash, recipient wallet, amount in
-rao, quote identifier and an expiry in blocks. Accepted quotes never change; new fee levels apply only to
-later quotes.
+If capacity is fully booked the submission joins a free waiting list ordered by when it was waitlisted.
+Invitations last 24 hours; an invited submission joins the queue with the same call, and a missed invitation
+returns the entry to the back of the list. *Where: `ramcove_api.services.intake`, `control`.*
 
-Payment is one atomic call:
+### 2.4 Withdrawal
 
-```
-Utility.batch_all([
-  Balances.transfer_keep_alive(dest = evaluation wallet, value = fee),
-  System.remark_with_event(remark = "ramcove:quote:<quote id>"),
-])
-```
-
-A payment counts only when **all** hold: the block is finalized and canonical; `System.ExtrinsicSuccess`
-and `Utility.BatchCompleted` are present and `BatchInterrupted` is not; a `Balances.Transfer` event pays
-the published wallet at least the quoted amount and matches the call; `System.Remarked` matches the
-blake2-256 hash of the remark bytes and the payer; the signer is the authorized payer; the payment
-reference (block hash, extrinsic index) has never been used. Verdicts: verified, not finalized (retry
-later), late (refund or credit), rejected (with refund when funds actually arrived).
-*Where: `ramcove_chain.payment`, `ramcove_api.services.payments`.*
-
-### 2.4 Admission
-
-Admission order is chain order: the finalized payment block number and extrinsic index. The receipt is
-signed and issued exactly once, inside the same transaction that consumes the payment and creates the
-screening job. *Where: `ramcove_api.services.payments`.*
+A miner may withdraw at any time before promotion; nothing is owed either way.
 
 ### 2.5 Screening
 
-A bounded, paid stage in an isolated environment. It may reject only for decisive failures: a build
+A bounded stage in an isolated environment. It may reject only for decisive failures: a build
 failure reproduced on a second clean build, no engine start within 5 minutes, crashes or more than 5%
 errors, output-contract failures above 5%, peak GPU memory above the ceiling, or smoke accuracy more than
 15 points below the champion (a gap at least four standard errors wide on 200 items). **Speed and capacity
@@ -184,28 +170,28 @@ a winner must also pass every quality gate and winner check
 
 Initial values: δ = 5%, δ_clear = 9%, grid step 3%, grid from −8 to +16 steps. Gains are compared in
 integer parts per million, so exactly 5% does not win. Ties keep the incumbent. Each attempt needs a new
-submission, a new fee and fresh tests; readings are never pooled across attempts.
+submission with a changed artifact and fresh tests; readings are never pooled across attempts.
 *Where: `ramcove_protocol.scoring.replacement_decision`.*
 
 ## 5. Order, leases and settlement (review R2, R3, R4)
 
 - **Dispatch order:** oldest admission key first among compatible queued jobs.
 - **Completion order:** free. Workers run different submissions at once.
-- **Promotion order:** admission order. A later submission cannot be promoted while *any* earlier paid
+- **Promotion order:** admission order. A later submission cannot be promoted while *any* earlier
   admission is still active, whatever stage it is in. Priority is lost only at a terminal state; leases
   bound every running stage, so the barrier always releases.
 - **Leases:** 2 h screening, 24 h evaluation, 8 h reproduction. An expiry requeues the job once at the
-  same admission key; a second expiry ends the submission as an operator failure with a refund or credit.
-- **Reservations:** each paid admission books screening plus the expected work of one evaluation (3.34
-  GPU-hours with the current values) until its result is known. Paid admissions stop when booked work
+  same admission key; a second expiry ends the submission as an operator failure.
+- **Reservations:** each admission books screening plus the expected work of one evaluation (2.41
+  GPU-hours with the current values) until its result is known. Admissions stop when booked work
   reaches two weeks at 80% availability; the rest of the time is the reserve for winners' checks, new
   champions' scores, downtime and reruns. The cap limits the queue's length; it is not a submission window,
-  and a paid submission in the queue is always evaluated.
+  and a submission in the queue is always evaluated.
 - **Promotion:** an atomic check-and-set on the champion pointer. A queued challenger runs against the
   champion that is current when its turn comes. A winner measured against an older champion is re-compared
   by arithmetic, `(1 + G) / (1 + G_new) − 1` for each champion crowned in between: it keeps its place if the
   result still exceeds the margin and ends as not promoted otherwise. Nothing is measured again. Only a rule
-  change or a rollback in between runs the evaluation again, at the same key and with no new fee.
+  change or a rollback in between runs the evaluation again, at the same key.
 *Where: `ramcove_protocol.settlement`, `ramcove_protocol.reservation`, `ramcove_api.services.queue`, `settlement`.*
 
 ## 6. Champion, weights and registration (review R5, R6)
@@ -220,9 +206,9 @@ submission, a new fee and fresh tests; readings are never pooled across attempts
 - The champion is **the complete stack that was actually tested**, with attribution for the components it
   contains. A later champion may supersede earlier components; the code does not claim that all historical
   patches accumulate.
-- Registration is not needed to preflight, queue or pay. It is needed to receive weight: after technical
-  approval a winner waits in `ready_for_promotion` until its hotkey is registered, within a published
-  grace period. The incumbent keeps earning meanwhile. If the grace ends, the successor expires and the
+- Registration is not needed to preflight. It is needed to join the queue and to receive weight: a winner
+  whose hotkey is no longer registered at approval waits in `ready_for_promotion` until it is registered
+  again, within a published grace period. The incumbent keeps earning meanwhile. If the grace ends, the successor expires and the
   incumbent stays.
 - Rewards follow the hotkey, resolved to a UID at each weight publication, so a reused UID number never
   redirects a reward.
@@ -252,13 +238,11 @@ submission, a new fee and fresh tests; readings are never pooled across attempts
 - A profile can set `reproduce_winners` to have a worker of another evaluation group repeat a winner's reading
   before promotion; it is off by default.
 
-## 8. Money
+## 8. Cost of evaluation
 
-Separate records, each idempotent: fee received, fee consumed, excess credit, credit issued and used,
-refund liability, refund sent and confirmed. Fees are consumed once screening or evaluation has run,
-whatever the result. Operator or validator failures are never charged, and never require a second payment.
-The fee is a flat 0.1 TAO per paid submission. A recent price from the published source only adds the
-fee's value in US dollars; a stale price never blocks a quote. *Where: `ramcove_protocol.fees`, `ramcove_api.services.accounting`.*
+Submitting is free (ADR 0015). The owner bears the evaluation workers' GPU time; nothing is charged,
+refunded or credited to a miner. The queue protects that budget: the two-week capacity cap, a registered
+hotkey to join, one active submission per hotkey and per lineage, and the operator's intake pause.
 
 ## 9. Randomness and audit
 

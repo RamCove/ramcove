@@ -82,7 +82,7 @@ test("the whitepaper opens full screen as a PDF", async ({ page }) => {
 
 test("the dashboard shows the order of work; retired pages land where their content lives", async ({ page }) => {
   await page.goto("/dashboard");
-  await expect(page.getByText("Paid, in the order they are tested")).toBeVisible();
+  await expect(page.getByText("In the queue, in the order they are tested")).toBeVisible();
   await expect(page.getByText("Free, waiting for capacity")).toBeVisible();
   await expect(page.getByText("Order of work versus order of promotion")).toBeVisible();
   const moved: [string, RegExp][] = [
@@ -118,8 +118,6 @@ test("anyone can follow a submission on its public page", async ({ page }) => {
   await expect(page.getByText("Progress")).toBeVisible();
   await expect(page.getByText(/Support ref RM-/)).toBeVisible();
   await expect(page.getByText("What the states mean")).toBeVisible();
-  // the author's payment details are never on the public page
-  await expect(page.getByText("Your payment")).toHaveCount(0);
 });
 
 test("keyboard users can reach the main actions and both themes are readable", async ({ page }) => {

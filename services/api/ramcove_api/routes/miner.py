@@ -1,4 +1,4 @@
-"""Miner routes: preflight, reservation and quote, payment, recovery, withdrawal, appeals."""
+"""Miner routes: free preflight, free admission to the queue, withdrawal, appeals."""
 
 from __future__ import annotations
 
@@ -7,20 +7,10 @@ from pydantic import BaseModel, Field
 
 from ..services import intake, public, review
 from ..services.context import AppContext, ServiceError
-from ..services.payments import recover_payment
 from .deps import get_ctx, idempotent, require_session
 
 router = APIRouter(prefix="/v1/miner", tags=["miner"])
 MAX_UPLOAD = 20 * 1024 * 1024
-
-
-class ReserveIn(BaseModel):
-    payer: str | None = Field(None, description="Account authorized to pay; defaults to the signed-in hotkey")
-
-
-class RecoverIn(BaseModel):
-    block_number: int
-    extrinsic_index: int
 
 
 class WithdrawIn(BaseModel):
@@ -49,41 +39,22 @@ def my_submissions(ctx: AppContext = Depends(get_ctx), sess: dict = Depends(requ
     return public.my_submissions(ctx, sess["hotkey"])
 
 
-@router.post("/submissions/{submission_id}/reserve")
-def reserve(
+@router.post("/submissions/{submission_id}/admit")
+def admit(
     submission_id: str,
-    body: ReserveIn,
     ctx: AppContext = Depends(get_ctx),
     sess: dict = Depends(require_session),
     idempotency_key: str | None = Header(None),
 ) -> dict:
+    """Join the queue, free of charge: admitted when evaluation capacity is free, otherwise placed on the
+    free waiting list. Needs a hotkey registered on the subnet."""
     return idempotent(
         ctx,
         sess["hotkey"],
-        "reserve",
+        "admit",
         idempotency_key,
-        lambda: intake.reserve(ctx, submission_id, sess["hotkey"], body.payer or sess["hotkey"]),
+        lambda: intake.admit(ctx, submission_id, sess["hotkey"]),
     )
-
-
-@router.post("/quotes/{quote_id}/pay-simulated", tags=["demo"])
-def pay_simulated(
-    quote_id: str,
-    ctx: AppContext = Depends(get_ctx),
-    sess: dict = Depends(require_session),
-    idempotency_key: str | None = Header(None),
-) -> dict:
-    """SIMULATION: signs and submits the payment on the dev chain for a demo identity."""
-    return idempotent(
-        ctx, sess["hotkey"], "pay", idempotency_key, lambda: intake.demo_pay(ctx, quote_id, sess["hotkey"])
-    )
-
-
-@router.post("/payments/recover")
-def recover(
-    body: RecoverIn, ctx: AppContext = Depends(get_ctx), sess: dict = Depends(require_session)
-) -> dict:
-    return recover_payment(ctx, sess["hotkey"], body.block_number, body.extrinsic_index)
 
 
 @router.post("/submissions/{submission_id}/withdraw")

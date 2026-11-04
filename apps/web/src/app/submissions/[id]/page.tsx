@@ -49,7 +49,7 @@ type View = {
   bound_gain_ppm: number | null;
   margin_ppm: number;
   clear_win_ppm: number;
-  outcome: { code: string | null; summary: string | null; fee: string | null };
+  outcome: { code: string | null; summary: string | null };
   method: string | null;
   mechanism: string | null;
   trusted_fixture: string | null;
@@ -163,7 +163,7 @@ export default async function SubmissionPage({
           tone={
             v.state === "promoted"
               ? "ok"
-              : v.outcome.fee === "refund_or_credit"
+              : v.outcome.code === "operator_failure"
                 ? "warn"
                 : "danger"
           }
@@ -186,13 +186,6 @@ export default async function SubmissionPage({
               </Link>
             </p>
           )}
-          {v.outcome.fee && (
-            <p className="mt-1">
-              Fee: <strong>{v.outcome.fee.replace(/_/g, " ")}</strong>
-              {v.outcome.fee === "refund_or_credit" &&
-                " — you were not charged for an operator-side failure."}
-            </p>
-          )}
         </Notice>
       )}
 
@@ -212,7 +205,7 @@ export default async function SubmissionPage({
       {v.state === "ready_for_promotion" &&
         v.blocking_submissions.length > 0 && (
           <Notice tone="info" title="Cleared, waiting for earlier admissions">
-            {v.blocking_submissions.length} earlier paid submission(s) still
+            {v.blocking_submissions.length} earlier submission(s) still
             hold priority. Promotion follows admission order, so finishing first
             does not move you ahead.
           </Notice>
@@ -226,7 +219,7 @@ export default async function SubmissionPage({
           >
             {v.timeline.length === 0 ? (
               <Empty title="No work has started">
-                Work starts once a finalized payment admits this submission.
+                Work starts once this submission joins the queue.
               </Empty>
             ) : (
               <ol className="space-y-3">
@@ -499,7 +492,7 @@ export default async function SubmissionPage({
                 <dd>
                   If another submission is crowned while yours waits, your
                   measured gain is set against the new champion by arithmetic.
-                  Nothing is measured again and you pay no new fee.
+                  Nothing is measured again.
                 </dd>
               </div>
             </dl>

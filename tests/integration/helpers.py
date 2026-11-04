@@ -89,14 +89,13 @@ def only_measurement_noise(outcomes: list[str | None], extra: set[str] | None = 
     return bool(outcomes) and all(o in (NOISE_OUTCOMES | (extra or set())) for o in outcomes)
 
 
-def pay_and_admit(ctx, sub_id: str, miner_key: str) -> dict:
+def admit_submission(ctx, sub_id: str, miner_key: str) -> dict:
+    """Join the queue, free of charge (the demo miners are registered on the dev chain)."""
     hk, _ = hotkey(miner_key)
-    q = intake.reserve(ctx, sub_id, hk, payer=hk)
-    assert q["status"] == "quoted", q
-    intake.demo_pay(ctx, q["quote"]["quote_id"], hk)
-    for _ in range(3):
-        control.tick(ctx)
-    return q
+    r = intake.admit(ctx, sub_id, hk)
+    assert r["status"] == "admitted", r
+    control.tick(ctx)
+    return r
 
 
 def artifact_bytes(ctx, sha: str) -> bytes:

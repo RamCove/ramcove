@@ -11,15 +11,15 @@ profile `ramcove-p1-h100sxm-qwen38-27b-fp8@1.0.0` that ships in this repository.
 ## The shape of it
 
 ```
-  free checks ──► quote & payment ──► screening ──► question quality ──► capacity reading ──► the rule
-   signature          0.1 TAO          10 min        4,000 questions      8-min runs from        ≤5% lose
+  free checks ──►  queue place   ──► screening ──► question quality ──► capacity reading ──► the rule
+   signature          free;            10 min        4,000 questions      8-min runs from        ≤5% lose
    manifest         books 2.41        200 bank       vs the champion      the champion's        ≥9% win
    patch scope       GPU-hours       questions       and a frozen          fixed score,        between: one
    duplicate                          memory          reference           +3% per step        more reading
        │                │                │                │                    │                   │
-   no GPU, no fee   order fixed      fail: fee      fail: fee is        stops at the first     winner ──┐
-                    by payment       is consumed     consumed, no        run that fails                │
-                                                     capacity measured                                 ▼
+     no GPU         order fixed      fail: ends      fail: ends, no      stops at the first     winner ──┐
+                   by admission                     capacity measured    run that fails                │
+                                                                                                       ▼
                                                                                               winner checks
                                                                                        band attainment, memory
                                                                                        evidence, short requests,
@@ -36,8 +36,8 @@ profile `ramcove-p1-h100sxm-qwen38-27b-fp8@1.0.0` that ships in this repository.
 
 ## Why it is shaped like this
 
-A capacity measurement is noisy, and a fee is charged per attempt, so the design has to answer two
-questions at once: *is this change real?* and *is this measurement trustworthy?*
+A capacity measurement is noisy, and every attempt spends the owner's GPU time, so the design has to
+answer two questions at once: *is this change real?* and *is this measurement trustworthy?*
 
 - **The champion is measured once, not against every challenger.** Measuring both sides for every
   submission would double the GPU bill and add the champion's noise to the challenger's. Instead each
@@ -50,23 +50,26 @@ questions at once: *is this change real?* and *is this measurement trustworthy?*
   against the fixed score, with a second reading only when the first lands in the undecided band.
 - **The expensive checks are only for a winner.** Memory evidence, the short-request control, real
   conversations and the hour-long soak cost more than the evaluation itself. They run only after a winning
-  reading, and they are paid from the published reserve, not from the miner's booking.
+  reading, and they come from the published reserve, not from the submission's booking.
 
 ## Step by step
 
 ### 1. Free checks
 
-Signature, manifest, patch scope, artifact limits, duplicate and lineage. No GPU is used, no fee is
-charged and no queue place is taken. A rejection here costs the miner nothing.
+Signature, manifest, patch scope, artifact limits, duplicate and lineage. No GPU is used, no registration
+is needed and no queue place is taken.
 
-### 2. Quote, payment, queue place
+### 2. Queue place — free
 
-A flat fee of **0.1 TAO** (`fees.flat_fee_rao`) books **2.41 GPU-hours**: screening (0.17) plus one
-evaluation (2.24). That booking is what the queue cap is counted against. **A winner's extra checks are
-not in it** — they come from the reserve — and neither is the new champion's re-measurement.
+Submitting is free: the owner runs the evaluation workers and bears their GPU time. An admission books
+**2.41 GPU-hours**: screening (0.17) plus one evaluation (2.24). That booking is what the queue cap is
+counted against. **A winner's extra checks are not in it** — they come from the reserve — and neither is
+the new champion's re-measurement.
 
-One active submission per hotkey. Quotes expire after 100 blocks, about 20 minutes. The payment's block
-number and index fix the order in which submissions are tested and promoted.
+Joining the queue needs a hotkey registered on the subnet; one active submission per hotkey and per
+lineage. While the two-week queue is fully booked, a submission waits on the free waiting list and is
+invited in order. The finalized block at admission and the order within that block fix the order in which
+submissions are tested and promoted.
 
 ### 3. Screening — 10 minutes, 0.17 GPU-h
 
@@ -75,7 +78,7 @@ An isolated build, an engine start within 5 minutes, **200 questions** from this
 submission ends here on a build failure, a start failure, a ceiling breach, more than 5% of requests
 errored or timed out, more than 5% of answers that break the output contract, or a smoke accuracy more
 than 15 points below the champion's — and that last one only when the gap is also four standard errors
-wide, because 200 items cannot separate a small difference. The fee is consumed.
+wide, because 200 items cannot separate a small difference.
 
 ### 4. Question quality — 4,000 questions, 1.00 GPU-h
 
@@ -88,7 +91,7 @@ Its answers are compared, question by question, with the champion's answers to t
 It must be no worse than the champion by more than 2.00 points overall (3.00 within any one stratum),
 no worse than the frozen reference by more than 3.00 points, above the absolute floors (85% overall and
 general, 80% per position group), and its answers must stay at least 90% as long as the reference's.
-Failing ends the evaluation: no capacity is measured, and the fee is consumed.
+Failing ends the evaluation: no capacity is measured.
 
 The questions themselves come from the owner's bank, not from a validator: a seed derived with HMAC from
 the owner's secret, the profile and the 7-day period. The bank's fingerprint is published a day before
@@ -125,7 +128,7 @@ Gain `G = reading ÷ the champion's fixed score − 1`, in integer parts per mil
 
 | first reading | what happens |
 | --- | --- |
-| at or below **5%** | not a winner; the fee is consumed |
+| at or below **5%** | not a winner |
 | at or above **9%** | winner; go to the winner checks |
 | in between | exactly one more reading with fresh traffic; the average of the two must exceed 5% |
 
@@ -155,13 +158,12 @@ Only a winning reading gets here. Each check answers a question the reading alon
 - **Soak** — one hour at 90% of the measured capacity. It is where leaks, fragmentation and slow drift
   show up; a reading is only eight minutes long and cannot see them.
 
-Failing any of them means the submission is not promoted, and the fee is still consumed: the work was
-measured.
+Failing any of them means the submission is not promoted.
 
 ### 8. Promotion
 
 Promotion is automatic unless an automatic check flagged the work for a person. Promotions happen in
-payment order, not in finishing order. When a champion is crowned, its patches are published (any miner
+admission order, not in finishing order. When a champion is crowned, its patches are published (any miner
 can fetch them with `ramcove-miner champion-code`) and **every worker measures the new champion's fixed
 score again**: a search, three 20-minute confirmation runs, the tighter-budget score, the short-request
 baseline and the champion's answers to the current bank — about 6.51 GPU-hours per worker, from the
@@ -180,15 +182,16 @@ and losing it changes nothing but the page. The vocabulary is in
 
 ## GPU time, in one table
 
-| Work | GPU-hours | Paid from |
+| Work | GPU-hours | Drawn from |
 | --- | --- | --- |
-| Screening | 0.17 | the miner's booking |
-| One evaluation (quality, check, reading) | 2.24 | the miner's booking |
-| **Booked per paid submission** | **2.41** | the miner's fee |
+| Screening | 0.17 | the submission's booking |
+| One evaluation (quality, check, reading) | 2.24 | the submission's booking |
+| **Booked per admission** | **2.41** | the queue's two-week capacity |
 | Winner checks | 3.57 | the reserve |
 | A new champion's fixed score, per worker | 6.51 | the reserve |
 
-The reserve is 20% of each worker's week, published with the queue.
+The reserve is 20% of each worker's week, published with the queue. All of it is the owner's GPU time:
+miners pay no submission fee.
 
 ## Simulation mode and network mode
 

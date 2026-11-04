@@ -34,7 +34,7 @@ def _exclude(ctx, key: str, reason: str) -> None:
         )
 
 
-def test_an_excluded_hotkey_is_refused_before_any_fee(ctx):
+def test_an_excluded_hotkey_is_refused_at_the_free_checks(ctx):
     _exclude(ctx, "miner-cyd", "repeated cosmetic copies of another miner's patch")
     out = submit_fixture(ctx, "miner-cyd", "fragmentation-aware-allocator")
     assert not out["ok"]

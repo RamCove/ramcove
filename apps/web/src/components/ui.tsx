@@ -178,13 +178,13 @@ export function StatePill({ state, label }: { state: string; label?: string }) {
             "expired_unregistered",
           ].includes(state)
         ? "danger"
-        : ["operator_failed", "expired_quote", "withdrawn"].includes(state)
+        : ["operator_failed", "withdrawn"].includes(state)
           ? "warn"
           : ["in_review", "ready_for_promotion", "reproduce_queued"].includes(
                 state,
               )
             ? "info"
-            : ["waitlisted", "invited", "quoted", "preflight_passed"].includes(
+            : ["waitlisted", "invited", "preflight_passed"].includes(
                   state,
                 )
               ? "neutral"

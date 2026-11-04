@@ -25,13 +25,13 @@ def test_a_lost_lock_race_is_retried_until_it_succeeds():
     calls = []
 
     @retry_on_contention(attempts=4)
-    def reserve():
+    def admit():
         calls.append(1)
         if len(calls) < 3:
             raise contention()
-        return "quoted"
+        return "admitted"
 
-    assert reserve() == "quoted"
+    assert admit() == "admitted"
     assert len(calls) == 3
 
 

@@ -13,7 +13,7 @@ from ramcove_evaluator.bank import build_bank
 from ramcove_protocol.bank import period_index, period_window
 from sqlalchemy import select
 
-from .helpers import bring_workers_online, drain, make_ctx, pay_and_admit, submit_fixture
+from .helpers import admit_submission, bring_workers_online, drain, make_ctx, submit_fixture
 
 pytestmark = pytest.mark.db
 
@@ -46,7 +46,7 @@ def test_every_evaluation_in_a_period_answers_the_same_questions_and_the_champio
     bring_workers_online(ctx, ("w-op-1",))
     for miner, fixture in (("miner-ada", "fragmentation-aware-allocator"), ("miner-bao", "evict-quarter")):
         sub = submit_fixture(ctx, miner, fixture)
-        pay_and_admit(ctx, sub["submission_id"], miner)
+        admit_submission(ctx, sub["submission_id"], miner)
     drain(ctx, workers=("w-op-1",))
     with tx(ctx.engine) as conn:
         full = [r.result for r in conn.execute(select(jobs).where(jobs.c.stage == "full")) if r.result]

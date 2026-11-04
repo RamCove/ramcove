@@ -1,4 +1,4 @@
-"""Service signing for quotes and receipts (sr25519 via substrate-interface).
+"""Service signing for admissions, reports and weight results (sr25519 via substrate-interface).
 
 Demo/local modes derive a deterministic *demo* key that is published in this repository and has no
 value on any network. Network mode signs with an external signer configured at deployment; without one,
@@ -26,9 +26,7 @@ def _demo_keypair(uri: str) -> Keypair:
 class ServiceSigner:
     def __init__(self, settings: Settings) -> None:
         if not settings.simulated_chain:
-            raise ConfigError(
-                "no production signer configured; signed quotes/receipts are disabled in this mode"
-            )
+            raise ConfigError("no production signer configured; signed records are disabled in this mode")
         self._kp = _demo_keypair(DEMO_SERVICE_URI)
         self.network = settings.network
         self.demo = True

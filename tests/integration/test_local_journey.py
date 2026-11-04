@@ -4,18 +4,18 @@ import pytest
 from ramcove_api.services import control
 from ramcove_api.store import audit
 from ramcove_api.store.db import tx
-from ramcove_api.store.schema import champions, comparisons, ledger, receipts, reviews, weight_plans
+from ramcove_api.store.schema import champions, comparisons, reviews, submissions, weight_plans
 from sqlalchemy import select
 from substrateinterface import Keypair
 
 from .helpers import (
     ATTEMPTS,
+    admit_submission,
     approve_review,
     bring_workers_online,
     drain,
     make_ctx,
     only_measurement_noise,
-    pay_and_admit,
     state,
     submit_fixture,
 )
@@ -32,12 +32,11 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
     bring_workers_online(ctx)
     fail = submit_fixture(ctx, "miner-bao", "evict-quarter")
     assert fail["ok"]
-    pay_and_admit(ctx, fail["submission_id"], "miner-bao")
-    with tx(ctx.engine) as conn:
-        assert conn.execute(select(receipts)).rowcount != 0
+    admit_submission(ctx, fail["submission_id"], "miner-bao")
+    assert state(ctx, fail["submission_id"]).admission_block is not None  # in the queue, free of charge
     drain(ctx)
     f = state(ctx, fail["submission_id"])
-    assert f.state == "not_promoted" and f.fee_outcome == "consumed", (f.state, f.outcome_summary)
+    assert f.state == "not_promoted" and f.outcome_code, (f.state, f.outcome_summary)
 
     # One evaluation is a set of pass/fail readings over a noisy simulated measurement, so a stack that
     # really is better is sometimes rejected. A miner would pay
@@ -61,9 +60,12 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
             (2, None, 0, False),
         ]
         assert {e["role"]: e["weight_u16"] for e in plan.body["entries"]} == {"king": 65_535}
-        kinds = [r.kind for r in conn.execute(select(ledger))]
-        paid = 1 + win["attempts"]  # the losing challenger plus every attempt by the winner
-        assert kinds.count("fee_received") == paid and kinds.count("fee_consumed") == paid
+        # every submission was admitted in its own place in the order, and none of them paid anything
+        keys = [
+            (r.admission_block, r.admission_index)
+            for r in conn.execute(select(submissions).where(submissions.c.admission_block.is_not(None)))
+        ]
+        assert len(keys) == len(set(keys)) == 1 + win["attempts"]
         ok, n, bad = audit.verify_chain(conn)
         assert ok and n > 20, bad
 
@@ -101,7 +103,7 @@ def test_a_close_first_reading_gets_a_second_and_both_are_recorded(ctx, monkeypa
     for variant in range(ATTEMPTS):  # offline quality is noisy in the simulation; a miner would resubmit
         bring_workers_online(ctx)  # readiness expires in 120 s, and resubmitting takes longer than that
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
-        pay_and_admit(ctx, sub["submission_id"], "miner-ada")
+        admit_submission(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
         with tx(ctx.engine) as conn:
             measured = conn.execute(
@@ -174,7 +176,7 @@ def test_a_profile_can_require_another_evaluation_group_to_reproduce_the_winner(
     for variant in range(ATTEMPTS):  # the simulated measurement is noisy; a miner would resubmit
         bring_workers_online(ctx, everyone)
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
-        pay_and_admit(ctx, sub["submission_id"], "miner-ada")
+        admit_submission(ctx, sub["submission_id"], "miner-ada")
         drain(ctx, workers=everyone)
         for _ in range(2):
             control.tick(ctx)
@@ -209,7 +211,7 @@ def winning_submission(ctx, miner: str, fixture: str, expected: str) -> dict:
         bring_workers_online(ctx)  # readiness expires in 120 s, and resubmitting takes longer than that
         sub = submit_fixture(ctx, miner, fixture, variant=attempts - 1)
         assert sub["ok"]
-        pay_and_admit(ctx, sub["submission_id"], miner)
+        admit_submission(ctx, sub["submission_id"], miner)
         drain(ctx)
         w = state(ctx, sub["submission_id"])
         if w.state == expected:

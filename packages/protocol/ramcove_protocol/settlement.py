@@ -1,7 +1,7 @@
 """Promotion order (review R2) and champion compare-and-set preconditions.
 
 Promise: *promotion order is admission order*. A later admission can never be promoted while any
-earlier paid admission in the same profile is still active and retains priority, whatever stage it
+earlier admission in the same profile is still active and retains priority, whatever stage it
 is in (screening, evaluation, reproduction, flagged review or awaiting registration). Priority is lost
 only at a terminal state; every stage runs on a lease that is retried once and then ends as an operator
 failure, so the barrier always releases.
@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .state import PAID_ACTIVE, S
+from .state import ACTIVE, S
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ def blockers_for(entry: QueueEntry, all_entries: list[QueueEntry]) -> list[Queue
             if e.profile_id == entry.profile_id
             and e.submission_id != entry.submission_id
             and e.key < entry.key
-            and e.state in PAID_ACTIVE
+            and e.state in ACTIVE
         ),
         key=lambda e: e.key,
     )
@@ -80,7 +80,7 @@ def decide_promotion(
         return PromotionDecision(
             False,
             tuple(b.submission_id for b in blockers),
-            f"{len(blockers)} earlier paid admission(s) still hold priority",
+            f"{len(blockers)} earlier admission(s) still hold priority",
             "wait",
         )
     if not entry.hotkey_registered:

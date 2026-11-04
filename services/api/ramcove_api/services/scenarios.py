@@ -26,12 +26,11 @@ SCENARIOS = {
     "fresh": "Seeded state only: champion version 0, nothing submitted.",
     "champion": "A challenger is measured and promoted to champion version 1. Nothing was flagged, so no review.",
     "busy": "Several submissions: one promoted, one failing quality, one flagged winner waiting for a reviewer.",
-    "rejected_payment": "An underpaid quote is rejected and a refund liability is opened.",
-    "worker_failure": "A lease expires twice, the submission ends as an operator failure with a credit.",
+    "worker_failure": "A lease expires twice, and the submission ends as an operator failure.",
     "stale_comparison": "Two winners: the first is promoted, the second is re-compared with the new champion by arithmetic.",
     "failed_quality": "A challenger that saves memory but loses accuracy is rejected.",
     "no_champion_registration": "A technically approved winner never registers, so the incumbent keeps the crown.",
-    "live": "Paid submissions left in the queue: the workers pick them up, so the dashboard shows work running.",
+    "live": "Submissions left in the queue: the workers pick them up, so the dashboard shows work running.",
 }
 
 
@@ -66,15 +65,11 @@ class Harness:
             raise ServiceError("scenario_failed", f"preflight rejected: {r.get('errors')}", 500)
         return r["submission_id"]
 
-    def pay(self, sub_id: str, miner: str, amount_override: int | None = None) -> dict:
+    def admit(self, sub_id: str, miner: str) -> dict:
         hk, _ = self.hotkey(miner)
-        q = intake.reserve(self.ctx, sub_id, hk, payer=hk)
-        if q["status"] != "quoted":
-            return q
-        intake.demo_pay(self.ctx, q["quote"]["quote_id"], hk, amount_override=amount_override)
-        for _ in range(3):
-            control.tick(self.ctx)
-        return q
+        r = intake.admit(self.ctx, sub_id, hk)
+        control.tick(self.ctx)
+        return r
 
     def work(
         self, steps: int = 60, workers: tuple[str, ...] = ("w-op-1", "w-op-2"), patience_s: int = 12
@@ -159,7 +154,7 @@ def run(ctx: AppContext, name: str) -> dict:
         ):
             sub = h.submit(miner, fixture)
             h.mark(sub, name)
-            h.pay(sub, miner)
+            h.admit(sub, miner)
             out["submissions"][fixture] = sub
         out["note"] = "Left queued for the workers; watch /dashboard."
         return out
@@ -167,20 +162,20 @@ def run(ctx: AppContext, name: str) -> dict:
     if name in ("champion", "busy", "stale_comparison", "no_champion_registration"):
         win = h.submit("miner-ada", "fragmentation-aware-allocator")
         h.mark(win, name)
-        h.pay(win, "miner-ada")
+        h.admit(win, "miner-ada")
         if name == "busy":
             bad = h.submit("miner-bao", "evict-quarter")
             h.mark(bad, name)
-            h.pay(bad, "miner-bao")
+            h.admit(bad, "miner-bao")
             out["submissions"]["quality_failure"] = bad
             flagged = h.submit("miner-cyd", "native-paged-kv-kernel")
             h.mark(flagged, name)
-            h.pay(flagged, "miner-cyd")
+            h.admit(flagged, "miner-cyd")
             out["submissions"]["flagged_for_review"] = flagged
         if name == "stale_comparison":
             second = h.submit("miner-bao", "kv8-conversation-retention")
             h.mark(second, name)
-            h.pay(second, "miner-bao")
+            h.admit(second, "miner-bao")
             out["submissions"]["second_potential_winner"] = second
         h.work()
         out["submissions"]["challenger"] = win
@@ -206,27 +201,18 @@ def run(ctx: AppContext, name: str) -> dict:
     if name == "failed_quality":
         bad = h.submit("miner-bao", "evict-quarter")
         h.mark(bad, name)
-        h.pay(bad, "miner-bao")
+        h.admit(bad, "miner-bao")
         h.work()
         out["submissions"]["quality_failure"] = bad
         out["final_state"] = h.state(bad)
         return out
 
-    if name == "rejected_payment":
-        sub = h.submit("miner-cyd", "quality-drift")
-        h.mark(sub, name)
-        q = h.pay(sub, "miner-cyd", amount_override=1_000)  # far below the quoted amount
-        out["submissions"]["underpaid"] = sub
-        out["quote_status"] = q.get("status")
-        out["final_state"] = h.state(sub)
-        return out
-
     if name == "worker_failure":
         sub = h.submit("miner-cyd", "kv8-conversation-retention")
         h.mark(sub, name)
-        h.pay(sub, "miner-cyd")
+        h.admit(sub, "miner-cyd")
         with tx(ctx.engine) as conn:
-            # force the screening lease to expire twice: the miner keeps priority, then gets a credit
+            # force the screening lease to expire twice: the miner keeps priority, then it ends as an operator failure
             for _ in range(2):
                 job = conn.execute(
                     select(jobs).where(jobs.c.submission_id == sub, jobs.c.status.in_(["queued", "leased"]))

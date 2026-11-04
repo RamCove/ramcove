@@ -8,7 +8,6 @@ own key. Every command goes through the same API routes, role checks and audit t
     ramcove-operator --key-uri URI intake pause --reason "..."          # or: intake resume
     ramcove-operator --key-uri URI incident open --severity minor --title "..." --summary "..."
     ramcove-operator --key-uri URI incident resolve inc_...
-    ramcove-operator --key-uri URI refund approve ref_...                # or: refund execute
     ramcove-operator --key-uri URI rollback --reason "..." [--deliberate]
     ramcove-operator --key-uri URI reviews
     ramcove-operator --key-uri URI review rev_... approve --reasons "..."
@@ -51,7 +50,7 @@ def _check(r: httpx.Response) -> dict:
 
 
 def _sign_in(client: httpx.Client, key_uri: str) -> None:
-    """Sign in with the hotkey: a message that authorizes no payment."""
+    """Sign in with the hotkey: a message that authorizes nothing on chain."""
     meta = _check(client.get("/v1/meta"))
     if not meta.get("simulated_chain"):
         raise CliError("--key-uri is a development key. Use a wallet signer for a real network.")
@@ -88,9 +87,6 @@ def cmd_console(client: httpx.Client, args: argparse.Namespace) -> int:
     for i in c["incidents"]:
         if not i["resolved_at"]:
             print(f"incident   {i['id']} [{i['severity']}] {i['title']}")
-    for r in c["refunds"]:
-        if r["status"] in ("requested", "approved"):
-            print(f"refund     {r['id']} {r['status']} {r['amount_rao']} rao to {r['hotkey']}")
     for w in c["workers"]:
         print(
             f"worker     {w['id']} {'ready' if w['ready'] else 'NOT READY'}{'' if w['enabled'] else ' (disabled)'}"
@@ -129,11 +125,6 @@ def cmd_incident(client: httpx.Client, args: argparse.Namespace) -> int:
 def cmd_exclude(client: httpx.Client, args: argparse.Namespace) -> int:
     body = {"hotkey": args.hotkey, "excluded": args.action == "add", "reason": args.reason}
     _print(_check(client.post("/v1/operator/exclusions", json=body)))
-    return 0
-
-
-def cmd_refund(client: httpx.Client, args: argparse.Namespace) -> int:
-    _print(_check(client.post(f"/v1/operator/refunds/{args.id}/{args.action}")))
     return 0
 
 
@@ -198,12 +189,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--key-uri", required=True, help="your own key; its roles decide what you may do")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("console", help="queue health, leases, reviews, incidents, refunds, workers").set_defaults(
+    sub.add_parser("console", help="queue health, leases, reviews, incidents, workers").set_defaults(
         fn=cmd_console
     )
     sub.add_parser("audit-verify", help="check the audit chain end to end").set_defaults(fn=cmd_audit_verify)
 
-    sp = sub.add_parser("intake", help="pause or resume paid admissions")
+    sp = sub.add_parser("intake", help="pause or resume admissions to the queue")
     sp.add_argument("action", choices=["pause", "resume"])
     sp.add_argument("--reason", required=True)
     sp.set_defaults(fn=cmd_intake)
@@ -221,11 +212,6 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--title")
     sp.add_argument("--summary", help="what the public status page says")
     sp.set_defaults(fn=cmd_incident)
-
-    sp = sub.add_parser("refund", help="approve, then execute, a refund")
-    sp.add_argument("action", choices=["approve", "execute"])
-    sp.add_argument("id")
-    sp.set_defaults(fn=cmd_refund)
 
     sp = sub.add_parser("rollback", help="suspend the champion and restore the previous reviewed stack")
     sp.add_argument("--reason", required=True)

@@ -63,7 +63,7 @@ function stepOf(item: {
   }
   if (["in_review", "ready_for_promotion", "promoted"].includes(item.state))
     return "promotion";
-  if (["quoted", "admitted"].includes(item.state)) return "admission";
+  if (["waitlisted", "invited", "admitted"].includes(item.state)) return "admission";
   if (item.state === "preflight_passed") return "preflight";
   return null;
 }
@@ -122,7 +122,7 @@ type Dashboard = {
     } | null;
     first_gain_ppm: number | null;
     bound_gain_ppm: number | null;
-    outcome: { code: string; summary: string; fee: string } | null;
+    outcome: { code: string; summary: string } | null;
     created_at: string;
     updated_at: string;
   }[];
@@ -167,14 +167,14 @@ const GROUPS: {
   {
     key: "in_progress",
     label: "In evaluation",
-    hint: "paid, being measured or reviewed",
+    hint: "in the queue, being measured or reviewed",
     tone: "text-accent-ink",
     bar: "bg-accent",
   },
   {
     key: "waiting",
     label: "Waiting",
-    hint: "checked, quoted or on the free list",
+    hint: "checked or on the free waiting list",
     tone: "text-text",
     bar: "bg-line-strong",
   },
@@ -195,7 +195,7 @@ const GROUPS: {
   {
     key: "closed",
     label: "Closed",
-    hint: "withdrawn, expired or refunded",
+    hint: "withdrawn or stopped by an operator-side failure",
     tone: "text-warn",
     bar: "bg-warn",
   },
@@ -420,7 +420,7 @@ export default async function DashboardPage({
         <Card
           eyebrow="How a submission is judged"
           title="The evaluation workflow"
-          subtitle="Every paid submission takes this path, in this order. The figures come from the rules the evaluator runs, not from this page."
+          subtitle="Every submission in the queue takes this path, in this order. The figures come from the rules the evaluator runs, not from this page."
         >
           <ol className="grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line md:grid-cols-2 xl:grid-cols-4">
             {steps.map((w, i) => {
@@ -469,7 +469,7 @@ export default async function DashboardPage({
         >
           {running.length === 0 ? (
             <p className="py-3 text-[14px] text-muted">
-              The next paid submission starts as soon as a worker is free.
+              The next submission in the queue starts as soon as a worker is free.
             </p>
           ) : (
             <ul className="divide-y divide-line">
@@ -521,12 +521,12 @@ export default async function DashboardPage({
         <div className="grid items-start gap-5 lg:grid-cols-[1.6fr_1fr]">
           <Card
             eyebrow="Order of work"
-            title="Paid, in the order they are tested"
-            subtitle="Ordered by when each payment was finalized on the chain. Finishing first never lets a later submission jump ahead."
+            title="In the queue, in the order they are tested"
+            subtitle="Ordered by admission: the finalized block when each submission joined the queue, then its order within that block. Finishing first never lets a later submission jump ahead."
           >
             {!admitted || admitted.items.length === 0 ? (
               <p className="py-3 text-[14px] text-muted">
-                No paid submission is being evaluated right now.
+                No submission is being evaluated right now.
               </p>
             ) : (
               <ol className="divide-y divide-line">
@@ -546,7 +546,7 @@ export default async function DashboardPage({
                         {it.lineage}
                       </Link>
                       <p className="num mt-0.5 font-mono text-[11.5px] text-faint">
-                        {it.hotkey ?? "—"} · paid at{" "}
+                        {it.hotkey ?? "—"} · admitted at{" "}
                         {admissionKey(it.admission_key)}
                       </p>
                     </div>
@@ -567,7 +567,7 @@ export default async function DashboardPage({
           <Card
             eyebrow="Waiting list"
             title="Free, waiting for capacity"
-            subtitle="No fee is taken. When capacity frees up, the oldest waiting submission is invited to pay."
+            subtitle="Submitting is free. When capacity frees up, the oldest waiting submission is invited to join the queue."
           >
             {!waiting || waiting.items.length === 0 ? (
               <p className="py-3 text-[14px] text-muted">Nobody is waiting.</p>
@@ -596,8 +596,8 @@ export default async function DashboardPage({
         </div>
         <Notice tone="info" title="Order of work versus order of promotion">
           Workers can test several submissions at once, so results can finish
-          out of order. A crown still changes hands in payment order: an earlier
-          paid submission that is still being tested keeps its place until it
+          out of order. A crown still changes hands in admission order: an
+          earlier submission that is still being tested keeps its place until it
           finishes or reaches its published deadline.
         </Notice>
       </section>
@@ -703,7 +703,7 @@ export default async function DashboardPage({
         <Card
           eyebrow="Rejected"
           title="Why submissions were rejected"
-          subtitle="Every rejection names the rule it failed. The fee is consumed once measurement has run."
+          subtitle="Every rejection names the rule it failed."
         >
           {data.rejection_reasons.length === 0 ? (
             <p className="py-4 text-[14px] text-muted">No rejections yet.</p>

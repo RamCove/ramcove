@@ -1,7 +1,7 @@
 """Versioned competition rules.
 
-A ``ProfileVersion`` is immutable once published: its canonical hash is recorded with every quote,
-comparison and promotion. All numeric values here are *provisional planning values* from the RamCove
+A ``ProfileVersion`` is immutable once published: its canonical hash is recorded with every
+admission, comparison and promotion. All numeric values here are *provisional planning values* from the RamCove
 v0.2 whitepaper and review corrections; none is a measured service guarantee.
 """
 
@@ -56,8 +56,8 @@ class HardwarePin(Frozen):
     network: Literal["none"] = "none"
     gpu_ceiling_margin_mib: int
     isolation: str
-    driver: str | None = Field(None, description="Pinned before paid submissions open")
-    firmware: str | None = Field(None, description="Pinned before paid submissions open")
+    driver: str | None = Field(None, description="Pinned before submissions open")
+    firmware: str | None = Field(None, description="Pinned before submissions open")
     power_limit: str = "SXM default, checked every run"
     tight_ceiling_share_bp: int = Field(
         2500, description="The memory-evidence budget: the ceiling less this share of the champion's cache"
@@ -137,7 +137,7 @@ class LatencyGates(Frozen):
 
 
 class StageEnvelope(Frozen):
-    """GPU time booked for a paid admission, in centi-GPU-hours (integers): screening plus one evaluation
+    """GPU time booked for an admission, in centi-GPU-hours (integers): screening plus one evaluation
     (quality, up to two capacity readings and the GPU check). A winner's extra checks and the new champion's
     calibration draw on the published reserve instead of being booked in advance."""
 
@@ -152,9 +152,8 @@ class StageEnvelope(Frozen):
 
 
 class Deadlines(Frozen):
-    """Review R4: bounded paid lifecycle. Durations in seconds."""
+    """Review R4: bounded lifecycle. Durations in seconds."""
 
-    quote_ttl_blocks: int = 100
     invitation_ttl_s: int = 24 * 3600
     screen_start_target_s: int = 24 * 3600
     lease_screen_s: int = 2 * 3600
@@ -174,19 +173,9 @@ class Deadlines(Frozen):
     beacon_min_delay_s: int = Field(
         1800,
         description="A reading's beacon round must be at least this far after its anchor is finalized, so "
-        "nobody can know the traffic before the artifact and the payment are frozen (Section 8.9)",
+        "nobody can know the traffic before the artifact and its admission are frozen (Section 8.9)",
     )
     upload_hold_s: int = 72 * 3600
-    credit_expiry_s: int = 180 * 24 * 3600
-
-
-class FeePolicy(Frozen):
-    """A flat evaluation fee in TAO. The TAO price is used only to show the fee's value in US dollars."""
-
-    flat_fee_rao: int = Field(100_000_000, description="0.1 TAO per paid submission, whatever the TAO price")
-    service_cost_usd_cents_per_admission: int = Field(1118, description="Planning estimate, not measured")
-    price_max_age_s: int = 15 * 60
-    price_source: str = "coingecko:bittensor:usd"
 
 
 class Deployment(Frozen):
@@ -231,7 +220,6 @@ class ProfileVersion(Frozen):
     latency: LatencyGates
     envelope: StageEnvelope
     deadlines: Deadlines
-    fees: FeePolicy
     deployment: Deployment
     question_bank: QuestionBankRule = Field(default_factory=QuestionBankRule)
     evaluator: EvaluatorPin = Field(

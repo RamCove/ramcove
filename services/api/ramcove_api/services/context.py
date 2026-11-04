@@ -11,7 +11,6 @@ from pathlib import Path
 
 from ramcove_chain.devchain import DevChain
 from ramcove_chain.network import DEVCHAIN
-from ramcove_protocol.fees import PriceObservation
 from ramcove_protocol.reservation import CapacityPlan
 from ramcove_protocol.rules import ProfileVersion
 from sqlalchemy import Connection, Engine, func, select
@@ -21,10 +20,9 @@ from ..config import ROOT, Settings
 from ..signing import ServiceSigner
 from ..store.db import now
 from ..store.devchain_sql import SqlDevChainStore
-from ..store.schema import price_observations, profile_versions, submissions, workers
+from ..store.schema import profile_versions, submissions, workers
 from ..store.schema import settings as settings_t
 
-DEMO_EVALUATION_WALLET_URI = "//RamCoveDemoEvaluationWallet"
 DEMO_OWNER_HOTKEY_URI = "//RamCoveDemoSubnetOwner"
 WORKER_HEARTBEAT_FRESH_S = 120
 
@@ -69,10 +67,6 @@ class AppContext:
     artifacts: ArtifactStore
 
     @property
-    def evaluation_wallet(self) -> str:
-        return Keypair.create_from_uri(DEMO_EVALUATION_WALLET_URI).ss58_address
-
-    @property
     def owner_hotkey(self) -> str:
         return Keypair.create_from_uri(DEMO_OWNER_HOTKEY_URI).ss58_address
 
@@ -107,14 +101,6 @@ class AppContext:
     def setting(self, conn: Connection, key: str, default=None):
         v = conn.execute(select(settings_t.c.value).where(settings_t.c.key == key)).scalar()
         return default if v is None else v
-
-    def latest_price(self, conn: Connection) -> PriceObservation | None:
-        row = conn.execute(
-            select(price_observations).order_by(price_observations.c.observed_at.desc()).limit(1)
-        ).first()
-        if not row:
-            return None
-        return PriceObservation(row.source, int(row.usd_micros), row.observed_at, row.simulated)
 
     def ready_workers(self, conn: Connection, profile_id: str, untrusted_capable: bool | None = None) -> list:
         fresh = now() - timedelta(seconds=WORKER_HEARTBEAT_FRESH_S)

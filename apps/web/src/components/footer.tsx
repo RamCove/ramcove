@@ -80,8 +80,8 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-6 sm:px-8">
         <p className="max-w-3xl text-[12.5px] leading-relaxed text-faint">
           This site shows the RamCove subnet running in simulation mode: the
-          chain, the beacon, the GPU workers and the payments are simulated, and
-          every number they produce is labelled.
+          chain, the beacon and the GPU workers are simulated, and every number
+          they produce is labelled.
         </p>
       </div>
     </footer>

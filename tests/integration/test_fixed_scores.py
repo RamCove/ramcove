@@ -14,10 +14,10 @@ from sqlalchemy import select
 
 from .helpers import (
     ATTEMPTS,
+    admit_submission,
     bring_workers_online,
     drain,
     make_ctx,
-    pay_and_admit,
     state,
     submit_fixture,
 )
@@ -34,7 +34,7 @@ def test_a_champion_says_which_score_its_gain_was_measured_against(ctx):
     for variant in range(ATTEMPTS):
         bring_workers_online(ctx)
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
-        pay_and_admit(ctx, sub["submission_id"], "miner-ada")
+        admit_submission(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
         if state(ctx, sub["submission_id"]).state == "promoted":
             break
@@ -64,7 +64,7 @@ def test_a_champion_says_which_score_its_gain_was_measured_against(ctx):
 def test_every_worker_publishes_its_own_fixed_score(ctx):
     bring_workers_online(ctx)
     sub = submit_fixture(ctx, "miner-bao", "kv8-conversation-retention")
-    pay_and_admit(ctx, sub["submission_id"], "miner-bao")
+    admit_submission(ctx, sub["submission_id"], "miner-bao")
     drain(ctx)  # calibrates both workers on the way to screening the submission
 
     scores = public.dashboard(ctx)["fixed_scores"]
