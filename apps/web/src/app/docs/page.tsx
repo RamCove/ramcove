@@ -323,8 +323,9 @@ uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
               </li>
               <li>
                 It maps hotkeys to UIDs from its own chain read and submits the
-                weights: five kings at 20% each, the rest burned to the subnet
-                owner. If anything is missing or wrong, it submits nothing.
+                weights: 20% to each king below King #1 and the rest to King
+                #1, or everything burned to the subnet owner while no king
+                exists. If anything is missing or wrong, it submits nothing.
               </li>
               <li>
                 Validators other than the owner run no H100 tests: they rely on

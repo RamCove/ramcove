@@ -45,13 +45,11 @@ def check(doc, block=1100):
     )
 
 
-def test_one_king_gets_a_fifth_and_the_rest_burns():
+def test_one_king_gets_the_whole_allocation():
     doc = doc_for(plan("5King1"))
     assert doc["schema"] == SCHEMA
-    assert doc["shares"] == [
-        {"hotkey": "5King1", "share_bp": 2000, "role": "king"},
-        {"hotkey": "5Owner", "share_bp": 8000, "role": "burn"},
-    ]
+    assert doc["shares"] == [{"hotkey": "5King1", "share_bp": 10_000, "role": "king"}]
+    assert doc["burn_hotkey"] == "5Owner"  # still named: an unregistered king's share goes there
     assert doc["valid_until_block"] == 1000 + VALID_TEMPOS * TEMPO_BLOCKS
     assert [k["slot"] for k in doc["kings"]] == [1, 2, 3, 4, 5]
     assert check(doc) == []
@@ -106,9 +104,8 @@ def test_chain_weights_use_the_validators_own_uid_map():
     doc = doc_for(plan("5King1", "5King2"))
     uids, weights, notes = chain_weights(doc, {"5Owner": 0, "5King1": 7, "5King2": 3})
     assert dict(zip(uids, weights, strict=True)) == {
-        0: 6000 * U16_MAX // 10_000,
         3: 2000 * U16_MAX // 10_000,
-        7: 2000 * U16_MAX // 10_000,
+        7: 8000 * U16_MAX // 10_000,
     }
     assert notes == []
 
@@ -116,7 +113,7 @@ def test_chain_weights_use_the_validators_own_uid_map():
 def test_an_unregistered_king_s_share_goes_to_the_burn_hotkey():
     doc = doc_for(plan("5King1", "5King2"))
     uids, weights, notes = chain_weights(doc, {"5Owner": 0, "5King1": 7})
-    assert dict(zip(uids, weights, strict=True)) == {0: 8000 * U16_MAX // 10_000, 7: 2000 * U16_MAX // 10_000}
+    assert dict(zip(uids, weights, strict=True)) == {0: 2000 * U16_MAX // 10_000, 7: 8000 * U16_MAX // 10_000}
     assert notes and "5King2" in notes[0]
 
 

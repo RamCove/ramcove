@@ -29,7 +29,7 @@
     "capacity_milli_rps": 733,
     "capacity_measured": true,
     "bound_gain_ppm": 383505,
-    "explain": "King of the hill: the champion is King #1. Each of the five king slots earns 20% of this profile's miner allocation while its king stays eligible; an empty slot's share goes to the owner UID (burn)."
+    "explain": "King of the hill: the champion is King #1. Each king below it earns 20% of this profile's miner allocation while it stays eligible, and King #1 earns the rest: its own 20% plus the share of every empty slot."
    },
    "champion_history": [
     {

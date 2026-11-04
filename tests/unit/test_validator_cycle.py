@@ -79,7 +79,7 @@ def cycle(source, chain=None, submitter=None, state=None, pin=PIN):
 def test_a_valid_result_is_submitted_with_the_validators_own_uids():
     out, sub = cycle(Source(signed_doc()))
     assert out.action == "submitted"
-    assert sub.calls == [([0, 7], [8000 * U16_MAX // 10_000, 2000 * U16_MAX // 10_000], 100)]
+    assert sub.calls == [([7], [U16_MAX], 100)]  # the only king holds the whole allocation
 
 
 def test_nothing_is_submitted_when_the_owner_is_unreachable():

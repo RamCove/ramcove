@@ -53,8 +53,8 @@ all: the owner's weights then carry its stake.
 The signature proves that the result came from the owner and was not altered. It does not prove that the
 owner's measurements are right. Everything needed to recompute the arithmetic is published (signed reports,
 the hash-chained audit log, the question banks once their week ends), but a validator that sets weights
-from the owner's result does not independently verify performance. The king queue and the five 20% shares
-are in the result exactly as the owner's evaluation decided them.
+from the owner's result does not independently verify performance. The king queue and its shares (20% to
+each king below King #1, the rest to King #1) are in the result exactly as the owner's evaluation decided them.
 
 ## The owner's evaluation workers
 

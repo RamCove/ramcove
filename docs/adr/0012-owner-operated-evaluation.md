@@ -13,7 +13,7 @@ scoring jobs; where only the owner scores, it has nothing to gate.
 **Decision.**
 - Only the owner-operated validator evaluates. Its workers run every stage, and its controller builds the
   king queue and the weight plan as before.
-- Every tempo the controller signs a weight result (`ramcove.weight_document/1`): the 20% king shares and the
+- Every tempo the controller signs a weight result (`ramcove.weight_document/1`): the king shares and any
   burn share by hotkey, bound to the network, genesis hash, netuid, plan, rule hash and champion version, and
   valid for two tempos. It is served at `GET /v1/weights/latest` without the proxy key.
 - Every validator, the owner's included, runs `ramcove-validator` on a CPU machine. Each cycle it fetches the

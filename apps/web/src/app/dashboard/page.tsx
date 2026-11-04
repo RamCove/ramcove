@@ -262,7 +262,7 @@ export default async function DashboardPage({
             </p>
             <p className="mt-3 text-[14px] text-on-band/70">
               {champion.is_baseline ? (
-                "No miner holds the crown yet. All five king slots are empty, so the allocation is burned until one does."
+                "No miner holds the crown yet. All five king slots are empty, so the allocation is burned until a challenger beats the baseline."
               ) : (
                 <>
                   Held by{" "}
@@ -367,8 +367,8 @@ export default async function DashboardPage({
       {kings.length > 0 ? (
         <Card
           eyebrow="King of the hill"
-          title="Five kings, 20% each"
-          subtitle="The challenger that beats King #1 becomes the new King #1, every king moves down one place, and King #5 leaves the queue. The share of an empty or ineligible slot is burned."
+          title="Five kings"
+          subtitle="The challenger that beats King #1 becomes the new King #1, every king moves down one place, and King #5 leaves the queue. Each king below King #1 earns 20%; King #1 earns the rest, including the share of every empty slot. An ineligible king's share is burned."
         >
           <Table head={["Slot", "King", "Version", "Share", "Status"]} minWidth={420}>
             {kings.map((k) => (
@@ -390,12 +390,18 @@ export default async function DashboardPage({
                   {(k.share_bp / 100).toFixed(0)}%
                 </Td>
                 <Td>
-                  <Pill tone={k.eligible ? "ok" : "warn"}>
+                  <Pill
+                    tone={
+                      k.eligible ? "ok" : k.author || !kings[0]?.author ? "warn" : "neutral"
+                    }
+                  >
                     {k.eligible
                       ? "earns"
                       : k.author
                         ? "ineligible · burned"
-                        : "empty · burned"}
+                        : kings[0]?.author
+                          ? "empty · to King #1"
+                          : "empty · burned"}
                   </Pill>
                 </Td>
               </tr>

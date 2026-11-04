@@ -1,6 +1,7 @@
 # ADR 0011 — King of the hill: five kings per profile, 20% each
 
-**Status:** accepted, 2026-10-26. Owner decision; the whitepaper was revised to match.
+**Status:** accepted, 2026-10-26; the shares are amended by ADR 0013 (King #1 holds the share of every
+empty slot). Owner decision; the whitepaper was revised to match.
 
 **Context.** Each profile paid its whole miner allocation to one champion until a challenger beat it by the
 margin (winner-take-all). A champion that was dethroned stopped earning at once, however recent its win.

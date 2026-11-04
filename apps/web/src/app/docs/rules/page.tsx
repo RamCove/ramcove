@@ -583,7 +583,7 @@ export default async function CompetitionPage() {
 
         <Card
           title="Proposed weight plan"
-          subtitle="Deterministic from the king queue: each of the five kings earns 20% of the miner allocation, and the share of an empty or ineligible slot goes to the owner UID to be burned. Published as a proposal in simulation mode, set through commit-reveal in network mode."
+          subtitle="Deterministic from the king queue: each king below King #1 earns 20% of the miner allocation and King #1 earns the rest, including the share of every empty slot. With no king, and for an ineligible king, the share goes to the owner UID to be burned. Published as a proposal in simulation mode, set through commit-reveal in network mode."
         >
           {data.weight_plan ? (
             <>

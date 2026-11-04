@@ -5,8 +5,9 @@ let one fixed GPU serve more useful AI requests, by using its memory better. Min
 code. The owner-operated validator builds it in controlled environments and measures *qualified serving
 capacity* against the current champion's fixed score, once per submission, and every validator sets its
 weights from the owner's signed result. Each profile runs king of the hill: a challenger that
-proves a real improvement becomes King #1, and the five most recent kings each earn 20% of that profile's miner
-allocation until they fall out of the queue. A person reviews a winner only when an automatic check flags it.
+proves a real improvement becomes King #1, and the five most recent kings share that profile's miner
+allocation: each king below King #1 earns 20%, and King #1 earns the rest, including the share of every
+empty slot (100% alone, 80/20 with two kings, 20% each with five). A person reviews a winner only when an automatic check flags it.
 
 **[How a submission is evaluated](docs/evaluation.md)** walks the whole path — free checks, screening,
 question quality, the capacity reading, the rule and the winner checks — with the number that decides each

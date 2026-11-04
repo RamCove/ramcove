@@ -200,7 +200,7 @@ function Hero({ data, margin }: { data: Overview; margin: string }) {
           />
           <HeroStat
             value="5"
-            label="kings share the miner allocation, 20% each"
+            label="kings share the miner allocation; King #1 holds every empty slot"
           />
         </dl>
       </div>
@@ -287,8 +287,9 @@ function ChampionPanel({ data }: { data: Overview }) {
             <>
               Held by{" "}
               <span className="font-mono text-text">{champion.author}</span>,
-              King #1. Each of the five kings earns 20% of the miner
-              allocation until it falls out of the queue.
+              King #1. Each king below it earns 20% of the miner allocation
+              until it falls out of the queue, and King #1 earns the rest: its
+              own 20% and the share of every empty slot.
             </>
           )}
         </p>
@@ -571,8 +572,8 @@ function Principles({
       detail: `gain > ${margin}`,
     },
     {
-      title: "Five kings, 20% each",
-      body: "The challenger that beats King #1 becomes the new King #1, every king moves down one place, and King #5 leaves the queue. Each of the five slots earns 20% of the miner allocation; an empty slot's share is burned.",
+      title: "Five kings",
+      body: "The challenger that beats King #1 becomes the new King #1, every king moves down one place, and King #5 leaves the queue. Each king below King #1 earns 20% of the miner allocation, and King #1 earns the rest: alone it earns 100%, with five kings 20% each.",
       detail: "king of the hill",
     },
     {

@@ -20,7 +20,7 @@ stack becomes current under a **new** version number; every waiting winner is ev
 keeping its admission key and charging no new fee (a rollback is the one case where arithmetic
 re-comparison does not apply); workers record the restored champion's fixed score once. The rolled-back king
 leaves the king queue and the kings below it move up one place, so the restored champion is King #1 again;
-the share of any slot left empty is burned until challengers qualify.
+the share of any slot left empty goes to King #1 (and burns only if no king is left).
 
 4. Tell the affected miners on their submission pages — the reason for the new evaluation is already published there.
 5. Resume admissions only when a worker is safe-and-ready and the evaluator version is pinned.

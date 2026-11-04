@@ -2,9 +2,11 @@
 
 King of the hill: every profile keeps a queue of up to ``KING_SLOTS`` kings. King #1 is the current
 champion, the stack every challenger must beat. When a challenger beats King #1 it becomes the new
-King #1, every king moves down one place, and King #5 leaves the queue and is paid no longer. Each slot
-carries an equal share of the profile's miner allocation (20% with five slots). A slot that is empty, or
-whose king is ineligible or not registered, is proposed for the owner UID, where it is burned.
+King #1, every king moves down one place, and King #5 leaves the queue and is paid no longer. Each king
+below King #1 earns one equal share of the profile's miner allocation (20% with five slots), and King #1
+earns its own share plus the share of every empty slot: one king earns 100%, two earn 80/20, three 60/20/20,
+four 40/20/20/20, five 20% each. With no king (only the tuned baseline) the whole allocation is proposed for
+the owner UID, where it is burned, and so is the share of a king who is ineligible or not registered.
 
 The plan is a *recommendation* keyed by hotkey. The chain adapter resolves hotkeys to UIDs at
 publication time; realized emissions depend on consensus and are displayed separately.
@@ -12,7 +14,7 @@ publication time; realized emissions depend on consensus and are displayed separ
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
@@ -50,6 +52,22 @@ def select_kings[R: ChampionRecord](records: Sequence[R], current_version: int) 
         if len(kings) == KING_SLOTS:
             break
     return kings
+
+
+def slot_shares(share_bp: int, occupied: Collection[int]) -> dict[int, int]:
+    """Each king slot's share of one profile's miner allocation, in basis points; the shares sum to it.
+
+    Every occupied slot below King #1 earns one equal share (``share_bp // KING_SLOTS``). King #1 earns the
+    rest: its own share, the share of every empty slot and any rounding remainder. With no King #1 there is no
+    king at all, every slot keeps its equal share, and all of it burns."""
+    per_slot = share_bp // KING_SLOTS
+    if 1 not in occupied:
+        shares = dict.fromkeys(range(1, KING_SLOTS + 1), per_slot)
+        shares[1] += share_bp - per_slot * KING_SLOTS
+        return shares
+    shares = {slot: (per_slot if slot in occupied else 0) for slot in range(2, KING_SLOTS + 1)}
+    shares[1] = share_bp - sum(shares.values())
+    return dict(sorted(shares.items()))
 
 
 @dataclass(frozen=True)
@@ -120,24 +138,23 @@ def build_weight_plan(
     slots: list[KingSlot] = []
     burn_bp = 0
     for profile_id in sorted(allocation_bp):
-        share = allocation_bp[profile_id]
-        per_slot = share // KING_SLOTS
-        burn_bp += share - per_slot * KING_SLOTS  # rounding remainder, if the share does not divide evenly
         queue = by_profile.get(profile_id, {})
+        shares = slot_shares(allocation_bp[profile_id], queue.keys())
         for slot in range(1, KING_SLOTS + 1):
             k = queue.get(slot)
+            slot_bp = shares[slot]
             if k is None:
-                burn_bp += per_slot
-                slots.append(KingSlot(profile_id, slot, None, None, per_slot, False, "empty"))
+                burn_bp += slot_bp
+                slots.append(KingSlot(profile_id, slot, None, None, slot_bp, False, "empty"))
             elif not k.eligible:
-                burn_bp += per_slot
+                burn_bp += slot_bp
                 slots.append(
                     KingSlot(
-                        profile_id, slot, k.champion_version, k.author_hotkey, per_slot, False, "ineligible"
+                        profile_id, slot, k.champion_version, k.author_hotkey, slot_bp, False, "ineligible"
                     )
                 )
             elif k.author_hotkey not in snap.hotkey_to_uid:
-                burn_bp += per_slot
+                burn_bp += slot_bp
                 notes.append(
                     f"{profile_id}: king #{slot} is not registered at block {snap.block}; its share is not paid"
                 )
@@ -147,15 +164,15 @@ def build_weight_plan(
                         slot,
                         k.champion_version,
                         k.author_hotkey,
-                        per_slot,
+                        slot_bp,
                         False,
                         "not_registered",
                     )
                 )
             else:
-                per_hotkey[k.author_hotkey] = per_hotkey.get(k.author_hotkey, 0) + per_slot
+                per_hotkey[k.author_hotkey] = per_hotkey.get(k.author_hotkey, 0) + slot_bp
                 slots.append(
-                    KingSlot(profile_id, slot, k.champion_version, k.author_hotkey, per_slot, True, "paid")
+                    KingSlot(profile_id, slot, k.champion_version, k.author_hotkey, slot_bp, True, "paid")
                 )
     entries = [
         WeightEntry(hk, snap.hotkey_to_uid[hk], bp * U16_MAX // 10_000, "king")
@@ -167,8 +184,8 @@ def build_weight_plan(
             raise ValueError("owner hotkey is not in the UID snapshot")
         entries.append(WeightEntry(snap.owner_hotkey, owner_uid, burn_bp * U16_MAX // 10_000, "burn"))
         notes.append(
-            "the share of empty or unpaid king slots is proposed for the owner UID; burn behaviour must be "
-            "verified on the target runtime"
+            "the allocation with no king, and the share of an unpaid king, is proposed for the owner UID; burn "
+            "behaviour must be verified on the target runtime"
         )
     writer_enabled = burn_bp == 0 or no_winner_mechanism_verified
     if not writer_enabled:

@@ -10,7 +10,7 @@ from typing import Any
 from ramcove_protocol.money import format_tao
 from ramcove_protocol.reservation import can_issue_quote
 from ramcove_protocol.state import PAID_ACTIVE, TERMINAL, S
-from ramcove_protocol.weights import KING_SLOTS
+from ramcove_protocol.weights import KING_SLOTS, slot_shares
 from sqlalchemy import func, or_, select
 
 from ..config import ROOT
@@ -195,9 +195,9 @@ def overview(ctx: AppContext) -> dict:
                     "No miner holds the crown yet: version 0 is the tuned baseline and earns "
                     "nothing. Until a miner wins, the miner allocation goes to the owner UID (burn)."
                     if champ.submission_id is None
-                    else "King of the hill: the champion is King #1. Each of the five king slots earns 20% "
-                    "of this profile's miner allocation while its king stays eligible; an empty slot's share "
-                    "goes to the owner UID (burn)."
+                    else "King of the hill: the champion is King #1. Each king below it earns 20% of this "
+                    "profile's miner allocation while it stays eligible, and King #1 earns the rest: its own "
+                    "20% plus the share of every empty slot."
                 ),
             },
             "kings": kings,
@@ -879,7 +879,7 @@ def king_slots_view(conn, ctx: AppContext, profile_id: str) -> tuple[list[dict],
     allocation and whether it is paid. Also returns the full hotkey per occupied slot, for internal use."""
     excluded = set((ctx.setting(conn, "excluded_hotkeys", {}) or {}).get("hotkeys") or {})
     queue = king_queue(conn, profile_id)
-    share_bp = 10_000 // KING_SLOTS
+    shares = slot_shares(10_000, range(1, len(queue) + 1))
     view: list[dict] = []
     holders: dict[int, str] = {}
     for slot in range(1, KING_SLOTS + 1):
@@ -892,7 +892,7 @@ def king_slots_view(conn, ctx: AppContext, profile_id: str) -> tuple[list[dict],
                 "version": k.version if k else None,
                 "author": mask_hotkey(k.author_hotkey) if k else None,
                 "status": k.status if k else "empty",
-                "share_bp": share_bp,
+                "share_bp": shares[slot],
                 "eligible": k is not None
                 and k.status in ("current", "superseded")
                 and k.author_hotkey not in excluded,
