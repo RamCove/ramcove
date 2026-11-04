@@ -58,6 +58,12 @@ DEMO_IDENTITIES = [
         "Unaffiliated shadow validator (demo)",
         ("validator",),
     ),
+    DemoIdentity(
+        "validator-weights",
+        "//RamCoveDemoValidatorWeights",
+        "Weight validator (demo, sets weights from the owner's signed results)",
+        ("validator",),
+    ),
     DemoIdentity("reviewer-1", "//RamCoveDemoReviewerOne", "Reviewer One (demo)", ("reviewer",)),
     DemoIdentity(
         "reviewer-2", "//RamCoveDemoReviewerTwo", "Independent reviewer (demo)", ("reviewer", "appeal_panel")
@@ -180,6 +186,16 @@ def seed_base(ctx: AppContext) -> dict:
                 scoring=False,
             )
         )
+        wv = Keypair.create_from_uri("//RamCoveDemoValidatorWeights").ss58_address
+        conn.execute(
+            validators.insert().values(
+                hotkey=wv,
+                name="Weight validator (demo, no evaluation)",
+                operator_affiliated=False,
+                independence_group="weights-1",
+                scoring=False,
+            )
+        )
         for wid, vkey, uri in DEMO_WORKERS:
             conn.execute(
                 workers.insert().values(
@@ -206,7 +222,8 @@ def seed_base(ctx: AppContext) -> dict:
         chain = DevChain(SqlDevChainStore(conn))
         chain.produce_blocks(5)
         chain.store.register(ctx.settings.netuid, ctx.owner_hotkey)  # owner UID 0
-        for key in ("miner-ada", "miner-bao", "miner-cyd"):
+        # both validators need a UID to set weights; the owner's validator evaluates, the other only follows
+        for key in ("miner-ada", "miner-bao", "miner-cyd", "validator-op", "validator-weights"):
             chain.store.register(
                 ctx.settings.netuid, Keypair.create_from_uri(identity(key)[0].uri).ss58_address
             )

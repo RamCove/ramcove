@@ -30,6 +30,7 @@ ramcove-operator = "ramcove_api.operator_cli:main"
 ramcove-controller = "ramcove_controller.main:run"
 ramcove-worker = "ramcove_worker.main:run"
 ramcove-miner = "ramcove_miner.cli:main"
+ramcove-validator = "ramcove_validator.cli:main"
 
 [build-system]
 requires = ["hatchling==1.32.0"]
@@ -44,11 +45,12 @@ packages = [
   "services/controller/ramcove_controller",
   "services/worker/ramcove_worker",
   "miner_cli/ramcove_miner",
+  "validator_cli/ramcove_validator",
 ]
 
 
 [tool.hatch.build]
-dev-mode-dirs = ["packages/protocol", "packages/evaluator", "packages/chain", "services/api", "services/controller", "services/worker", "miner_cli"]
+dev-mode-dirs = ["packages/protocol", "packages/evaluator", "packages/chain", "services/api", "services/controller", "services/worker", "miner_cli", "validator_cli"]
 
 [tool.ruff]
 line-length = 110

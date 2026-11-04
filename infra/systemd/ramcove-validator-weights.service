@@ -1,0 +1,15 @@
+[Unit]
+Description=RamCove weight validator (demo): sets weights from the owner's signed results, no evaluation
+After=ramcove-api.service
+Wants=ramcove-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/draven/room
+ExecStart=/root/draven/room/.venv/bin/ramcove-validator --api http://127.0.0.1:8787 --key-uri //RamCoveDemoValidatorWeights --state /var/lib/ramcove/validator-weights.json
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

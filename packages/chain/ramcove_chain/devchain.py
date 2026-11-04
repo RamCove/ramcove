@@ -3,6 +3,11 @@
 It produces extrinsics and events in the same normalized shapes as the real reader, including
 failure modes (plain ``batch`` interruption, insufficient balance, wrong remark), so the payment
 verifier is exercised end to end. Finality lags the head by ``finality_lag`` blocks.
+
+Validators set weights with ``SubtensorModule.set_weights``. The dev chain checks what the real chain checks
+first (the signer and every destination registered, matching lengths, no duplicate UID, the rate limit) and
+applies the weights at once; it has no stake, so a registered hotkey stands in for a validator permit, and
+it models no commit-reveal concealment.
 State is kept in a pluggable store so the API, controller and tests share one durable chain.
 """
 
@@ -17,6 +22,7 @@ from .payment import blake2_256
 from .types import Call, Event, Extrinsic, FinalizedHead
 
 DEV_FEE_RAO = 166_251
+WEIGHTS_RATE_LIMIT_BLOCKS = 100  # Bittensor's default WeightsSetRateLimit
 
 
 class DevChainStore(Protocol):
@@ -84,6 +90,7 @@ class DevChain:
     def __init__(self, store: DevChainStore, finality_lag: int = 2) -> None:
         self.store = store
         self.finality_lag = finality_lag
+        self._producing = 0
 
     # --- reader interface ---
     def genesis_hash(self) -> str:
@@ -105,12 +112,27 @@ class DevChain:
     # --- simulation controls ---
     def produce_block(self, extrinsic_specs: list[tuple[str, Call]] | None = None) -> int:
         number = self.store.head_number() + 1
+        self._producing = number
         bh = dev_block_hash(number)
         exts: list[Extrinsic] = []
         for idx, (signer, call) in enumerate(extrinsic_specs or []):
             exts.append(Extrinsic(number, bh, idx, signer, call, tuple(self._apply(idx, signer, call))))
         self.store.append_block(number, bh, exts)
         return number
+
+    def last_weights(self, netuid: int, hotkey: str, lookback: int = 5000) -> tuple[int, dict] | None:
+        """The latest successful ``set_weights`` by this hotkey on this subnet: (block, call args)."""
+        head = self.store.head_number()
+        for number in range(head, max(0, head - lookback), -1):
+            for e in reversed(self.store.extrinsics(number)):
+                if (
+                    e.signer == hotkey
+                    and (e.call.module, e.call.function) == ("SubtensorModule", "set_weights")
+                    and int(e.call.args.get("netuid", -1)) == netuid
+                    and any(v.name == "ExtrinsicSuccess" for v in e.events)
+                ):
+                    return number, e.call.args
+        return None
 
     def produce_blocks(self, count: int) -> int:
         n = 0
@@ -120,6 +142,15 @@ class DevChain:
 
     def _apply(self, idx: int, signer: str, call: Call) -> list[Event]:
         ev: list[Event] = []
+        if (call.module, call.function) == ("SubtensorModule", "set_weights"):
+            error = self._weights_error(signer, call.args)  # setting weights pays no fee
+            if error:
+                return [Event("System", "ExtrinsicFailed", {"dispatch_error": error}, idx)]
+            uid = self.store.registrations(int(call.args["netuid"]))[signer]
+            return [
+                Event("SubtensorModule", "WeightsSet", {"netuid": int(call.args["netuid"]), "uid": uid}, idx),
+                Event("System", "ExtrinsicSuccess", {}, idx),
+            ]
         bal = self.store.balance(signer)
         if bal < DEV_FEE_RAO:
             return [Event("System", "ExtrinsicFailed", {"dispatch_error": "InsufficientBalance"}, idx)]
@@ -148,6 +179,25 @@ class DevChain:
         if not ok:
             return ev + [Event("System", "ExtrinsicFailed", {"dispatch_error": "Failed"}, idx)]
         return ev + inner_events + [Event("System", "ExtrinsicSuccess", {}, idx)]
+
+    def _weights_error(self, signer: str, args: dict) -> str | None:
+        netuid = int(args["netuid"])
+        regs = self.store.registrations(netuid)
+        dests, weights = list(args["dests"]), list(args["weights"])
+        if signer not in regs:
+            return "HotKeyNotRegisteredInSubNet"
+        if len(dests) != len(weights) or not dests:
+            return "WeightVecNotEqualSize"
+        if len(set(dests)) != len(dests):
+            return "DuplicateUids"
+        if not set(dests) <= set(regs.values()):
+            return "UidVecContainInvalidOne"
+        if any(not 0 <= int(w) <= 65_535 for w in weights):
+            return "InvalidWeightValue"
+        last = self.last_weights(netuid, signer, lookback=WEIGHTS_RATE_LIMIT_BLOCKS)
+        if last is not None and self._producing - last[0] < WEIGHTS_RATE_LIMIT_BLOCKS:
+            return "SettingWeightsTooFast"
+        return None
 
     def _all_dispatchable(self, signer: str, calls: tuple[Call, ...]) -> bool:
         spend = 0
@@ -187,4 +237,12 @@ def payment_call(recipient: str, amount_rao: int, quote_id: str, plain_batch: bo
             Call("Balances", "transfer_keep_alive", {"dest": recipient, "value": amount_rao}),
             Call("System", "remark_with_event", {"remark": remark}),
         ),
+    )
+
+
+def weights_call(netuid: int, uids: list[int], weights: list[int], version_key: int) -> Call:
+    return Call(
+        "SubtensorModule",
+        "set_weights",
+        {"netuid": netuid, "dests": list(uids), "weights": list(weights), "version_key": version_key},
     )

@@ -11,8 +11,8 @@ allocation until they fall out of the queue. A person reviews a winner only when
 question quality, the capacity reading, the rule and the winner checks — with the number that decides each
 step and why each step exists.
 
-This repository is the RamCove subnet: the miner tool, the validator's evaluation worker, and the owner's
-intake, queue, controller, API and website. It runs in two modes, chosen by configuration:
+This repository is the RamCove subnet: the miner tool, the owner's evaluation worker, the validator's
+weight-setting program, and the owner's intake, queue, controller, API and website. It runs in two modes, chosen by configuration:
 
 - **Simulation mode** (`RAMCOVE_ENV=demo`), which the public demo at https://ramcove.vercel.app uses: a
   deterministic dev chain, a simulated beacon and simulated GPU workers, so the whole competition can be
@@ -30,6 +30,7 @@ intake, queue, controller, API and website. It runs in two modes, chosen by conf
 | `services/controller` | Loop: chain observation, payment verification, expiries, settlement |
 | `services/worker` | Isolation providers and stage execution; never runs candidate code outside a provider |
 | `miner_cli` | `ramcove-miner`: reproducible packing, free checks, quote, payment, recovery |
+| `validator_cli` | `ramcove-validator`: CPU-only; checks the owner's signed weight result and submits it as the validator's weights |
 | `services/api/ramcove_api/operator_cli.py` | `ramcove-operator`: the operator's and reviewers' controls, each signed with their own key |
 | `apps/web` | Next.js site, read-only: overview, dashboard, submission pages, docs and rules, status |
 
@@ -37,7 +38,8 @@ intake, queue, controller, API and website. It runs in two modes, chosen by conf
 
 The hosted site, https://ramcove.vercel.app, is the web app on Vercel reading a live backend on the
 operator's host: the same competition as the local stack, updated live. The site is read-only and has no
-sign-in. Miners submit with `ramcove-miner`, validators run `ramcove-worker`, and the operator and
+sign-in. Miners submit with `ramcove-miner`, validators set weights with `ramcove-validator` (the owner's
+evaluation workers run `ramcove-worker`), and the operator and
 reviewers act with `ramcove-operator`, each with their own key. How it is wired, secured and operated is in
 [`docs/runbooks/public-demo.md`](docs/runbooks/public-demo.md).
 
@@ -63,6 +65,7 @@ published development keys (simulation mode):
 
 ```bash
 uv run ramcove-miner submit --artifact artifact.tar.gz --key-uri //RamCoveDemoMinerAda
+uv run ramcove-validator --key-uri //RamCoveDemoValidatorWeights --once
 uv run ramcove-operator --key-uri //RamCoveDemoOperator console
 uv run ramcove-operator --key-uri //RamCoveDemoReviewerOne reviews
 ```
@@ -97,10 +100,12 @@ uv run pytest -m chain_readonly     # read-only queries against the public Bitte
 
 Moving from simulation mode to the network is a sequence of steps:
 
-1. **GPU measurement.** Enable the VFIO provider on validator hosts with a whole H100 SXM and run the Stage 1
+1. **GPU measurement.** Enable the VFIO provider on the owner's evaluation hosts with a whole H100 SXM and run the Stage 1
    calibration: the tuned baseline's score, the noise study that sets the margin, and the published run
    times. Until then the worker's simulated provider evaluates the trusted repository fixtures.
 2. **Subnet registration** on testnet, then mainnet, which fixes the netuid the tools and the site use.
-3. **Payments and weights.** Point the controller at the network's finalized blocks for fee payments,
-   and switch weight plans from proposed to submitted through commit-reveal.
+3. **Payments and weights.** Point the controller at the network's finalized blocks for fee payments, give
+   it a production signing key for weight results and pin that key in `ramcove-validator`, and enable the
+   program's network submission through commit-reveal. Validators then set weights from the owner's
+   signed results with `ramcove-validator`, or delegate stake to the owner's validator with child hotkeys.
 4. **Customer releases** of the reference stack, on the quarterly cadence the whitepaper describes.

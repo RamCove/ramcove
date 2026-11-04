@@ -111,7 +111,13 @@ def weights_latest(ctx: AppContext = Depends(get_ctx)) -> dict:
 def weights_signer(ctx: AppContext = Depends(get_ctx)) -> dict:
     """The key that signs weight results. Validators pin it in their own configuration and must not
     accept a signer they only learned from this response."""
-    return {"address": ctx.signer.address, "scheme": "sr25519", "network": ctx.settings.network}
+    return {
+        "address": ctx.signer.address,
+        "scheme": "sr25519",
+        "network": ctx.settings.network,
+        "netuid": ctx.settings.netuid,
+        "simulated_chain": ctx.settings.simulated_chain,
+    }
 
 
 @router.get("/audit")
