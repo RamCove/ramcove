@@ -80,6 +80,8 @@ type Dashboard = {
     measured_against_milli_rps: number | null;
     measured_on_worker: string | null;
     reading_milli_rps: number | null;
+    // older snapshots predate this field
+    readings?: { reading_milli_rps: number; against_milli_rps: number }[];
   };
   // the recorded preview snapshot may predate the king queue
   kings?: {
@@ -292,10 +294,23 @@ export default async function DashboardPage({
           {champion.measured_against_milli_rps ? (
             <p className="mt-4 text-[12px] leading-snug text-on-band/60">
               Each worker measures capacity for itself, so these two numbers
-              have different baselines. The gain is{" "}
-              {rps(champion.reading_milli_rps)} against{" "}
-              {rps(champion.measured_against_milli_rps)}, the previous
-              champion&apos;s fixed score on{" "}
+              have different baselines.{" "}
+              {(champion.readings?.length ?? 0) > 1 ? (
+                <>
+                  The first reading was close to the margin, so it got a second
+                  one, and the gain is the average of{" "}
+                  {champion.readings!
+                    .map((r) => `${rps(r.reading_milli_rps)}`)
+                    .join(" and ")}{" "}
+                  against {rps(champion.measured_against_milli_rps)}
+                </>
+              ) : (
+                <>
+                  The gain is {rps(champion.reading_milli_rps)} against{" "}
+                  {rps(champion.measured_against_milli_rps)}
+                </>
+              )}
+              , the previous champion&apos;s fixed score on{" "}
               <span className="font-mono">{champion.measured_on_worker}</span>,
               the worker that judged it. The capacity above is the first
               worker&apos;s measurement of this champion.

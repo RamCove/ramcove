@@ -905,8 +905,16 @@ def king_slots_view(conn, ctx: AppContext, profile_id: str) -> tuple[list[dict],
 def champion_measurement(conn, champ) -> dict:
     """Capacity is measured per worker, so two numbers on this site have different baselines: the champion's
     capacity is one worker's measurement, and its gain was taken against the fixed score of the worker that
-    judged it. Say both, or a reader cannot reconcile them."""
-    out: dict = {"measured_against_milli_rps": None, "measured_on_worker": None, "reading_milli_rps": None}
+    judged it. Say both, or a reader cannot reconcile them.
+
+    A first reading close to the margin gets a second one on the same job, and the gain is then the average of
+    the two, so every reading of the decisive evaluation is listed."""
+    out: dict = {
+        "measured_against_milli_rps": None,
+        "measured_on_worker": None,
+        "reading_milli_rps": None,
+        "readings": [],
+    }
     if not champ or not champ.submission_id:
         return out
     row = conn.execute(
@@ -915,10 +923,19 @@ def champion_measurement(conn, champ) -> dict:
         .order_by(comparisons.c.created_at.desc())
     ).first()
     if row:
+        readings = conn.execute(
+            select(comparisons)
+            .where(comparisons.c.job_id == row.job_id, comparisons.c.status == "measured")
+            .order_by(comparisons.c.created_at)
+        ).all()
         out.update(
             measured_against_milli_rps=row.champion_milli_rps,
             measured_on_worker=row.worker,
             reading_milli_rps=row.challenger_milli_rps,
+            readings=[
+                {"reading_milli_rps": r.challenger_milli_rps, "against_milli_rps": r.champion_milli_rps}
+                for r in readings
+            ],
         )
     return out
 

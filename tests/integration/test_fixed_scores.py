@@ -55,8 +55,10 @@ def test_a_champion_says_which_score_its_gain_was_measured_against(ctx):
     assert champ["measured_against_milli_rps"] == cmp_row.champion_milli_rps
     assert champ["measured_on_worker"] == cmp_row.worker
     assert champ["reading_milli_rps"] == cmp_row.challenger_milli_rps
-    gain = champ["reading_milli_rps"] / champ["measured_against_milli_rps"] - 1
-    assert abs(gain * 1e6 - champ["bound_gain_ppm"]) <= 1e6 * 0.005
+    # a first reading close to the margin gets a second one, and the gain is then the average of the two
+    gains = [r["reading_milli_rps"] / r["against_milli_rps"] - 1 for r in champ["readings"]]
+    assert 1 <= len(gains) <= 2
+    assert abs(sum(gains) / len(gains) * 1e6 - champ["bound_gain_ppm"]) <= 1e6 * 0.005
 
 
 def test_every_worker_publishes_its_own_fixed_score(ctx):
