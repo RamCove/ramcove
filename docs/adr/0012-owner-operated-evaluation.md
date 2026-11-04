@@ -15,7 +15,8 @@ scoring jobs; where only the owner scores, it has nothing to gate.
   king queue and the weight plan as before.
 - Every tempo the controller signs a weight result (`ramcove.weight_document/1`): the king shares and any
   burn share by hotkey, bound to the network, genesis hash, netuid, plan, rule hash and champion version, and
-  valid for two tempos. It is served at `GET /v1/weights/latest` without the proxy key.
+  valid for two tempos. It is served at `GET /v1/weights/latest` without the proxy key, to validators only
+  (ADR 0014).
 - Every validator, the owner's included, runs `ramcove-validator` on a CPU machine. Each cycle it fetches the
   result, verifies the signature against the key pinned for that network (never a key the server names),
   checks the network, netuid and validity window, requires the burn hotkey to be the subnet owner, maps

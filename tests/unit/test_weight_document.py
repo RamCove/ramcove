@@ -10,6 +10,7 @@ from ramcove_protocol.weight_document import (
     chain_weights,
     check_document,
     document_hash,
+    fetch_payload,
     needs_reissue,
     signed_bytes,
 )
@@ -120,3 +121,15 @@ def test_an_unregistered_king_s_share_goes_to_the_burn_hotkey():
 def test_no_submission_without_a_registered_burn_hotkey():
     with pytest.raises(WeightDocumentError):
         chain_weights(doc_for(plan("5King1")), {"5King1": 7})
+
+
+def test_a_validator_s_read_is_signed_for_one_network_path_hotkey_and_time():
+    a = fetch_payload("ramcove-devchain", "5Validator", 1000)
+    assert a.startswith(b"ramcove/v1|weight_fetch|ramcove-devchain|")
+    others = [
+        fetch_payload("finney", "5Validator", 1000),
+        fetch_payload("ramcove-devchain", "5Other", 1000),
+        fetch_payload("ramcove-devchain", "5Validator", 1001),
+        fetch_payload("ramcove-devchain", "5Validator", 1000, "/v1/weights/signer"),
+    ]
+    assert all(a != o for o in others)

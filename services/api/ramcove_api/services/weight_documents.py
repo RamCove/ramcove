@@ -2,7 +2,8 @@
 
 The latest weight plan is the owner's evaluation outcome. This module signs a weight document built from
 it, valid for two tempos, and replaces it when the plan changes or less than a tempo of validity is left.
-Validators fetch it from ``GET /v1/weights/latest``; none of them needs to evaluate miners.
+Validators fetch it from ``GET /v1/weights/latest``, which serves it only to validators
+(``validator_access``); none of them needs to evaluate miners.
 """
 
 from __future__ import annotations

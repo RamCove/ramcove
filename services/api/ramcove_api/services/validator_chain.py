@@ -57,7 +57,9 @@ def submit_weights(
                 "validator_weights_set",
                 "weight_document",
                 document_hash,
-                {"block_number": number, "uids": uids, "weights": weights, "simulated": True},
+                # public, so it records that the validator set weights, not the weights themselves: the
+                # weights are served only to validators
+                {"block_number": number, "weight_count": len(uids), "simulated": True},
                 public=True,
             )
         return {

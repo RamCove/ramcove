@@ -4,10 +4,11 @@ RamCove separates two jobs.
 
 - **Evaluation, owner-operated.** The owner's evaluation workers run every paid submission on the profile's
   hardware (one whole H100 SXM per worker), check correctness, quality and performance, and decide the king
-  queue. Every tempo the owner's controller publishes the outcome as a **signed weight result**.
+  queue. Every tempo the owner's controller signs the outcome as a **signed weight result**, which it
+  serves only to validators.
 - **Setting weights, any validator.** Every validator, the owner's included, submits weights from that
   signed result with `ramcove-validator`, a CPU-only program. Validators other than the owner run no H100
-  tests: they rely on the owner's published scores rather than checking performance themselves.
+  tests: they rely on the owner's scores rather than checking performance themselves.
 
 ## Setting weights with `ramcove-validator`
 
@@ -17,7 +18,9 @@ to a Bittensor RPC endpoint. No GPU, no evaluation data and no database.
 
 Each cycle, every 30 seconds by default, the program:
 
-1. Fetches the owner's signed weight result from `GET /v1/weights/latest`.
+1. Fetches the owner's signed weight result from `GET /v1/weights/latest`, signing the request with its
+   hotkey. The owner serves the result only to a hotkey with a validator permit, and a signed request is
+   accepted for two minutes either side of the owner's clock, so keep the machine's clock synchronized.
 2. Checks the signature against the owner key **pinned in the program** for this network. It never trusts a
    signer named by the server it fetched from.
 3. Checks that the result is for this chain (genesis hash) and this subnet, and still valid at the finalized
@@ -34,13 +37,24 @@ program never invents weights of its own.
 # simulation mode: the dev chain runs inside the owner's service, so a development key is enough
 uv run ramcove-validator --api http://127.0.0.1:8787 --key-uri //YourDevKey
 
-# network mode: reads the chain directly
+# network mode (launch step 3): reads the chain directly
 uv run ramcove-validator --api https://<owner host>:8788 --chain-endpoint wss://<rpc> --hotkey <your hotkey>
 ```
 
-In network mode the program reads the chain; submitting the weights on testnet or mainnet is one of the
-launch steps in the README. The owner signing keys for testnet and mainnet are pinned in
+Network mode is enabled at launch step 3 in the README: there the program loads your validator hotkey, which
+both signs the reads of the weight result and submits the weights, and the owner's service reads validator
+permits from the chain. The owner signing keys for testnet and mainnet are pinned in
 `ramcove_validator/core.py` when the subnet launches there.
+
+### Who can read the weight result
+
+Only validators. Each read carries the validator's hotkey, a timestamp and an sr25519 signature over
+`ramcove/v1|weight_fetch|<network>|…` (the hotkey, method, path and timestamp). The owner checks the
+signature and the clock window, then the validator permit: on a network, Bittensor's permit for that hotkey
+on the subnet; in simulation, a hotkey the owner lists as a validator that is registered on the dev chain.
+Without a signature the answer is `401 validator_signature_required`; a hotkey without a permit gets
+`403 not_a_validator`. The signer endpoint, `GET /v1/weights/signer`, holds no scores and stays open. The
+weights a validator sets are visible on the chain itself, as on every subnet.
 
 ### Without running anything: child hotkeys
 
@@ -51,8 +65,8 @@ all: the owner's weights then carry its stake.
 ## What you are trusting
 
 The signature proves that the result came from the owner and was not altered. It does not prove that the
-owner's measurements are right. Everything needed to recompute the arithmetic is published (signed reports,
-the hash-chained audit log, the question banks once their week ends), but a validator that sets weights
+owner's measurements are right. The owner keeps signed reports and a hash-chained audit log, and publishes
+the question banks once their week ends, but a validator that sets weights
 from the owner's result does not independently verify performance. The king queue and its shares (20% to
 each king below King #1, the rest to King #1) are in the result exactly as the owner's evaluation decided them.
 

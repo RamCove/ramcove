@@ -25,3 +25,9 @@ def test_parses_real_transfer_and_correlates_events(reader):
     t = [e for e in ext.events if e.name == "Transfer"][0]
     assert t.attributes["amount"] == 295_647_070 == ext.call.args["value"]
     assert all(e.extrinsic_index == 5 for e in ext.events)
+
+
+def test_reads_validator_permits(reader):
+    block, permitted = reader.validator_permit_hotkeys(1)
+    _, uids = reader.hotkey_uid_map(1)
+    assert block > 9_088_306 and permitted and permitted <= set(uids)

@@ -237,8 +237,11 @@ submission, a new fee and fresh tests; readings are never pooled across attempts
   own fixed score of the champion. Workers run by one party are **parallel**, not independent.
 - Every tempo the controller signs a weight document from the latest weight plan: the share of the miner
   allocation per hotkey, the burn hotkey, the chain and netuid, and a validity window of two tempos.
-  `GET /v1/weights/latest` serves it to anyone. *Where: `ramcove_protocol.weight_document`,
-  `ramcove_api.services.weight_documents`.*
+  `GET /v1/weights/latest` serves it only to validators: each read is signed with the validator's hotkey
+  over `fetch_payload` (hotkey, method, path, timestamp; ±120 s), and the hotkey must hold a validator permit.
+  The public site shows the king queue and the plan's status, not the weights by hotkey. *Where:
+  `ramcove_protocol.weight_document`, `ramcove_api.services.weight_documents`,
+  `ramcove_api.services.validator_access`.*
 - Every validator, the owner's included, submits weights with `ramcove-validator`. It checks the signature
   against the owner key pinned per network, the chain, netuid and window, and that the burn goes to the
   subnet owner. It maps hotkeys to UIDs from its own chain read and submits; anything missing or wrong means

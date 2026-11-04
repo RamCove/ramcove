@@ -101,12 +101,6 @@ type ProfileDetail = {
     bound_gain_ppm: number | null;
   };
   weight_plan: {
-    entries: {
-      hotkey: string;
-      uid: number;
-      weight_u16: number;
-      role: string;
-    }[];
     no_winner: boolean;
     notes: string[];
     writer_enabled: boolean;
@@ -582,29 +576,17 @@ export default async function CompetitionPage() {
         </Card>
 
         <Card
-          title="Proposed weight plan"
-          subtitle="Deterministic from the king queue: each king below King #1 earns 20% of the miner allocation and King #1 earns the rest, including the share of every empty slot. With no king, and for an ineligible king, the share goes to the owner UID to be burned. Published as a proposal in simulation mode, set through commit-reveal in network mode."
+          title="Weight result"
+          subtitle="Deterministic from the king queue: each king below King #1 earns 20% of the miner allocation and King #1 earns the rest, including the share of every empty slot. With no king, and for an ineligible king, the share goes to the owner UID to be burned."
         >
           {data.weight_plan ? (
             <>
-              <Table head={["Hotkey", "UID", "Weight", "Role"]}>
-                {data.weight_plan.entries.map((e) => (
-                  <tr key={`${e.hotkey}-${e.role}`}>
-                    <Td>
-                      <Mono>{shortHash(e.hotkey, 8)}</Mono>
-                    </Td>
-                    <Td className="num">{e.uid}</Td>
-                    <Td className="num">
-                      {((e.weight_u16 / 65535) * 100).toFixed(1)}%
-                    </Td>
-                    <Td>
-                      <Pill tone={e.role === "king" ? "ok" : "warn"}>
-                        {e.role.replace(/_/g, " ")}
-                      </Pill>
-                    </Td>
-                  </tr>
-                ))}
-              </Table>
+              <p className="text-[14px] leading-relaxed text-muted">
+                Every tempo the owner signs the weights by hotkey and serves
+                them only to validators, who read them with a request signed by
+                their validator hotkey and set their weights from them. The
+                weights are not published on this site.
+              </p>
               <div className="mt-3 space-y-2">
                 <Pill tone="sim">
                   status: {data.weight_plan.status.replace(/_/g, " ")}

@@ -1,4 +1,4 @@
-"""Shared dependencies: context, session, roles, idempotency and worker request signatures."""
+"""Shared dependencies: context, session, roles, idempotency, and worker and validator request signatures."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from ..services.auth import session_for
 from ..services.context import AppContext, ServiceError
+from ..services.validator_access import require_validator
 from ..signing import verify_sr25519
 from ..store.db import now, tx
 from ..store.schema import idempotency, workers
@@ -63,6 +64,19 @@ def idempotent(ctx: AppContext, actor: str, route: str, key: str | None, produce
             .on_conflict_do_nothing()
         )
     return result
+
+
+def validator_reader(
+    request: Request,
+    ctx: AppContext = Depends(get_ctx),
+    x_ramcove_hotkey: str | None = Header(None),
+    x_ramcove_timestamp: str | None = Header(None),
+    x_ramcove_signature: str | None = Header(None),
+) -> str:
+    """The weight result is served only to validators, who sign each read with their hotkey."""
+    return require_validator(
+        ctx, x_ramcove_hotkey, x_ramcove_timestamp, x_ramcove_signature, request.url.path
+    )
 
 
 async def worker_identity(

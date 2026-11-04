@@ -72,6 +72,17 @@ class SubstrateReader:
             result[str(value.value)] = int(key.value)
         return head.number, result
 
+    def validator_permit_hotkeys(self, netuid: int) -> tuple[int, set[str]]:
+        """Hotkeys holding a validator permit on the subnet: ``SubtensorModule.ValidatorPermit`` is one bool
+        per UID, and ``Keys`` maps each UID to its hotkey."""
+        head = self.finalized_head()
+        permits = self._s.query("SubtensorModule", "ValidatorPermit", [netuid], block_hash=head.hash).value
+        hotkey_of = {
+            int(k.value): str(v.value)
+            for k, v in self._s.query_map("SubtensorModule", "Keys", [netuid], block_hash=head.hash)
+        }
+        return head.number, {hotkey_of[uid] for uid, ok in enumerate(permits) if ok and uid in hotkey_of}
+
     def subnet_owner_hotkey(self, netuid: int) -> str:
         head = self.finalized_head()
         return str(

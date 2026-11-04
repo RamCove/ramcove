@@ -383,79 +383,14 @@
     "bound_gain_ppm": 383505
    },
    "weight_plan": {
-    "notes": [
-     "the share of empty or unpaid king slots is proposed for the owner UID; burn behaviour must be verified on the target runtime",
-     "weight writer disabled: no-winner mechanism not yet verified on testnet"
-    ],
-    "netuid": 0,
     "schema": "ramcove.weight_plan/2",
-    "status": "proposed_not_submitted",
-    "entries": [
-     {
-      "uid": 1,
-      "role": "king",
-      "hotkey": "5DhXsnMWCKUHbLxgDdmkKWnLQDn6WmrxMFtcrLCwmT41iRSj",
-      "weight_u16": 13107
-     },
-     {
-      "uid": 0,
-      "role": "burn",
-      "hotkey": "5FCN9JKsZscnekEshYUS4iBE3imVAZxi9RRErnrHS7RRtqiD",
-      "weight_u16": 52428
-     }
-    ],
-    "no_winner": false,
-    "simulated": true,
     "snapshot_block": 17,
-    "writer_enabled": false,
     "champion_version": 1,
-    "kings": [
-     {
-      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
-      "slot": 1,
-      "champion_version": 1,
-      "hotkey": "5DhXsnMWCKUHbLxgDdmkKWnLQDn6WmrxMFtcrLCwmT41iRSj",
-      "share_bp": 2000,
-      "paid": true,
-      "reason": "paid"
-     },
-     {
-      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
-      "slot": 2,
-      "champion_version": null,
-      "hotkey": null,
-      "share_bp": 2000,
-      "paid": false,
-      "reason": "empty"
-     },
-     {
-      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
-      "slot": 3,
-      "champion_version": null,
-      "hotkey": null,
-      "share_bp": 2000,
-      "paid": false,
-      "reason": "empty"
-     },
-     {
-      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
-      "slot": 4,
-      "champion_version": null,
-      "hotkey": null,
-      "share_bp": 2000,
-      "paid": false,
-      "reason": "empty"
-     },
-     {
-      "profile_id": "ramcove-p1-h100sxm-qwen38-27b-fp8",
-      "slot": 5,
-      "champion_version": null,
-      "hotkey": null,
-      "share_bp": 2000,
-      "paid": false,
-      "reason": "empty"
-     }
-    ]
+    "no_winner": false,
+    "notes": [],
+    "writer_enabled": false,
+    "status": "proposed_not_submitted",
+    "simulated": true
    },
    "values_are": "provisional planning values from the v0.2 whitepaper; none is measured on H100"
   },

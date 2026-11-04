@@ -1,11 +1,12 @@
 """ramcove-validator: a CPU-only validator that sets weights from the owner's signed results.
 
     ramcove-validator --api https://<owner host>:8788 --key-uri //YourDevKey          # simulation mode
-    ramcove-validator --api https://<owner host>:8788 --chain-endpoint wss://...      # network mode
+    ramcove-validator --api https://<owner host>:8788 --chain-endpoint wss://...      # network mode (launch step 3)
 
-Every ``--interval`` seconds it fetches ``/v1/weights/latest``, checks the owner's signature against the key
-pinned for the network, maps hotkeys to UIDs from its own chain reads, and submits the weights. It needs
-no GPU, no evaluation data and no database.
+Every ``--interval`` seconds it fetches ``/v1/weights/latest`` with a request signed by its hotkey (the
+owner serves the result only to validators), checks the owner's signature against the key pinned for the
+network, maps hotkeys to UIDs from its own chain reads, and submits the weights. It needs no GPU, no
+evaluation data and no database.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import time
 from pathlib import Path
 
 import httpx
+from ramcove_protocol.weight_document import LATEST_PATH, fetch_payload
 from substrateinterface import Keypair
 
 from .core import PINNED_SIGNERS, ChainView, Outcome, State, run_cycle
@@ -46,11 +48,20 @@ def _check(r: httpx.Response) -> dict:
 
 
 class HttpSource:
-    def __init__(self, client: httpx.Client) -> None:
-        self.client = client
+    """Reads the owner's weight result, signing each request with the validator's hotkey."""
+
+    def __init__(self, client: httpx.Client, keypair: Keypair, network: str) -> None:
+        self.client, self.keypair, self.network = client, keypair, network
 
     def latest(self) -> dict:
-        return _check(self.client.get("/v1/weights/latest"))
+        ts = int(time.time())
+        sig = self.keypair.sign(fetch_payload(self.network, self.keypair.ss58_address, ts))
+        headers = {
+            "x-ramcove-hotkey": self.keypair.ss58_address,
+            "x-ramcove-timestamp": str(ts),
+            "x-ramcove-signature": "0x" + sig.hex(),
+        }
+        return _check(self.client.get(LATEST_PATH, headers=headers))
 
 
 class SimulatedChain:
@@ -153,23 +164,24 @@ def main(argv: list[str] | None = None) -> int:
             pin = PINNED_SIGNERS.get(network)
             if not pin:
                 raise CliError(f"no owner signing key is pinned for {network!r} in this build")
-            if meta.get("simulated_chain"):
-                if not args.key_uri:
-                    raise CliError("simulation mode needs --key-uri, a development key")
-                kp = Keypair.create_from_uri(args.key_uri)
-                chain, submitter = SimulatedChain(client), SimulatedSubmitter(client, kp)
-            else:
-                if args.key_uri:
-                    raise CliError("--key-uri is a development key; use --hotkey with a real network")
-                if not (args.chain_endpoint and args.hotkey):
-                    raise CliError("network mode needs --chain-endpoint and --hotkey")
-                chain = NetworkChain(args.chain_endpoint, network, int(meta.get("netuid", 0)))
-                submitter = NetworkSubmitter(args.hotkey, network)
+            if not meta.get("simulated_chain"):
+                # reading the result needs the hotkey's signature, and submitting needs the hotkey too; loading a
+                # network hotkey and NetworkSubmitter are enabled together at launch step 3
+                raise CliError(
+                    f"network mode on {network} is launch step 3: the owner serves the weight result only to "
+                    "requests signed by a validator hotkey, and this build loads development keys only "
+                    "(see the README's Launch section)"
+                )
+            if not args.key_uri:
+                raise CliError("simulation mode needs --key-uri, a development key")
+            kp = Keypair.create_from_uri(args.key_uri)
+            source = HttpSource(client, kp, network)
+            chain, submitter = SimulatedChain(client), SimulatedSubmitter(client, kp)
             log.info("validator %s on %s; owner signer pinned %s", submitter.hotkey, network, pin)
             state = State.load(Path(args.state))
             while True:
                 try:
-                    _report(run_cycle(HttpSource(client), chain, submitter, state, pin, verify_sr25519))
+                    _report(run_cycle(source, chain, submitter, state, pin, verify_sr25519))
                 except (CliError, httpx.HTTPError) as e:
                     log.warning("cycle failed: %s", e)
                 if args.once:

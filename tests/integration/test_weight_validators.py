@@ -38,7 +38,7 @@ def test_every_validator_submits_the_owner_s_result_without_evaluating(ctx):
         client = TestClient(create_app(ctx), base_url="https://testserver")
         kp = Keypair.create_from_uri(uri)
         out = run_cycle(
-            HttpSource(client),
+            HttpSource(client, kp, ctx.settings.network),
             SimulatedChain(client),
             SimulatedSubmitter(client, kp),
             State(),
@@ -58,12 +58,14 @@ def test_every_validator_submits_the_owner_s_result_without_evaluating(ctx):
     assert rows[0][1]["weights"] == rows[1][1]["weights"] == [65_535]
 
 
-def test_the_public_door_serves_the_result_but_not_the_simulation_routes(ctx):
+def test_the_public_door_serves_the_result_to_validators_but_not_the_simulation_routes(ctx):
     control.tick(ctx)
     public = TestClient(
         create_app(ctx), base_url="https://testserver", headers={"x-ramcove-channel": "public"}
     )
-    assert public.get("/v1/weights/latest").status_code == 200
+    kp = Keypair.create_from_uri(VALIDATORS[1])
+    assert HttpSource(public, kp, ctx.settings.network).latest()["document"]
+    assert public.get("/v1/weights/latest").status_code == 401  # unsigned: not served
     assert public.get("/v1/weights/signer").json()["simulated_chain"] is True
     assert public.get("/v1/validator/chain").status_code == 403
     assert public.post("/v1/validator/weights", json={}).status_code == 403

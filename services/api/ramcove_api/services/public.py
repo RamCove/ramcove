@@ -242,6 +242,13 @@ def overview(ctx: AppContext) -> dict:
         }
 
 
+def public_weight_plan(body: dict) -> dict:
+    """The weight plan as the public site shows it: its status and notes, not the weights. Weights by hotkey
+    are in the owner's signed weight result, which is served only to validators."""
+    keys = ("schema", "snapshot_block", "champion_version", "no_winner", "notes", "writer_enabled", "status")
+    return {k: body.get(k) for k in keys} | {"simulated": body.get("simulated", True)}
+
+
 def profile_detail(ctx: AppContext) -> dict:
     with tx(ctx.engine) as conn:
         profile = ctx.profile(conn)
@@ -263,7 +270,7 @@ def profile_detail(ctx: AppContext) -> dict:
                 "promoted_at": champ.promoted_at,
                 "bound_gain_ppm": champ.bound_gain_ppm,
             },
-            "weight_plan": None if latest_plan is None else latest_plan.body,
+            "weight_plan": None if latest_plan is None else public_weight_plan(latest_plan.body),
             "values_are": "provisional planning values from the v0.2 whitepaper; none is measured on H100",
         }
 

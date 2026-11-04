@@ -2,9 +2,11 @@
 
 The owner's evaluation produces a weight plan (``weights.build_weight_plan``). Every tempo the owner signs a
 *weight document* built from it: the share of the miner allocation each hotkey receives, valid for a
-window of blocks. Any validator can fetch the document, check the owner's signature against a pinned
-signer, map the hotkeys to UIDs from its own chain reads, and submit those weights. Validators that set
-weights this way run no evaluation of their own: they rely on the owner's published scores.
+window of blocks. Only validators can fetch the document: each read is signed with the validator's hotkey
+(``fetch_payload``) and the owner serves it only to a hotkey with a validator permit. The validator checks
+the owner's signature against a pinned signer, maps the hotkeys to UIDs from its own chain reads, and
+submits those weights. Validators that set weights this way run no evaluation of their own: they rely on
+the owner's scores.
 
 Shares are keyed by hotkey, never by UID, because a UID number can pass to another hotkey. A hotkey that
 is not registered when a validator reads the chain has its share moved to the burn hotkey.
@@ -25,6 +27,9 @@ SCHEMA = "ramcove.weight_document/1"
 RECORD_TYPE = "weight_document"
 TEMPO_BLOCKS = 360  # Bittensor's default tempo
 VALID_TEMPOS = 2  # a document is valid for two tempos and re-issued when less than one remains
+LATEST_PATH = "/v1/weights/latest"
+FETCH_RECORD_TYPE = "weight_fetch"
+FETCH_CLOCK_SKEW_S = 120  # a signed read is accepted for two minutes either side of the owner's clock
 
 
 class WeightDocumentError(ValueError):
@@ -81,6 +86,16 @@ def build_weight_document(
             for k in kings
         ],
     }
+
+
+def fetch_payload(network: str, hotkey: str, timestamp: int, path: str = LATEST_PATH) -> bytes:
+    """The bytes a validator signs with its hotkey to read the owner's weight result. Domain-separated by
+    record type and network, and bound to the path and a timestamp so a signed read cannot be reused later."""
+    return signing_payload(
+        FETCH_RECORD_TYPE,
+        network,
+        {"hotkey": hotkey, "method": "GET", "path": path, "timestamp": int(timestamp)},
+    )
 
 
 def document_hash(doc: Mapping[str, Any]) -> str:

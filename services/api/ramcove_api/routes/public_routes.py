@@ -9,7 +9,7 @@ from ..services import auth as auth_svc
 from ..services import public, weight_documents
 from ..services.context import AppContext, ServiceError
 from ..store.db import tx
-from .deps import SESSION_COOKIE, get_ctx, require_role, session
+from .deps import SESSION_COOKIE, get_ctx, require_role, session, validator_reader
 
 router = APIRouter(prefix="/v1", tags=["public"])
 
@@ -97,9 +97,10 @@ def champion_artifact(version: int, ctx: AppContext = Depends(get_ctx)) -> Respo
 
 
 @router.get("/weights/latest", tags=["validators"])
-def weights_latest(ctx: AppContext = Depends(get_ctx)) -> dict:
-    """The owner's signed weight result. Validators check the signature against the pinned signer, map the
-    hotkeys to UIDs from their own chain reads, and submit the weights. It is renewed every tempo."""
+def weights_latest(ctx: AppContext = Depends(get_ctx), _validator: str = Depends(validator_reader)) -> dict:
+    """The owner's signed weight result, served only to validators: each read is signed with the validator's
+    hotkey, which must hold a validator permit. Validators check the owner's signature against the pinned
+    signer, map the hotkeys to UIDs from their own chain reads, and submit the weights. Renewed every tempo."""
     with tx(ctx.engine) as conn:
         signed = weight_documents.latest_signed(conn, ctx)
     if signed is None:
@@ -109,8 +110,8 @@ def weights_latest(ctx: AppContext = Depends(get_ctx)) -> dict:
 
 @router.get("/weights/signer", tags=["validators"])
 def weights_signer(ctx: AppContext = Depends(get_ctx)) -> dict:
-    """The key that signs weight results. Validators pin it in their own configuration and must not
-    accept a signer they only learned from this response."""
+    """The key that signs weight results, and the network and netuid. Holds no scores, so anyone may read it.
+    Validators pin the key in their own configuration and must not accept a signer they only learned here."""
     return {
         "address": ctx.signer.address,
         "scheme": "sr25519",

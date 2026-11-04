@@ -56,6 +56,7 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
         allow_headers=[
             "content-type",
             "x-ramcove-worker",
+            "x-ramcove-hotkey",
             "x-ramcove-timestamp",
             "x-ramcove-signature",
             "idempotency-key",

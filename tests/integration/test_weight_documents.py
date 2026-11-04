@@ -1,6 +1,8 @@
-"""The owner's signed weight result: issued by the controller, renewed every tempo, readable by anyone."""
+"""The owner's signed weight result: issued by the controller, renewed every tempo, served only to validators."""
 
 from __future__ import annotations
+
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,7 +12,8 @@ from ramcove_api.services.settlement import publish_weight_plan
 from ramcove_api.services.weight_documents import ensure_weight_document, latest_signed
 from ramcove_api.store.db import tx
 from ramcove_api.store.schema import audit_events
-from ramcove_protocol.weight_document import TEMPO_BLOCKS, check_document, signed_bytes
+from ramcove_protocol.weight_document import TEMPO_BLOCKS, check_document, fetch_payload, signed_bytes
+from ramcove_validator.cli import CliError, HttpSource
 from sqlalchemy import func, select
 from substrateinterface import Keypair
 
@@ -32,12 +35,17 @@ def issued_events(conn) -> int:
     ).scalar()
 
 
+VALIDATOR = Keypair.create_from_uri("//RamCoveDemoValidatorWeights")
+
+
+def public_client(ctx) -> TestClient:
+    return TestClient(create_app(ctx), base_url="https://testserver", headers={"x-ramcove-channel": "public"})
+
+
 def test_the_controller_signs_a_result_any_validator_can_verify(ctx):
     control.tick(ctx)
-    client = TestClient(
-        create_app(ctx), base_url="https://testserver", headers={"x-ramcove-channel": "public"}
-    )
-    signed = client.get("/v1/weights/latest").json()
+    client = public_client(ctx)
+    signed = HttpSource(client, VALIDATOR, ctx.settings.network).latest()
     signer = client.get("/v1/weights/signer").json()
     assert signer["address"] == signed["signer"] == ctx.signer.address
     doc = signed["document"]
@@ -93,5 +101,50 @@ def test_renewed_every_tempo_and_reissued_when_the_plan_changes(ctx):
 
 def test_no_result_yet_is_a_clear_error(ctx):
     client = TestClient(create_app(ctx), base_url="https://testserver")
-    r = client.get("/v1/weights/latest")
-    assert r.status_code == 503 and r.json()["error"]["code"] == "no_weight_document"
+    with pytest.raises(CliError, match="no_weight_document"):
+        HttpSource(client, VALIDATOR, ctx.settings.network).latest()
+
+
+def signed_headers(ctx, kp: Keypair, ts: int | None = None, path: str = "/v1/weights/latest") -> dict:
+    ts = int(time.time()) if ts is None else ts
+    sig = kp.sign(fetch_payload(ctx.settings.network, kp.ss58_address, ts, path))
+    return {
+        "x-ramcove-hotkey": kp.ss58_address,
+        "x-ramcove-timestamp": str(ts),
+        "x-ramcove-signature": "0x" + sig.hex(),
+    }
+
+
+def error_code(r) -> tuple[int, str]:
+    return r.status_code, r.json()["error"]["code"]
+
+
+def test_only_validators_can_read_the_result(ctx):
+    control.tick(ctx)
+    client = public_client(ctx)
+    url = "/v1/weights/latest"
+    # anyone else: no signature, a miner's hotkey, an unknown key, a stale or reused signature
+    assert error_code(client.get(url)) == (401, "validator_signature_required")
+    miner = Keypair.create_from_uri("//RamCoveDemoMinerAda")
+    assert error_code(client.get(url, headers=signed_headers(ctx, miner))) == (403, "not_a_validator")
+    stranger = Keypair.create_from_uri("//SomeoneWhoIsNotRegistered")
+    assert error_code(client.get(url, headers=signed_headers(ctx, stranger))) == (403, "not_a_validator")
+    stale = signed_headers(ctx, VALIDATOR, ts=int(time.time()) - 600)
+    assert error_code(client.get(url, headers=stale)) == (401, "stale_request")
+    other_path = signed_headers(ctx, VALIDATOR, path="/v1/weights/signer")
+    assert error_code(client.get(url, headers=other_path)) == (401, "bad_signature")
+    forged = signed_headers(ctx, VALIDATOR) | {"x-ramcove-hotkey": miner.ss58_address}
+    assert error_code(client.get(url, headers=forged)) == (401, "bad_signature")
+    # a validator: both the owner-operated one and one that only sets weights
+    for uri in ("//RamCoveDemoValidatorOperator", "//RamCoveDemoValidatorWeights"):
+        r = client.get(url, headers=signed_headers(ctx, Keypair.create_from_uri(uri)))
+        assert r.status_code == 200 and r.json()["document"]["schema"] == "ramcove.weight_document/1"
+    # the signer endpoint holds no scores and stays open
+    assert client.get("/v1/weights/signer").status_code == 200
+
+
+def test_the_public_site_shows_the_plan_status_but_not_the_weights(ctx):
+    control.tick(ctx)
+    plan = public_client(ctx).get("/v1/profile").json()["weight_plan"]
+    assert plan is not None and "status" in plan
+    assert "entries" not in plan and "kings" not in plan

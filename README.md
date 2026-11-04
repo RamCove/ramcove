@@ -107,7 +107,9 @@ Moving from simulation mode to the network is a sequence of steps:
    times. Until then the worker's simulated provider evaluates the trusted repository fixtures.
 2. **Subnet registration** on testnet, then mainnet, which fixes the netuid the tools and the site use.
 3. **Payments and weights.** Point the controller at the network's finalized blocks for fee payments, give
-   it a production signing key for weight results and pin that key in `ramcove-validator`, and enable the
-   program's network submission through commit-reveal. Validators then set weights from the owner's
-   signed results with `ramcove-validator`, or delegate stake to the owner's validator with child hotkeys.
+   it a production signing key for weight results and pin that key in `ramcove-validator`, have the API read
+   validator permits from the chain (the weight result is served only to validators), and enable the
+   program's network mode: it loads the validator's hotkey to sign its reads and submits through
+   commit-reveal. Validators then set weights from the owner's signed results with `ramcove-validator`, or
+   delegate stake to the owner's validator with child hotkeys.
 4. **Customer releases** of the reference stack, on the quarterly cadence the whitepaper describes.

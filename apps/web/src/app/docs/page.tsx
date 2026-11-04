@@ -317,9 +317,10 @@ uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
               </li>
               <li>
                 Every 30 seconds it fetches the owner&apos;s signed weight
-                result, checks the signature against the owner key pinned in
-                the program, and checks that the result is for this chain and
-                subnet and still valid.
+                result with a request signed by its hotkey (the owner serves it
+                only to validators), checks the signature against the owner key
+                pinned in the program, and checks that the result is for this
+                chain and subnet and still valid.
               </li>
               <li>
                 It maps hotkeys to UIDs from its own chain read and submits the
@@ -329,8 +330,8 @@ uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
               </li>
               <li>
                 Validators other than the owner run no H100 tests: they rely on
-                the owner&apos;s published scores rather than checking
-                performance themselves.
+                the owner&apos;s scores rather than checking performance
+                themselves.
               </li>
               <li>
                 To run nothing at all, delegate stake weight to the owner&apos;s
@@ -343,12 +344,13 @@ uv run ramcove-miner recover --block N --index I --key-uri //Dev`}
 uv run ramcove-validator --api http://127.0.0.1:8787 \\
   --key-uri //YourDevKey
 
-# network mode: reads the chain directly
+# network mode (launch step 3): reads the chain directly
 uv run ramcove-validator --api https://<owner host>:8788 \\
   --chain-endpoint wss://<rpc> --hotkey <your hotkey>
 
-# the owner's signed result, open to anyone
-curl https://<owner host>:8788/v1/weights/latest`}
+# the owner's signing key; the result itself is served
+# only to requests signed by a validator hotkey
+curl https://<owner host>:8788/v1/weights/signer`}
             </pre>
           </div>
           <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
