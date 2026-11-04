@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from ramcove_miner.artifact import sign_artifact
 from ramcove_protocol.rules import ProfileVersion
+from ramcove_protocol.state import TERMINAL
 from ramcove_worker.isolation import SimulatedTrustedProvider
 from ramcove_worker.runner import execute
 from sqlalchemy import select, update
@@ -122,6 +123,20 @@ class Harness:
             )
             control.tick(self.ctx)
 
+    def has_active(self, miner: str) -> bool:
+        """One active submission per hotkey: a scenario run after another must not submit for a miner
+        whose earlier submission is still in the queue or in review."""
+        hk, _ = self.hotkey(miner)
+        with tx(self.ctx.engine) as conn:
+            return (
+                conn.execute(
+                    select(submissions.c.id).where(
+                        submissions.c.hotkey == hk, submissions.c.state.not_in([s.value for s in TERMINAL])
+                    )
+                ).first()
+                is not None
+            )
+
     def state(self, sub_id: str) -> str:
         with tx(self.ctx.engine) as conn:
             return conn.execute(select(submissions.c.state).where(submissions.c.id == sub_id)).scalar()
@@ -146,16 +161,28 @@ def run(ctx: AppContext, name: str) -> dict:
     if name == "live":
         # Nothing is worked here on purpose: the running workers lease these jobs themselves, which is what
         # gives the dashboard a queue, a submission on a GPU and its live progress.
+        skipped = {}
         for miner, fixture in (
             ("miner-ada", "fragmentation-aware-allocator"),
             ("miner-bao", "kv8-conversation-retention"),
             ("miner-cyd", "native-paged-kv-kernel"),
             ("miner-dee", "evict-quarter"),
         ):
+            if h.has_active(miner):  # e.g. a flagged winner from "busy" still waiting for its reviewer
+                skipped[miner] = "already has an active submission"
+                continue
             sub = h.submit(miner, fixture)
             h.mark(sub, name)
-            h.admit(sub, miner)
+            try:
+                h.admit(sub, miner)
+            except ServiceError as e:
+                if e.code != "not_registered":
+                    raise
+                # miner-dee is the unregistered demo miner: its submission passes the free checks and waits
+                # there, because joining the queue needs a registered hotkey
+                skipped[miner] = "not registered: checked, not yet in the queue"
             out["submissions"][fixture] = sub
+        out["skipped"] = skipped
         out["note"] = "Left queued for the workers; watch /dashboard."
         return out
 
