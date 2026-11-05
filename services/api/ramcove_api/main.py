@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 
 from .channel import PUBLIC_DENY, PUBLIC_METHODS, is_public
 from .config import load_settings
-from .routes import demo, miner, operator, public_routes, review_routes, validator_routes, worker_routes
+from .routes import demo, miner, public_routes, validator_routes, worker_routes
 from .services.context import AppContext, ArtifactStore, ServiceError
 from .signing import ServiceSigner
 from .store.db import is_contention, make_engine, new_id
@@ -41,8 +41,6 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
             {"name": "public"},
             {"name": "miner"},
             {"name": "validator"},
-            {"name": "review"},
-            {"name": "operator"},
             {"name": "worker"},
             {"name": "demo"},
         ],
@@ -123,8 +121,6 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
     for router in (
         public_routes.router,
         miner.router,
-        review_routes.router,
-        operator.router,
         worker_routes.router,
         validator_routes.router,
         demo.router,

@@ -121,15 +121,10 @@ def test_private_fields_are_not_visible_to_other_miners(client, app_ctx):
 
 def test_roles_are_enforced_server_side(client):
     sign_in(client, "miner-ada")
-    assert client.get("/v1/operator/console").status_code == 403
-    assert client.post("/v1/operator/intake", json={"paused": True, "reason": "attempt"}).status_code == 403
-    assert client.get("/v1/review/queue").status_code == 403
+    assert client.post("/v1/demo/tick").status_code == 403
     assert client.post("/v1/demo/reset").status_code == 403
-    sign_in(client, "reviewer-1")
-    assert client.get("/v1/review/queue").status_code == 200
-    assert client.get("/v1/operator/console").status_code == 403
     sign_in(client, "operator")
-    assert client.get("/v1/operator/console").status_code == 200
+    assert client.post("/v1/demo/tick").status_code == 200
 
 
 def test_worker_requests_need_a_valid_signature(client, app_ctx):

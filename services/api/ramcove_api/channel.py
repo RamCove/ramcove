@@ -15,8 +15,6 @@ PUBLIC_DENY = (
     "/v1/miner/",
     "/v1/demo/",
     "/v1/worker/",
-    "/v1/operator/",
-    "/v1/review/",
     "/v1/appeals",
     "/v1/validator/",
     "/docs",
