@@ -500,8 +500,8 @@ function HowItWorks({ margin }: { margin: string }) {
     [
       "04",
       "Checked",
-      "A winner passes memory, latency and stability checks. A person looks only when an automatic check flags something.",
-      "Review if flagged",
+      "A winner passes memory, latency and stability checks before promotion.",
+      "Checks",
     ],
     [
       "05",

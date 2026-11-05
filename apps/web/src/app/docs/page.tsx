@@ -62,7 +62,7 @@ const WORKFLOW: { name: string; cost: string; what: string; why: string }[] = [
   {
     name: "Promotion",
     cost: "6.51 GPU-h, reserve",
-    what: "Automatic unless a check flagged it, in admission order. The champion's code is published and its score measured again on every worker.",
+    what: "In admission order. The champion's code is published and its score measured again on every worker.",
     why: "The next challenger is judged against a fresh number measured on the worker that will judge it.",
   },
 ];
@@ -256,8 +256,7 @@ export default function DocsPage() {
                 Screening (10 minutes), then one evaluation against the
                 champion&apos;s fixed score. The questions come from the
                 owner&apos;s question bank for the week, the same for every
-                submission that week. A winner is promoted automatically unless
-                a check flags it for a person. Follow it with{" "}
+                submission that week. Follow it with{" "}
                 <Mono>status</Mono> or on the{" "}
                 <Link href="/dashboard" className="text-accent hover:underline">
                   dashboard
