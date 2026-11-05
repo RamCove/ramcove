@@ -99,7 +99,13 @@ class SimulatedSubmitter:
         if not self._signed_in:
             self._sign_in()
         body = {"uids": uids, "weights": weights, "version_key": version_key, "document_hash": document_hash}
-        return _check(self.client.post("/v1/validator/weights", json=body))
+        r = self.client.post("/v1/validator/weights", json=body)
+        if r.status_code == 401:
+            # the sign-in session expired; a long-running validator signs in again and retries once
+            self._signed_in = False
+            self._sign_in()
+            r = self.client.post("/v1/validator/weights", json=body)
+        return _check(r)
 
 
 class NetworkChain:

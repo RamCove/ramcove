@@ -69,3 +69,26 @@ def test_the_public_door_serves_the_result_to_validators_but_not_the_simulation_
     assert public.get("/v1/weights/signer").json()["simulated_chain"] is True
     assert public.get("/v1/validator/chain").status_code == 403
     assert public.post("/v1/validator/weights", json={}).status_code == 403
+
+
+def test_a_validator_signs_in_again_after_its_session_expires(ctx):
+    """A long-running validator's sign-in session expires after SESSION_TTL; the next submit must re-auth."""
+    from datetime import timedelta
+
+    from ramcove_api.store.db import now
+    from ramcove_api.store.schema import sessions
+    from sqlalchemy import update
+
+    control.tick(ctx)
+    client = TestClient(create_app(ctx), base_url="https://testserver")
+    kp = Keypair.create_from_uri(VALIDATORS[1])
+    submitter = SimulatedSubmitter(client, kp)
+    assert submitter.submit([0], [65_535], 100, "a" * 64)["simulated"] is True  # signs in and submits
+
+    # make every session look expired, as it would be 12 hours later
+    with tx(ctx.engine) as conn:
+        conn.execute(update(sessions).values(expires_at=now() - timedelta(minutes=1)))
+
+    # the submitter still thinks it is signed in; it must notice the 401, sign in again and succeed
+    out = submitter.submit([0], [65_535], 100, "b" * 64)
+    assert out["simulated"] is True
