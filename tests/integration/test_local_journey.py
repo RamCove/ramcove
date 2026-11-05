@@ -45,8 +45,9 @@ def test_failing_and_passing_challengers_end_to_end(ctx):
     win = winning_submission(ctx, "miner-ada", "fragmentation-aware-allocator", "promoted")
     w = state(ctx, win["submission_id"])
     with tx(ctx.engine) as conn:
-        # nothing flagged it, so it was promoted without asking a person
-        assert conn.execute(select(reviews).where(reviews.c.submission_id == w.id)).first() is None
+        # every winner is held for review before promotion; this one's review approved it
+        rev = conn.execute(select(reviews).where(reviews.c.submission_id == w.id)).first()
+        assert rev is not None and rev.decision == "approve"
         cur = conn.execute(select(champions).where(champions.c.status == "current")).first()
         assert cur.version == 1 and cur.author_hotkey == w.hotkey
         plan = conn.execute(select(weight_plans).order_by(weight_plans.c.created_at.desc())).first()
@@ -181,6 +182,11 @@ def test_a_profile_can_require_another_evaluation_group_to_reproduce_the_winner(
         for _ in range(2):
             control.tick(ctx)
         w = state(ctx, sub["submission_id"])
+        if w.state == "in_review":
+            approve_review(ctx, sub["submission_id"])  # winner is held for review before promotion
+            for _ in range(2):
+                control.tick(ctx)
+            w = state(ctx, sub["submission_id"])
         outcomes.append((w.state, w.outcome_code, w.outcome_summary))
         if w.state == "promoted":
             break
@@ -214,6 +220,12 @@ def winning_submission(ctx, miner: str, fixture: str, expected: str) -> dict:
         admit_submission(ctx, sub["submission_id"], miner)
         drain(ctx)
         w = state(ctx, sub["submission_id"])
+        if w.state == "in_review" and expected != "in_review":
+            approve_review(ctx, sub["submission_id"])  # every winner is held for review before promotion
+            drain(ctx)
+            for _ in range(2):
+                control.tick(ctx)
+            w = state(ctx, sub["submission_id"])
         if w.state == expected:
             return {**sub, "attempts": attempts}
         assert w.state == "not_promoted" and w.outcome_summary, (w.state, w.outcome_code, w.outcome_summary)

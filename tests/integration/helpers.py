@@ -147,3 +147,12 @@ def approve_review(ctx, sub_id: str, reviewer_key: str = "reviewer-1") -> dict:
     return review.decide_review(
         ctx, rid, hk, "approve", "All published criteria passed in the demo review.", crit, False
     )
+
+
+def confirm_if_held(ctx, sub_id: str, workers=("w-op-1", "w-op-2")) -> None:
+    """Every winner is held for review before promotion; approve it so the journey can reach promoted."""
+    if state(ctx, sub_id).state == "in_review":
+        approve_review(ctx, sub_id)
+        drain(ctx, workers=workers)
+        for _ in range(2):
+            control.tick(ctx)

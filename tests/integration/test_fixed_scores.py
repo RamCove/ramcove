@@ -16,6 +16,7 @@ from .helpers import (
     ATTEMPTS,
     admit_submission,
     bring_workers_online,
+    confirm_if_held,
     drain,
     make_ctx,
     state,
@@ -36,6 +37,7 @@ def test_a_champion_says_which_score_its_gain_was_measured_against(ctx):
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
         admit_submission(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
+        confirm_if_held(ctx, sub["submission_id"])
         if state(ctx, sub["submission_id"]).state == "promoted":
             break
     else:

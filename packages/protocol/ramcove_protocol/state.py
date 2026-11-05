@@ -25,7 +25,7 @@ class S(StrEnum):
     # only when the profile sets reproduce_winners: another evaluation group repeats a winning reading
     REPRODUCE_QUEUED = "reproduce_queued"
     REPRODUCING = "reproducing"
-    IN_REVIEW = "in_review"  # only when an automatic check flags the winner
+    IN_REVIEW = "in_review"  # a winner held for review before promotion
     READY_FOR_PROMOTION = "ready_for_promotion"  # technically approved; waiting registration and order
     # terminal
     PROMOTED = "promoted"

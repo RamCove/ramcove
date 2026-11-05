@@ -541,7 +541,7 @@ def requeue_evaluation(conn: Connection, ctx: AppContext, sub, reason: str) -> N
 
 
 def automatic_flags(conn: Connection, sub, result: dict) -> list[str]:
-    """What sends a winner to a person before promotion; otherwise promotion is automatic."""
+    """Which published criteria to surface for the reviewer; every winner is reviewed regardless."""
     flags = list(result.get("review_flags") or [])
     art = conn.execute(select(artifacts).where(artifacts.c.sha256 == sub.artifact_sha256)).first()
     if art is not None:
@@ -594,7 +594,7 @@ def _record_readings(conn: Connection, job, readings: list[dict], cmp_id: str | 
 def _win(
     conn: Connection, ctx: AppContext, sub, profile, champ, gain_ppm: int, result: dict, via: str
 ) -> None:
-    """A challenger cleared the rule: automatic promotion unless a check flags it for a person."""
+    """A challenger cleared the rule: it is held for review before promotion."""
     flags = automatic_flags(conn, sub, result)
     common = dict(
         bound_gain_ppm=gain_ppm,
@@ -615,45 +615,28 @@ def _win(
             )
         )
         return
-    if flags:
-        transition(
-            conn,
-            ctx,
-            sub.id,
-            "eval_win_flagged" if via == "evaluation" else "reproduce_pass_flagged",
-            **common,
+    # Every winner is held for review before promotion; the automatic flags only mark which published
+    # criteria to look at first. The provisional gain is not published while it waits.
+    transition(
+        conn,
+        ctx,
+        sub.id,
+        "eval_win_flagged" if via == "evaluation" else "reproduce_pass_flagged",
+        **common,
+    )
+    conn.execute(
+        reviews.insert().values(
+            id=new_id("rev"),
+            submission_id=sub.id,
+            reviewer="unassigned",
+            criteria=[{**c, "flagged": c["id"] in _criteria_for(flags)} for c in review_criteria()],
+            reasons=None,
+            due_at=now() + timedelta(seconds=profile.deadlines.review_s),
         )
-        conn.execute(
-            reviews.insert().values(
-                id=new_id("rev"),
-                submission_id=sub.id,
-                reviewer="unassigned",
-                criteria=[{**c, "flagged": c["id"] in _criteria_for(flags)} for c in review_criteria()],
-                reasons=None,
-                due_at=now() + timedelta(seconds=profile.deadlines.review_s),
-            )
-        )
-        audit.append(
-            conn, "controller", "flagged_for_review", "submission", sub.id, {"flags": flags}, public=True
-        )
-    else:
-        transition(
-            conn,
-            ctx,
-            sub.id,
-            "eval_win" if via == "evaluation" else "reproduce_pass",
-            ready_since=now(),
-            **common,
-        )
-        audit.append(
-            conn,
-            "controller",
-            "cleared_for_promotion",
-            "submission",
-            sub.id,
-            {"gain_ppm": gain_ppm},
-            public=True,
-        )
+    )
+    audit.append(
+        conn, "controller", "winner_under_review", "submission", sub.id, {"flags": flags}, public=True
+    )
 
 
 def _criteria_for(flags: list[str]) -> set[str]:

@@ -16,6 +16,7 @@ from .helpers import (
     ATTEMPTS,
     admit_submission,
     bring_workers_online,
+    confirm_if_held,
     drain,
     make_ctx,
     only_measurement_noise,
@@ -41,6 +42,7 @@ def promote_one(ctx) -> str:
         sub = submit_fixture(ctx, "miner-ada", "fragmentation-aware-allocator", variant=variant)
         admit_submission(ctx, sub["submission_id"], "miner-ada")
         drain(ctx)
+        confirm_if_held(ctx, sub["submission_id"])
         st = state(ctx, sub["submission_id"])
         if st.state == "promoted":
             return sub["submission_id"]
