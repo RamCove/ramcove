@@ -444,14 +444,14 @@ function Idea() {
             <p>
               RamCove turns finding those changes into an open competition.
               Anyone can submit a patch to a pinned inference engine. The
-              owner-operated validator builds it in isolation, measures how many{" "}
+              operator-run validator builds it in isolation, measures how many{" "}
               <Term
                 term="qualified requests"
                 plain="Requests answered correctly, fast enough and without errors, at a steady rate"
               />{" "}
               per second it sustains, and compares it with the champion under
               identical conditions. Every validator sets its weights from the
-              owner&apos;s signed result.
+              operator&apos;s signed result.
             </p>
             <p>
               Each competition runs on a{" "}
@@ -751,7 +751,7 @@ function LiveBoard({ data }: { data: Overview }) {
             <p className="mt-6 text-[13px] leading-relaxed text-muted">
               Weight plans are published as proposals in simulation mode and set
               through commit-reveal in network mode. The kings receive the
-              miner allocation only, never owner or validator emissions.
+              miner allocation only, never operator or validator emissions.
             </p>
           </div>
         </div>
@@ -846,7 +846,7 @@ function Audiences() {
       title: "Set weights from signed results.",
       points: [
         "Run ramcove-validator on a CPU machine; no H100 needed",
-        "It checks the owner's signed weight result against the pinned key and the chain",
+        "It checks the operator's signed weight result against the pinned key and the chain",
         "It fails closed: without a valid result it submits nothing",
       ],
       href: "/docs#validators",

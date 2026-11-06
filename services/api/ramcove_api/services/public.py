@@ -233,7 +233,7 @@ def overview(ctx: AppContext) -> dict:
 
 def public_weight_plan(body: dict) -> dict:
     """The weight plan as the public site shows it: its status and notes, not the weights. Weights by hotkey
-    are in the owner's signed weight result, which is served only to validators."""
+    are in the operator's signed weight result, which is served only to validators."""
     keys = ("schema", "snapshot_block", "champion_version", "no_winner", "notes", "writer_enabled", "status")
     return {k: body.get(k) for k in keys} | {"simulated": body.get("simulated", True)}
 
@@ -750,7 +750,7 @@ def workflow(profile) -> list[dict]:
             "key": "screen",
             "name": "Screening",
             "what": (
-                f"Build, engine start, {screening:,} questions from this week's owner bank and the memory "
+                f"Build, engine start, {screening:,} questions from this week's operator bank and the memory "
                 "ceiling. A failure here ends the submission."
             ),
             "when": "Once, before any measurement",
