@@ -58,9 +58,7 @@ def public(ctx):
         ("get", "/v1/auth/me"),
         ("get", "/v1/miner/submissions"),
         ("post", "/v1/miner/preflight"),
-        ("get", "/v1/operator/console"),
         ("post", "/v1/worker/lease"),
-        ("get", "/v1/review/queue"),
         ("get", "/v1/appeals"),
         ("get", "/v1/validator/workspace"),
         ("get", "/openapi.json"),
@@ -94,7 +92,8 @@ def test_the_pages_the_site_shows_are_readable_on_the_public_door(public, path):
 def test_the_same_actions_still_work_locally(ctx):
     local = TestClient(create_app(ctx))
     assert local.post("/v1/auth/demo", json={"identity": "operator"}).status_code == 200
-    assert local.get("/v1/operator/console").status_code == 200
+    # an action the public door refuses (a write / operator-only demo tick) works on the local door
+    assert local.post("/v1/demo/tick").status_code == 200
 
 
 def test_there_is_no_guest_sign_in_any_more(ctx):

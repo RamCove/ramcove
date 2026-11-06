@@ -77,7 +77,7 @@ STAGE_LABEL = {
     "evaluating": "Evaluation running",
     "reproduce_queued": "Won, waiting for a second evaluation group to reproduce it",
     "reproducing": "Reproduction by a second evaluation group running",
-    "in_review": "Flagged for human review",
+    "in_review": "Finalizing",
     "ready_for_promotion": "Cleared, waiting in admission order",
     "promoted": "Champion",
     "not_promoted": "Did not replace the champion",
@@ -88,6 +88,10 @@ STAGE_LABEL = {
     "operator_failed": "Stopped by an operator-side failure",
     "withdrawn": "Withdrawn by the miner",
 }
+
+
+# A winner's provisional gain is not published while it is held for review, nor if that review rejects it.
+GAIN_HELD_STATES = {"in_review", "review_rejected"}
 
 
 def encode_cursor(values: list[Any]) -> str:
@@ -229,7 +233,7 @@ def overview(ctx: AppContext) -> dict:
 
 def public_weight_plan(body: dict) -> dict:
     """The weight plan as the public site shows it: its status and notes, not the weights. Weights by hotkey
-    are in the owner's signed weight result, which is served only to validators."""
+    are in the operator's signed weight result, which is served only to validators."""
     keys = ("schema", "snapshot_block", "champion_version", "no_winner", "notes", "writer_enabled", "status")
     return {k: body.get(k) for k in keys} | {"simulated": body.get("simulated", True)}
 
@@ -318,8 +322,8 @@ def queue_page(ctx: AppContext, kind: str = "admitted", cursor: str | None = Non
                         "worker": job.lease_worker,
                         "progress_label": progress_label(job.progress),
                     },
-                    "first_gain_ppm": r.first_gain_ppm,
-                    "bound_gain_ppm": r.bound_gain_ppm,
+                    "first_gain_ppm": None if r.state in GAIN_HELD_STATES else r.first_gain_ppm,
+                    "bound_gain_ppm": None if r.state in GAIN_HELD_STATES else r.bound_gain_ppm,
                     "outcome": None
                     if r.state not in {s.value for s in TERMINAL}
                     else {"code": r.outcome_code, "summary": r.outcome_summary},
@@ -401,8 +405,8 @@ def submission_view(ctx: AppContext, sub_id: str, viewer: str | None, roles: set
             "admitted_at": r.admitted_at,
             "compared_champion_version": r.compared_champion_version,
             "current_champion_version": champ.version,
-            "first_gain_ppm": r.first_gain_ppm,
-            "bound_gain_ppm": r.bound_gain_ppm,
+            "first_gain_ppm": None if r.state in GAIN_HELD_STATES else r.first_gain_ppm,
+            "bound_gain_ppm": None if r.state in GAIN_HELD_STATES else r.bound_gain_ppm,
             "margin_ppm": profile.replacement.delta_ppm,
             "clear_win_ppm": profile.replacement.clear_win_ppm,
             "outcome": {"code": r.outcome_code, "summary": r.outcome_summary},
@@ -746,7 +750,7 @@ def workflow(profile) -> list[dict]:
             "key": "screen",
             "name": "Screening",
             "what": (
-                f"Build, engine start, {screening:,} questions from this week's owner bank and the memory "
+                f"Build, engine start, {screening:,} questions from this week's operator bank and the memory "
                 "ceiling. A failure here ends the submission."
             ),
             "when": "Once, before any measurement",
@@ -806,9 +810,8 @@ def workflow(profile) -> list[dict]:
             "key": "promotion",
             "name": "Promotion",
             "what": (
-                "Automatic unless an automatic check flagged the work for a person. The new champion's code "
-                "is published, the weight plan is written, and the champion's fixed score is measured again "
-                "on every worker."
+                "The new champion's code is published, the weight plan is written, and the champion's "
+                "fixed score is measured again on every worker."
             ),
             "when": "In admission order",
             "gpu_centi": env.recalibration_on_promotion,

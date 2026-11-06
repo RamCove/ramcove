@@ -482,9 +482,9 @@ export default async function SubmissionPage({
               <div>
                 <dt className="font-medium text-text">Review</dt>
                 <dd>
-                  Only when an automatic check flags a winner, for example
-                  native code or third-party components. Otherwise promotion is
-                  automatic.
+                  A winner is reviewed against published criteria before
+                  promotion. Automatic checks can mark criteria such as native
+                  code or third-party components for closer attention.
                 </dd>
               </div>
               <div>

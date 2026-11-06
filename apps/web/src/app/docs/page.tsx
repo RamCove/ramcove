@@ -62,7 +62,7 @@ const WORKFLOW: { name: string; cost: string; what: string; why: string }[] = [
   {
     name: "Promotion",
     cost: "6.51 GPU-h, reserve",
-    what: "Automatic unless a check flagged it, in admission order. The champion's code is published and its score measured again on every worker.",
+    what: "In admission order. The champion's code is published and its score measured again on every worker.",
     why: "The next challenger is judged against a fresh number measured on the worker that will judge it.",
   },
 ];
@@ -255,9 +255,8 @@ export default function DocsPage() {
               <li>
                 Screening (10 minutes), then one evaluation against the
                 champion&apos;s fixed score. The questions come from the
-                owner&apos;s question bank for the week, the same for every
-                submission that week. A winner is promoted automatically unless
-                a check flags it for a person. Follow it with{" "}
+                operator&apos;s question bank for the week, the same for every
+                submission that week. Follow it with{" "}
                 <Mono>status</Mono> or on the{" "}
                 <Link href="/dashboard" className="text-accent hover:underline">
                   dashboard
@@ -296,7 +295,7 @@ uv run ramcove-miner status --submission sub_...`}
           id="validators"
           eyebrow="For validators"
           title="Set weights with ramcove-validator"
-          subtitle="Validators do not sign in here either. The owner-operated validator evaluates every submission; every validator submits weights from the owner's signed results."
+          subtitle="Validators do not sign in here either. The operator-run validator evaluates every submission; every validator submits weights from the operator's signed results."
           className="scroll-mt-24 lg:col-span-2"
         >
           <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
@@ -307,9 +306,9 @@ uv run ramcove-miner status --submission sub_...`}
                 a validator permit.
               </li>
               <li>
-                Every 30 seconds it fetches the owner&apos;s signed weight
-                result with a request signed by its hotkey (the owner serves it
-                only to validators), checks the signature against the owner key
+                Every 30 seconds it fetches the operator&apos;s signed weight
+                result with a request signed by its hotkey (the operator serves it
+                only to validators), checks the signature against the operator key
                 pinned in the program, and checks that the result is for this
                 chain and subnet and still valid.
               </li>
@@ -320,12 +319,12 @@ uv run ramcove-miner status --submission sub_...`}
                 exists. If anything is missing or wrong, it submits nothing.
               </li>
               <li>
-                Validators other than the owner run no H100 tests: they rely on
-                the owner&apos;s scores rather than checking performance
+                Validators other than the operator run no H100 tests: they rely on
+                the operator&apos;s scores rather than checking performance
                 themselves.
               </li>
               <li>
-                To run nothing at all, delegate stake weight to the owner&apos;s
+                To run nothing at all, delegate stake weight to the operator&apos;s
                 validator hotkey on this subnet with Bittensor&apos;s child
                 hotkeys.
               </li>
@@ -336,16 +335,16 @@ uv run ramcove-validator --api http://127.0.0.1:8787 \\
   --key-uri //YourDevKey
 
 # network mode: reads the chain directly
-uv run ramcove-validator --api https://<owner host>:8788 \\
+uv run ramcove-validator --api https://<operator host>:8788 \\
   --chain-endpoint wss://<rpc> --hotkey <your hotkey>
 
-# the owner's signing key; the result itself is served
+# the operator's signing key; the result itself is served
 # only to requests signed by a validator hotkey
-curl https://<owner host>:8788/v1/weights/signer`}
+curl https://<operator host>:8788/v1/weights/signer`}
             </pre>
           </div>
           <p className="mt-4 text-[12.5px] leading-relaxed text-faint">
-            The owner&apos;s evaluation workers run <Mono>ramcove-worker</Mono>{" "}
+            The operator&apos;s evaluation workers run <Mono>ramcove-worker</Mono>{" "}
             on whole H100 SXM GPUs, each candidate in a hardware-virtualized VM
             with no network, and a worker that cannot prove its isolation is
             never given untrusted code (see the{" "}
@@ -396,7 +395,7 @@ curl https://<owner host>:8788/v1/weights/signer`}
             <tr>
               <Td>Question bank</Td>
               <Td>
-                The owner&apos;s secret questions for one week: screening,
+                The operator&apos;s secret questions for one week: screening,
                 quality and the traffic scripts. Its fingerprint is published
                 before the week starts and the bank itself after it ends.
               </Td>
