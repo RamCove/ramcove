@@ -77,7 +77,7 @@ STAGE_LABEL = {
     "evaluating": "Evaluation running",
     "reproduce_queued": "Won, waiting for a second evaluation group to reproduce it",
     "reproducing": "Reproduction by a second evaluation group running",
-    "in_review": "In review",
+    "in_review": "Finalizing",
     "ready_for_promotion": "Cleared, waiting in admission order",
     "promoted": "Champion",
     "not_promoted": "Did not replace the champion",

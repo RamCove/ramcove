@@ -167,7 +167,7 @@ const GROUPS: {
   {
     key: "in_progress",
     label: "In evaluation",
-    hint: "in the queue, being measured or reviewed",
+    hint: "in the queue or being measured",
     tone: "text-accent-ink",
     bar: "bg-accent",
   },
@@ -609,7 +609,7 @@ export default async function DashboardPage({
             : "All submissions"
         }
         title={`${items.length} submission${items.length === 1 ? "" : "s"}`}
-        subtitle="Newest activity first. Open a row for its full timeline, measurements and reviews."
+        subtitle="Newest activity first. Open a row for its full timeline and measurements."
         actions={
           filter ? (
             <Link href="/dashboard" className="link text-[14px]">

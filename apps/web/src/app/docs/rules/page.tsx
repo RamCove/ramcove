@@ -268,8 +268,7 @@ export default async function CompetitionPage() {
             per worker, when it is crowned, and never again. If another
             submission is crowned while a measured winner waits, the winner is
             set against the new champion by arithmetic, (1 + G) / (1 + G
-            <sub>new</sub>) − 1: nothing is measured again. A person reviews a winner only when an automatic check
-            flags it.{" "}
+            <sub>new</sub>) − 1: nothing is measured again.{" "}
             {r.calibrated
               ? ""
               : "The margin, clear-win line and rate grid are uncalibrated until a noise study is published."}
